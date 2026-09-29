@@ -169,13 +169,13 @@ export function Grid({ min, gap = 16, children, style }: { min: number; gap?: nu
   const [w, setW] = useState(0);
   const kids = Children.toArray(children).filter(Boolean);
   const cols = w ? Math.max(1, Math.min(kids.length || 1, Math.floor((w + gap) / (Math.min(min, w) + gap)))) : 1;
-  const cw = w ? (w - gap * (cols - 1)) / cols : undefined;
+  const cw = w ? Math.floor((w - 1 - gap * (cols - 1)) / cols) : undefined; // floor: onLayout widths are rounded
   return (
     <View style={[{ flexDirection: 'row', flexWrap: 'wrap', gap }, style]} onLayout={e => setW(e.nativeEvent.layout.width)}>
       {kids.map((k, i) => (
         <View key={i} style={{ width: cw ?? '100%', minWidth: 0 }}>
           {/* like CSS grid: items in a row stretch to equal height */}
-          {isValidElement(k) ? cloneElement(k as ReactElement<{ style?: StyleProp<ViewStyle> }>, { style: [{ flexGrow: 1 }, (k as ReactElement<{ style?: StyleProp<ViewStyle> }>).props.style] }) : k}
+          {isValidElement(k) && typeof (k as ReactElement<{ style?: unknown }>).props.style !== 'function' ? cloneElement(k as ReactElement<{ style?: StyleProp<ViewStyle> }>, { style: [{ flexGrow: 1 }, (k as ReactElement<{ style?: StyleProp<ViewStyle> }>).props.style] }) : k}
         </View>
       ))}
     </View>
