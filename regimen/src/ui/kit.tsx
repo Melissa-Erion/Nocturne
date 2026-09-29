@@ -413,7 +413,7 @@ export function Stripes({ style, children }: { style?: StyleProp<ViewStyle>; chi
   return (
     <View style={[{ overflow: 'hidden', backgroundColor: C.n900, borderRadius: R.md, alignItems: 'center', justifyContent: 'center' }, style]}>
       <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
-        {Array.from({ length: 40 }, (_, i) => <Line key={i} x1={i * 14 - 300} y1={0} x2={i * 14} y2={300} stroke={C.n800} strokeWidth={5} />)}
+        {Array.from({ length: 220 }, (_, i) => <Line key={i} x1={i * 14 - 1500} y1={0} x2={i * 14} y2={1500} stroke={C.n800} strokeWidth={5} />)}
       </Svg>
       {children}
     </View>
