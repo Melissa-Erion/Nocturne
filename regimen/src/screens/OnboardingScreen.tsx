@@ -57,11 +57,6 @@ export default function OnboardingScreen() {
   });
   const setD = (patch: Partial<Draft>) => setDraft(x => ({ ...x, ...patch }));
   const set = <K extends keyof Draft>(k: K) => (v: Draft[K]) => setD({ [k]: v } as Partial<Draft>);
-  // Protein defaults to 1 g per lb of body weight and follows the weight field until the user types their own protein target.
-  const [proteinEdited, setProteinEdited] = useState(false);
-  const proteinFor = (w: number | null) => (w != null && w > 0 ? Math.round(RG.toKg(w) * 2.20462) : null);
-  const setWeight = (w: number | null) => { const pr = proteinFor(w); setD(proteinEdited || pr == null ? { weight: w } : { weight: w, protein: pr }); };
-  const setProtein = (v: number | null) => { setProteinEdited(true); setD({ protein: v }); };
   const toggleIn = <K extends 'trainingDays' | 'equipment' | 'priorities' | 'dietPrefs'>(k: K, v: Draft[K][number]) => () =>
     setDraft(x => { const a = x[k] as (string | number)[]; return { ...x, [k]: a.includes(v) ? a.filter(y => y !== v) : a.concat([v]) }; });
 
@@ -183,7 +178,7 @@ export default function OnboardingScreen() {
             </Row>
             <Grid min={170} gap={12}>
               <Field label="Name (optional)"><Input value={d.name} onChange={set('name')} {...big} placeholder="What should we call you?" autoComplete="given-name" /></Field>
-              <Field label={`Current weight (${wu})`}><NumInput value={d.weight} onValue={setWeight} {...big} /></Field>
+              <Field label={`Current weight (${wu})`}><NumInput value={d.weight} onValue={set('weight')} {...big} /></Field>
               <Field label={`Goal weight (${wu}, optional)`}><NumInput value={d.goalWeight} onValue={set('goalWeight')} {...big} /></Field>
               <Field label={`Height (${lu})`}><NumInput value={d.height} onValue={set('height')} {...big} /></Field>
               <Field label="Age"><NumInput value={d.age} onValue={v => setD({ age: v == null ? null : Math.round(v) })} {...big} /></Field>
@@ -221,7 +216,7 @@ export default function OnboardingScreen() {
             </View>
             <Grid min={140} gap={12}>
               <Field label="Calories (kcal)"><NumInput value={d.kcal} onValue={set('kcal')} {...big} /></Field>
-              <Field label="Protein (g)" hint="Default: 1 g per lb of body weight. Type your own to customise."><NumInput value={d.protein} onValue={setProtein} {...big} /></Field>
+              <Field label="Protein (g)"><NumInput value={d.protein} onValue={set('protein')} {...big} /></Field>
               <Field label="Carbohydrates (g)"><NumInput value={d.carbs} onValue={set('carbs')} {...big} /></Field>
               <Field label="Fat (g)"><NumInput value={d.fat} onValue={set('fat')} {...big} /></Field>
               <Field label="Meals per day"><NumInput value={d.meals} onValue={set('meals')} {...big} /></Field>
