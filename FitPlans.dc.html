@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-124ecda7-7b17-42bd-b77f-decc2e83e187/styles.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<script src="store.js"></script>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:16px">
+<header style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
+<div style="margin-right:auto"><div style="font-size:12px;color:var(--color-neutral-500)">You build the plan. Regimen schedules it and tracks progress.</div><h2 style="margin:2px 0 0;font-size:28px">Workout Plans</h2></div>
+<button class="btn btn-secondary" onClick="{{ duplicate }}"><i class="ph ph-copy"></i>Duplicate plan</button>
+<button class="btn btn-secondary" onClick="{{ newPlan }}"><i class="ph ph-plus"></i>New plan</button>
+</header>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<sc-for list="{{ plans }}" as="p" hint-placeholder-count="2">
+<button onClick="{{ p.open }}" style="{{ p.style }}"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:14px;font-weight:500">{{ p.name }}</span><sc-if value="{{ p.active }}" hint-placeholder-val="{{ false }}"><span class="tag tag-accent">Active</span></sc-if></div><span style="font-size:12px;color:var(--color-neutral-500)">{{ p.sub }}</span></button>
+</sc-for>
+</div>
+<section class="card elev-sm" style="padding:16px 18px;gap:12px">
+<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+<input class="input" value="{{ planName }}" onChange="{{ setPlanName }}" style="font-size:18px;max-width:360px">
+<span style="flex:1"></span>
+<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;color:var(--color-neutral-300)"><input type="checkbox" checked="{{ allowConsec }}" onChange="{{ toggleConsec }}" style="accent-color:var(--color-accent)">Allow same muscle group on consecutive days</label>
+<sc-if value="{{ notActive }}" hint-placeholder-val="{{ false }}"><button class="btn btn-primary" onClick="{{ activate }}">Use this plan</button></sc-if>
+</div>
+<textarea class="input" style="min-height:52px;font-size:13px" onChange="{{ setPlanNote }}" value="{{ planNote }}" placeholder="Plan notes and progression rules"></textarea>
+<div style="display:flex;flex-direction:column;gap:6px">
+<div style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-neutral-500)">Rotation order</div>
+<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+<sc-for list="{{ rotation }}" as="r" hint-placeholder-count="4"><span style="display:inline-flex;align-items:center;gap:4px;padding:4px 4px 4px 10px;border-radius:6px;background:var(--color-neutral-900);font-size:12px">{{ r.name }}<button class="btn btn-icon btn-ghost" style="width:24px;height:24px" onClick="{{ r.left }}" title="Earlier"><i class="ph ph-caret-left"></i></button><button class="btn btn-icon btn-ghost" style="width:24px;height:24px" onClick="{{ r.right }}" title="Later"><i class="ph ph-caret-right"></i></button></span></sc-for>
+</div>
+</div>
+</section>
+<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+<sc-for list="{{ workouts }}" as="w" hint-placeholder-count="4"><button onClick="{{ w.open }}" style="{{ w.style }}">{{ w.name }}</button></sc-for>
+<button class="btn btn-ghost" onClick="{{ addWorkout }}"><i class="ph ph-plus"></i>Add workout</button>
+</div>
+<section class="card elev-sm" style="padding:16px 18px;gap:12px">
+<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+<div class="field" style="flex:1;min-width:200px"><label>Workout name</label><input class="input" value="{{ wName }}" onChange="{{ setWName }}"></div>
+<div class="field" style="flex:1;min-width:200px"><label>Focus / muscle groups</label><input class="input" value="{{ wFocus }}" onChange="{{ setWFocus }}"></div>
+<div class="field"><label>Region (for recovery rules)</label><select class="input" value="{{ wRegion }}" onChange="{{ setWRegion }}"><option value="upper">Upper</option><option value="lower">Lower</option><option value="full">Full body</option><option value="core">Core / conditioning</option></select></div>
+<button class="btn btn-ghost" style="color:var(--color-neutral-400)" onClick="{{ removeWorkout }}"><i class="ph ph-trash"></i>Remove workout</button>
+</div>
+<div style="overflow-x:auto">
+<table class="table" style="min-width:1040px">
+<thead><tr><th style="width:34px">#</th><th>Exercise</th><th>Sets</th><th>Reps</th><th>Target {{ wu }}</th><th>Rest s</th><th>Tempo</th><th>RIR</th><th>Warm-ups</th><th>Superset</th><th>Notes</th><th></th></tr></thead>
+<tbody>
+<sc-for list="{{ items }}" as="i" hint-placeholder-count="6">
+<tr>
+<td style="color:var(--color-neutral-500)">{{ i.n }}</td>
+<td><select class="input" value="{{ i.exId }}" onChange="{{ i.setEx }}" style="min-width:190px"><sc-for list="{{ exOptions }}" as="o" hint-placeholder-count="10"><option value="{{ o.id }}">{{ o.label }}</option></sc-for></select><sc-if value="{{ i.hasReplaced }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;color:var(--color-neutral-500);margin-top:3px">{{ i.replacedNote }}</div></sc-if></td>
+<td><input class="input" type="number" value="{{ i.sets }}" onChange="{{ i.setSets }}" style="width:56px"></td>
+<td><div style="display:flex;align-items:center;gap:3px"><input class="input" type="number" value="{{ i.repMin }}" onChange="{{ i.setMin }}" style="width:52px">–<input class="input" type="number" value="{{ i.repMax }}" onChange="{{ i.setMax }}" style="width:52px"></div></td>
+<td><input class="input" type="number" value="{{ i.targetKg }}" placeholder="{{ i.targetPh }}" onChange="{{ i.setTarget }}" style="width:72px"></td>
+<td><input class="input" type="number" value="{{ i.rest }}" onChange="{{ i.setRest }}" style="width:64px"></td>
+<td><input class="input" value="{{ i.tempo }}" onChange="{{ i.setTempo }}" style="width:82px"></td>
+<td><input class="input" type="number" value="{{ i.rir }}" onChange="{{ i.setRir }}" style="width:52px"></td>
+<td><input class="input" type="number" value="{{ i.warmups }}" onChange="{{ i.setWarm }}" style="width:52px"></td>
+<td><input class="input" value="{{ i.superset }}" onChange="{{ i.setSS }}" placeholder="—" style="width:48px"></td>
+<td><input class="input" value="{{ i.notes }}" onChange="{{ i.setNotes }}" placeholder="Cues" style="min-width:120px"></td>
+<td><div style="display:flex;gap:2px"><button class="btn btn-icon btn-ghost" style="width:28px;height:28px" onClick="{{ i.up }}" title="Move up"><i class="ph ph-arrow-up"></i></button><button class="btn btn-icon btn-ghost" style="width:28px;height:28px" onClick="{{ i.down }}" title="Move down"><i class="ph ph-arrow-down"></i></button><button class="btn btn-icon btn-ghost" style="width:28px;height:28px;color:var(--color-neutral-500)" onClick="{{ i.remove }}" title="Remove"><i class="ph ph-x"></i></button></div></td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn btn-secondary" onClick="{{ addItem }}"><i class="ph ph-plus"></i>Add exercise</button><span style="font-size:12px;color:var(--color-neutral-500)">Changing an exercise replaces it going forward. Past sessions and records for the original stay in Exercise History.</span></div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { planId: null, wid: null };
+  componentDidMount() { const h = () => { if (!window.RG) return this.t = setTimeout(h, 30); this.u = window.RG.subscribe(() => this.forceUpdate()); this.forceUpdate(); }; h(); }
+  componentWillUnmount() { this.u && this.u(); clearTimeout(this.t); }
+  renderVals() {
+    const RG = window.RG; if (!RG) return {};
+    const S = RG.s; const planId = this.state.planId || S.activePlanId; const plan = S.plans.find(p => p.id === planId) || S.plans[0];
+    const wk = plan.workouts.find(w => w.id === this.state.wid) || plan.workouts[0];
+    const up = fn => RG.update(s => { const p = s.plans.find(x => x.id === plan.id); fn(p, p.workouts.find(w => w.id === wk.id)); });
+    const tab = on => ({ font: 'inherit', fontSize: '13px', padding: '7px 14px', borderRadius: '6px', cursor: 'pointer', background: on ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : 'transparent', border: '1px solid ' + (on ? 'var(--color-accent)' : 'var(--color-neutral-800)'), color: on ? 'var(--color-accent)' : 'var(--color-neutral-300)' });
+    const num = (k, conv) => ev => { const v = ev.target.value; up((p, w) => { const it = w.items[this._i]; }); };
+    const items = wk.items.map((it, idx) => {
+      const set = (k, conv) => ev => { const v = ev.target.value; up((p, w) => { w.items[idx][k] = conv ? conv(v) : v; }); };
+      const n = v => v === '' ? '' : Number(v);
+      return { n: idx + 1, exId: it.exId, sets: it.sets, repMin: it.repMin, repMax: it.repMax, rest: it.rest, tempo: it.tempo, rir: it.rir, warmups: it.warmups, superset: it.superset, notes: it.notes,
+        targetKg: it.targetKg == null || it.targetKg === '' ? '' : RG.w(it.targetKg), targetPh: (() => { const r = RG.recommend(it.exId, it); return r && r.kg != null ? RG.w(r.kg) : 'auto'; })(),
+        hasReplaced: it.replaced && it.replaced.length > 0, replacedNote: it.replaced && it.replaced.length ? 'Replaced ' + it.replaced.map(r => `${RG.ex(r.exId).name} (${RG.fmtShort(r.date)})`).join(', ') + ' · history kept' : '',
+        setEx: ev => { const v = ev.target.value; up((p, w) => { const i2 = w.items[idx]; if (i2.exId !== v) { i2.replaced = i2.replaced || []; i2.replaced.push({ exId: i2.exId, date: RG.TODAY }); i2.exId = v; } }); RG.toast('Exercise replaced. Original history preserved.'); },
+        setSets: set('sets', n), setMin: set('repMin', n), setMax: set('repMax', n), setRest: set('rest', n), setTempo: set('tempo'), setRir: set('rir', n), setWarm: set('warmups', n), setSS: set('superset', v => v.toUpperCase().slice(0, 2)), setNotes: set('notes'),
+        setTarget: set('targetKg', v => v === '' ? '' : RG.r1(RG.toKg(Number(v)))),
+        up: () => up((p, w) => { if (idx > 0) { const t = w.items[idx - 1]; w.items[idx - 1] = w.items[idx]; w.items[idx] = t; } }),
+        down: () => up((p, w) => { if (idx < w.items.length - 1) { const t = w.items[idx + 1]; w.items[idx + 1] = w.items[idx]; w.items[idx] = t; } }),
+        remove: () => up((p, w) => { w.items.splice(idx, 1); }) };
+    });
+    const exOptions = Object.values(RG.EX).sort((a, b) => a.muscle < b.muscle ? -1 : a.muscle > b.muscle ? 1 : a.name < b.name ? -1 : 1).map(e => ({ id: e.id, label: `${e.name} · ${e.muscle}` }));
+    return {
+      wu: RG.wu(),
+      plans: S.plans.map(p => ({ name: p.name, active: p.id === S.activePlanId, sub: `${p.workouts.length} workouts · ${p.rotation.map(r => r).join(' → ')}`, open: () => this.setState({ planId: p.id, wid: null }),
+        style: { display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-start', padding: '10px 14px', borderRadius: 'var(--radius-md)', font: 'inherit', color: 'var(--color-text)', cursor: 'pointer', textAlign: 'left', background: p.id === plan.id ? 'var(--color-surface)' : 'transparent', border: '1px solid ' + (p.id === plan.id ? 'var(--color-accent-700)' : 'var(--color-neutral-800)') } })),
+      planName: plan.name, planNote: plan.note || '', setPlanName: ev => { const v = ev.target.value; up(p => p.name = v); }, setPlanNote: ev => { const v = ev.target.value; up(p => p.note = v); },
+      allowConsec: !!plan.allowConsecutive, toggleConsec: () => up(p => p.allowConsecutive = !p.allowConsecutive),
+      notActive: plan.id !== S.activePlanId, activate: () => { RG.update(s => { s.activePlanId = plan.id; s.schedule = s.schedule.filter(e => !(e.status === 'planned' && e.date >= RG.TODAY)); }); RG.regenerate(RG.TODAY); RG.toast(`${plan.name} is now active. Future sessions rescheduled from today; history kept.`); },
+      rotation: plan.rotation.map((id, i) => ({ name: (plan.workouts.find(w => w.id === id) || {}).name || id,
+        left: () => up(p => { if (i > 0) { const r = p.rotation; [r[i - 1], r[i]] = [r[i], r[i - 1]]; } }), right: () => up(p => { const r = p.rotation; if (i < r.length - 1) [r[i + 1], r[i]] = [r[i], r[i + 1]]; }) })),
+      workouts: plan.workouts.map(w => ({ name: w.name, open: () => this.setState({ wid: w.id }), style: tab(w.id === wk.id) })),
+      wName: wk.name, wFocus: wk.focus, wRegion: wk.region, setWName: ev => { const v = ev.target.value; up((p, w) => w.name = v); }, setWFocus: ev => { const v = ev.target.value; up((p, w) => w.focus = v); }, setWRegion: ev => { const v = ev.target.value; up((p, w) => w.region = v); },
+      items, exOptions,
+      addItem: () => up((p, w) => w.items.push({ id: RG.uid(), exId: 'goblet', sets: 3, repMin: 8, repMax: 12, rir: 2, rest: 90, tempo: '2-0-1-0', warmups: 0, superset: '', notes: '', replaced: [] })),
+      addWorkout: () => { const id = 'W' + RG.uid().slice(0, 3).toUpperCase(); up(p => { p.workouts.push({ id, name: 'New workout', focus: '', muscles: [], region: 'full', items: [] }); p.rotation.push(id); }); this.setState({ wid: id }); },
+      removeWorkout: () => { if (plan.workouts.length <= 1) return; if (!confirm(`Remove ${wk.name} from this plan? Logged sessions stay in your history.`)) return; up(p => { p.workouts = p.workouts.filter(w => w.id !== wk.id); p.rotation = p.rotation.filter(r => r !== wk.id); }); this.setState({ wid: null }); },
+      duplicate: () => { const c = JSON.parse(JSON.stringify(plan)); c.id = 'p' + RG.uid(); c.name = plan.name + ' (copy)'; RG.update(s => s.plans.push(c)); this.setState({ planId: c.id, wid: null }); },
+      newPlan: () => { const id = 'p' + RG.uid(); RG.update(s => s.plans.push({ id, name: 'My plan', note: '', workouts: [{ id: 'A', name: 'Workout A', focus: '', muscles: [], region: 'full', items: [] }], rotation: ['A'], allowConsecutive: false })); this.setState({ planId: id, wid: null }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

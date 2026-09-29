@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-124ecda7-7b17-42bd-b77f-decc2e83e187/styles.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<script src="store.js"></script>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:16px">
+<header style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
+<div style="margin-right:auto"><div style="font-size:12px;color:var(--color-neutral-500)">{{ planName }}</div><h2 style="margin:2px 0 0;font-size:28px">My Schedule</h2></div>
+<div class="seg"><button onClick="{{ vDay }}" style="{{ sDay }}">Day</button><button onClick="{{ vWeek }}" style="{{ sWeek }}">Week</button><button onClick="{{ vMonth }}" style="{{ sMonth }}">Month</button></div>
+<div style="display:flex;gap:4px"><button class="btn btn-icon btn-secondary" onClick="{{ prev }}" aria-label="Previous"><i class="ph ph-caret-left"></i></button><button class="btn btn-secondary" onClick="{{ today }}">Today</button><button class="btn btn-icon btn-secondary" onClick="{{ next }}" aria-label="Next"><i class="ph ph-caret-right"></i></button></div>
+<sc-if value="{{ notPaused }}" hint-placeholder-val="{{ true }}"><button class="btn btn-secondary" onClick="{{ openPause }}"><i class="ph ph-pause"></i>Pause schedule</button></sc-if>
+<sc-if value="{{ paused }}" hint-placeholder-val="{{ false }}"><button class="btn btn-primary" onClick="{{ resume }}"><i class="ph ph-play"></i>Resume schedule</button></sc-if>
+<button class="btn btn-secondary" onClick="{{ exportIcs }}"><i class="ph ph-calendar-plus"></i>Export .ics</button>
+</header>
+<div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--color-neutral-400)">
+<span style="font-size:15px;color:var(--color-text)">{{ rangeLabel }}</span>
+<label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" checked="{{ shiftLater }}" onChange="{{ toggleShift }}" style="accent-color:var(--color-accent);width:16px;height:16px">Shift later workouts when one moves</label>
+<label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" checked="{{ calSync }}" onChange="{{ toggleSync }}" style="accent-color:var(--color-accent);width:16px;height:16px">Show in main calendar</label>
+<span style="margin-left:auto;display:flex;gap:12px;flex-wrap:wrap;font-size:11px"><span><i class="ph-fill ph-check-circle" style="color:var(--color-accent)"></i> Logged</span><span><i class="ph ph-circle-dashed"></i> Planned</span><span><i class="ph ph-x-circle"></i> Missed</span><span><i class="ph ph-skip-forward-circle"></i> Skipped</span><span><i class="ph ph-pause"></i> Paused</span></span>
+</div>
+<sc-if value="{{ swapMode }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius-md);background:var(--color-accent-900);box-shadow:inset 0 0 0 1px var(--color-accent-700);font-size:14px"><i class="ph ph-arrows-left-right" style="color:var(--color-accent)"></i><span style="flex:1">Swapping {{ swapName }} — pick another planned workout to trade days with.</span><button class="btn btn-secondary" onClick="{{ cancelSwap }}">Cancel</button></div>
+</sc-if>
+<sc-if value="{{ isWeek }}" hint-placeholder-val="{{ true }}">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:8px">
+<sc-for list="{{ weekDays }}" as="d" hint-placeholder-count="7">
+<div onDragOver="{{ d.over }}" onDrop="{{ d.drop }}" onDragLeave="{{ d.leave }}" style="{{ d.cell }}">
+<button onClick="{{ d.openDay }}" style="display:flex;align-items:baseline;gap:6px;padding:0;border:0;background:none;font:inherit;cursor:pointer;color:inherit"><span style="{{ d.dnStyle }}">{{ d.dn }}</span><span style="font-size:12px;color:var(--color-neutral-500)">{{ d.dm }}</span><span style="font-size:10px;color:var(--color-neutral-600)">{{ d.tag }}</span></button>
+<sc-for list="{{ d.items }}" as="e" hint-placeholder-count="1">
+<div draggable="{{ e.drag }}" onDragStart="{{ e.dragStart }}" onDragEnd="{{ e.dragEnd }}" onClick="{{ e.select }}" style="{{ e.style }}">
+<div style="display:flex;align-items:center;gap:6px"><i class="{{ e.icon }}" style="font-size:14px"></i><span style="font-size:13px;font-weight:500;flex:1">{{ e.name }}</span><i class="ph ph-dots-six-vertical" style="{{ e.gripStyle }}"></i></div>
+<div style="font-size:11px;opacity:0.75">{{ e.sub }}</div>
+</div>
+</sc-for>
+<sc-if value="{{ d.empty }}" hint-placeholder-val="{{ true }}"><div style="font-size:12px;color:var(--color-neutral-600);padding:4px 2px">{{ d.emptyLabel }}</div></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{ isMonth }}" hint-placeholder-val="{{ false }}">
+<div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px">
+<sc-for list="{{ dowHead }}" as="h" hint-placeholder-count="7"><div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-neutral-500);padding:0 6px 4px">{{ h }}</div></sc-for>
+<sc-for list="{{ monthDays }}" as="d" hint-placeholder-count="35">
+<div onDragOver="{{ d.over }}" onDrop="{{ d.drop }}" onDragLeave="{{ d.leave }}" onClick="{{ d.openDay }}" style="{{ d.cell }}">
+<span style="{{ d.numStyle }}">{{ d.num }}</span>
+<sc-for list="{{ d.items }}" as="e" hint-placeholder-count="0">
+<div draggable="{{ e.drag }}" onDragStart="{{ e.dragStart }}" onDragEnd="{{ e.dragEnd }}" style="{{ e.pill }}"><i class="{{ e.icon }}"></i><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ e.short }}</span></div>
+</sc-for>
+</div>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{ isDay }}" hint-placeholder-val="{{ false }}">
+<section class="card elev-sm" style="padding:18px 20px;gap:12px">
+<div style="display:flex;align-items:baseline;gap:10px"><h3 style="margin:0;font-size:24px">{{ dayTitle }}</h3><span style="font-size:13px;color:var(--color-neutral-500)">{{ dayType }}</span></div>
+<sc-for list="{{ dayItems }}" as="e" hint-placeholder-count="1">
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><i class="{{ e.icon }}" style="font-size:20px;color:var(--color-accent)"></i><span style="font-size:18px;flex:1">{{ e.name }}</span><span class="tag tag-neutral">{{ e.statusLabel }}</span><button class="btn btn-secondary" onClick="{{ e.select }}">Actions</button></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px 18px">
+<sc-for list="{{ e.exercises }}" as="x" hint-placeholder-count="6"><div style="display:flex;gap:8px;font-size:13px;padding:6px 0;background:linear-gradient(to right,transparent,var(--color-divider) 48px,var(--color-divider) calc(100% - 48px),transparent) no-repeat top/100% 1px"><span style="flex:1">{{ x.name }}</span><span style="color:var(--color-neutral-500)">{{ x.scheme }}</span></div></sc-for>
+</div>
+</div>
+</sc-for>
+<sc-if value="{{ dayEmpty }}" hint-placeholder-val="{{ false }}"><div style="font-size:14px;color:var(--color-neutral-400)">No workout scheduled. Rest and recovery count as training too.</div></sc-if>
+</section>
+</sc-if>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:16px">
+<section class="card elev-sm" style="padding:16px 18px;gap:10px">
+<div class="card-title">Rotation</div>
+<div style="font-size:12px;color:var(--color-neutral-500)">Workouts always run in this order. Skipping, moving or pausing never loses your place.</div>
+<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+<sc-for list="{{ rotation }}" as="r" hint-placeholder-count="4"><span style="{{ r.style }}">{{ r.name }}</span><i class="ph ph-arrow-right" style="{{ r.arrow }}"></i></sc-for>
+</div>
+<div style="font-size:13px;color:var(--color-neutral-300)">{{ nextUp }}</div>
+<div style="font-size:12px;color:var(--color-neutral-500)">Training days: {{ trainDays }} · Rest: {{ restDays }} · Recovery rule: {{ recoveryRule }}</div>
+</section>
+<section class="card elev-sm" style="padding:16px 18px;gap:8px">
+<div class="card-title">Needs attention</div>
+<sc-for list="{{ attention }}" as="a" hint-placeholder-count="2">
+<div style="display:flex;align-items:center;gap:10px;font-size:13px;padding:4px 0"><i class="{{ a.icon }}" style="color:var(--color-neutral-400)"></i><span style="flex:1">{{ a.text }}</span><button class="btn btn-ghost" style="font-size:12px" onClick="{{ a.act }}">{{ a.actLabel }}</button></div>
+</sc-for>
+<sc-if value="{{ noAttention }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--color-neutral-500)">Nothing missed or skipped in the last four weeks.</div></sc-if>
+<sc-for list="{{ pauses }}" as="p" hint-placeholder-count="0"><div style="font-size:12px;color:var(--color-neutral-500)"><i class="ph ph-pause"></i> Paused {{ p.range }} · {{ p.reason }}</div></sc-for>
+</section>
+</div>
+<sc-if value="{{ hasSel }}" hint-placeholder-val="{{ false }}">
+<div class="dialog-backdrop" style="z-index:50" onClick="{{ closeSel }}"><div class="dialog" onClick="{{ stop }}" style="width:min(480px,100%)">
+<div style="display:flex;align-items:flex-start;gap:10px"><div style="flex:1"><div class="card-kicker">{{ selDate }} · {{ selStatus }}</div><div class="dialog-title" style="margin-top:4px">{{ selName }}</div></div><button class="btn btn-icon btn-ghost" onClick="{{ closeSel }}"><i class="ph ph-x" style="color:var(--color-text)"></i></button></div>
+<div style="font-size:13px;color:var(--color-neutral-400)">{{ selHint }}</div>
+<sc-if value="{{ selPlanned }}" hint-placeholder-val="{{ false }}">
+<div class="field"><label>Move to date</label><div style="display:flex;gap:6px"><input class="input" type="date" value="{{ moveDate }}" onChange="{{ setMoveDate }}"><button class="btn btn-primary" onClick="{{ doMove }}">Move</button></div></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px">
+<button class="btn btn-secondary" onClick="{{ doStart }}"><i class="ph ph-play"></i>Open workout</button>
+<button class="btn btn-secondary" onClick="{{ doSwap }}"><i class="ph ph-arrows-left-right"></i>Swap with…</button>
+<button class="btn btn-secondary" onClick="{{ doSkip }}"><i class="ph ph-skip-forward"></i>Skip</button>
+<button class="btn btn-secondary" onClick="{{ doMiss }}"><i class="ph ph-x-circle"></i>Mark missed</button>
+</div>
+</sc-if>
+<sc-if value="{{ selMissed }}" hint-placeholder-val="{{ false }}">
+<div class="field"><label>Reschedule to</label><div style="display:flex;gap:6px"><input class="input" type="date" value="{{ moveDate }}" onChange="{{ setMoveDate }}"><button class="btn btn-primary" onClick="{{ doReschedule }}">Reschedule</button></div></div>
+<button class="btn btn-secondary" onClick="{{ doRestore }}">Undo — set back to planned</button>
+</sc-if>
+<sc-if value="{{ selDone }}" hint-placeholder-val="{{ false }}"><button class="btn btn-secondary" onClick="{{ doHistory }}"><i class="ph ph-clock-counter-clockwise"></i>View logged session</button></sc-if>
+</div></div>
+</sc-if>
+<sc-if value="{{ dlgPause }}" hint-placeholder-val="{{ false }}">
+<div class="dialog-backdrop" style="z-index:50" onClick="{{ closePause }}"><div class="dialog" onClick="{{ stop }}">
+<div class="dialog-title">Pause schedule</div>
+<div class="dialog-body">Planned workouts in the pause are taken off the calendar. When you resume, the rotation picks up with the next workout in order.</div>
+<div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ reasons }}" as="r" hint-placeholder-count="5"><button onClick="{{ r.pick }}" style="{{ r.style }}">{{ r.label }}</button></sc-for></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div class="field"><label>From</label><input class="input" type="date" value="{{ pFrom }}" onChange="{{ setPFrom }}"></div><div class="field"><label>Until (optional)</label><input class="input" type="date" value="{{ pTo }}" onChange="{{ setPTo }}"></div></div>
+<div class="dialog-actions"><button class="btn btn-secondary" onClick="{{ closePause }}">Cancel</button><button class="btn btn-primary" onClick="{{ doPause }}">Pause</button></div>
+</div></div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { view: 'week', anchor: null, sel: null, moveDate: '', swapFrom: null, dragId: null, over: null, dlgPause: false, reason: 'Travel', pFrom: '', pTo: '' };
+  componentDidMount() { const h = () => { if (!window.RG) return this.t = setTimeout(h, 30); this.u = window.RG.subscribe(() => this.forceUpdate()); this.forceUpdate(); }; h(); }
+  componentWillUnmount() { this.u && this.u(); clearTimeout(this.t); }
+  renderVals() {
+    const RG = window.RG; if (!RG) return {};
+    const S = RG.s, P = S.profile, T = RG.TODAY; const anchor = this.state.anchor || T; const view = this.state.view;
+    const statusIcon = s => s === 'done' ? 'ph-fill ph-check-circle' : s === 'missed' ? 'ph ph-x-circle' : s === 'skipped' ? 'ph ph-skip-forward-circle' : 'ph ph-circle-dashed';
+    const drop = d => e => { e.preventDefault(); const id = this.state.dragId; this.setState({ dragId: null, over: null }); if (!id) return; const r = RG.moveEntry(id, d); RG.toast(r.error || [`Moved to ${RG.fmtD(d)}.`, r.note, r.warning].filter(Boolean).join(' ')); };
+    const over = d => e => { e.preventDefault(); if (this.state.over !== d) this.setState({ over: d }); };
+    const leave = () => {};
+    const select = en => () => {
+      if (this.state.swapFrom) { if (en.status === 'planned' && en.id !== this.state.swapFrom) { RG.swapEntries(this.state.swapFrom, en.id); RG.toast('Workouts swapped.'); } this.setState({ swapFrom: null }); return; }
+      this.setState({ sel: en.id, moveDate: en.date });
+    };
+    const mkItem = en => {
+      const w = RG.workout(en.workoutId, en.planId); const st = en.status; const drag = st === 'planned';
+      return { name: w ? w.name : en.workoutId, short: w ? w.id : '', icon: statusIcon(st), drag,
+        sub: st === 'done' ? 'Logged' : st === 'missed' ? (en.rescheduledTo ? 'Missed · rescheduled' : 'Missed') : st === 'skipped' ? 'Skipped' : `${P.workoutTime} · ${w ? w.focus : ''}${en.origin === 'manual' ? ' · moved' : en.origin === 'rescheduled' ? ' · rescheduled' : ''}`,
+        dragStart: e => { e.dataTransfer.setData('text/plain', en.id); e.dataTransfer.effectAllowed = 'move'; this.setState({ dragId: en.id }); }, dragEnd: () => this.setState({ dragId: null, over: null }), select: select(en),
+        gripStyle: { fontSize: '14px', opacity: drag ? 0.6 : 0 },
+        style: { display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 10px', borderRadius: '6px', cursor: drag ? 'grab' : 'pointer',
+          background: st === 'done' ? 'var(--color-accent-800)' : st === 'planned' ? 'var(--color-surface)' : 'transparent',
+          boxShadow: en.date === T && st === 'planned' ? 'inset 0 0 0 1px var(--color-accent)' : this.state.swapFrom === en.id ? '0 0 0 2px var(--color-accent)' : st === 'planned' ? 'inset 0 0 0 1px var(--color-neutral-800)' : 'inset 0 0 0 1px dashed var(--color-neutral-800)',
+          outline: st === 'missed' || st === 'skipped' ? '1px dashed var(--color-neutral-700)' : 'none', outlineOffset: '-1px',
+          color: st === 'done' ? 'var(--color-accent-100)' : st === 'planned' ? 'var(--color-text)' : 'var(--color-neutral-400)', opacity: this.state.dragId === en.id ? 0.4 : 1 },
+        pill: { display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '2px 6px', borderRadius: '4px', cursor: drag ? 'grab' : 'pointer', minWidth: 0,
+          background: st === 'done' ? 'var(--color-accent-800)' : st === 'planned' ? 'var(--color-neutral-800)' : 'transparent', color: st === 'done' ? 'var(--color-accent-100)' : st === 'planned' ? 'var(--color-text)' : 'var(--color-neutral-500)' } };
+    };
+    const mon = RG.monday(anchor);
+    const weekDays = [0, 1, 2, 3, 4, 5, 6].map(i => {
+      const d = RG.add(mon, i); const items = RG.entriesOn(d).map(mkItem); const isT = d === T; const ov = this.state.over === d;
+      return { dn: RG.DN[i], dm: RG.fmtShort(d), tag: isT ? 'TODAY' : d === RG.nextCheckIn() ? 'CHECK-IN' : '', items, empty: !items.length, emptyLabel: RG.inPause(d) ? 'Paused' : P.trainingDays.includes(i) ? 'Open training day' : 'Rest',
+        dnStyle: { fontSize: '13px', fontWeight: 500, color: isT ? 'var(--color-accent-300)' : 'var(--color-text)' },
+        over: over(d), drop: drop(d), leave, openDay: () => this.setState({ view: 'day', anchor: d }),
+        cell: { minHeight: '150px', padding: '10px', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '8px',
+          background: ov ? 'color-mix(in srgb, var(--color-accent) 12%, transparent)' : isT ? 'linear-gradient(180deg, var(--color-accent-900), transparent)' : RG.inPause(d) ? 'repeating-linear-gradient(135deg, transparent 0 8px, color-mix(in srgb, var(--color-text) 3%, transparent) 8px 16px)' : 'color-mix(in srgb, var(--color-text) 3%, transparent)',
+          outline: ov ? '1px dashed var(--color-accent)' : 'none', outlineOffset: '-1px' } };
+    });
+    const m0 = anchor.slice(0, 8) + '01'; const gs = RG.monday(m0); const curM = anchor.slice(5, 7);
+    const monthDays = Array.from({ length: 42 }, (_, i) => RG.add(gs, i)).filter((d, i) => i < 35 || d.slice(5, 7) === curM).map(d => {
+      const inM = d.slice(5, 7) === curM; const isT = d === T; const ov = this.state.over === d;
+      return { num: Number(d.slice(8)), items: RG.entriesOn(d).map(mkItem), over: over(d), drop: drop(d), leave, openDay: () => this.setState({ view: 'day', anchor: d }),
+        numStyle: { fontSize: '12px', color: isT ? 'var(--color-accent-300)' : inM ? 'var(--color-neutral-300)' : 'var(--color-neutral-700)', fontWeight: isT ? 600 : 400 },
+        cell: { minHeight: '78px', padding: '6px', borderRadius: '6px', display: 'flex', flexDirection: 'column', gap: '3px', cursor: 'pointer', minWidth: 0,
+          background: ov ? 'color-mix(in srgb, var(--color-accent) 12%, transparent)' : isT ? 'var(--color-accent-900)' : RG.inPause(d) ? 'repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--color-text) 3%, transparent) 6px 12px)' : inM ? 'color-mix(in srgb, var(--color-text) 3%, transparent)' : 'transparent',
+          boxShadow: isT ? 'inset 0 0 0 1px var(--color-accent-700)' : 'none' } };
+    });
+    const dayItems = RG.entriesOn(anchor).map(en => { const w = RG.workout(en.workoutId, en.planId); return { name: w.name, icon: statusIcon(en.status), statusLabel: en.status, select: select(en), exercises: w.items.map(i => ({ name: RG.ex(i.exId).name, scheme: `${i.sets} × ${i.repMin}–${i.repMax}` })) }; });
+    const plan = RG.plan(); const nx = RG.nextEntry(RG.add(T, -1));
+    const rotation = plan.rotation.map((id, i) => { const on = nx && nx.workoutId === id; return { name: RG.workout(id).name, style: { fontSize: '12px', padding: '5px 10px', borderRadius: '6px', background: on ? 'var(--color-accent-800)' : 'var(--color-neutral-900)', color: on ? 'var(--color-accent-100)' : 'var(--color-neutral-300)', boxShadow: on ? 'inset 0 0 0 1px var(--color-accent)' : 'none' }, arrow: { fontSize: '12px', color: 'var(--color-neutral-600)', display: i === plan.rotation.length - 1 ? 'none' : 'inline' } }; });
+    const recent = S.schedule.filter(e => e.date >= RG.add(T, -28) && e.date <= T && (e.status === 'missed' && !e.rescheduledTo || e.status === 'skipped'));
+    const attention = recent.map(e => ({ icon: e.status === 'missed' ? 'ph ph-x-circle' : 'ph ph-skip-forward-circle', text: `${RG.workout(e.workoutId, e.planId).name} · ${RG.fmtD(e.date)} · ${e.status}`, actLabel: e.status === 'missed' ? 'Reschedule' : 'Restore', act: () => this.setState({ sel: e.id, moveDate: RG.add(T, 1) }) }));
+    const sel = this.state.sel && RG.entry(this.state.sel); const sw = sel && RG.workout(sel.workoutId, sel.planId);
+    const segBtn = on => ({ font: 'inherit', fontSize: '12px', padding: '7px 12px', border: 0, cursor: 'pointer', background: on ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : 'transparent', color: on ? 'var(--color-accent)' : 'var(--color-neutral-400)' });
+    const step = view === 'month' ? null : view === 'week' ? 7 : 1;
+    const shiftAnchor = dir => { if (step) this.setState({ anchor: RG.add(anchor, step * dir) }); else { const y = Number(anchor.slice(0, 4)), m = Number(anchor.slice(5, 7)) - 1 + dir; const d = new Date(Date.UTC(y, m, 1)); this.setState({ anchor: d.toISOString().slice(0, 10) }); } };
+    const pause = RG.activePause();
+    const reasons = ['Illness', 'Travel', 'Injury', 'Recovery', 'Other'].map(l => ({ label: l, pick: () => this.setState({ reason: l }), style: { font: 'inherit', fontSize: '13px', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', background: 'transparent', border: '1px solid ' + (this.state.reason === l ? 'var(--color-accent)' : 'var(--color-neutral-800)'), color: this.state.reason === l ? 'var(--color-accent)' : 'var(--color-neutral-300)' } }));
+    const close = () => this.setState({ sel: null });
+    return {
+      planName: plan.name, isWeek: view === 'week', isMonth: view === 'month', isDay: view === 'day',
+      sDay: segBtn(view === 'day'), sWeek: segBtn(view === 'week'), sMonth: segBtn(view === 'month'),
+      vDay: () => this.setState({ view: 'day' }), vWeek: () => this.setState({ view: 'week' }), vMonth: () => this.setState({ view: 'month' }),
+      prev: () => shiftAnchor(-1), next: () => shiftAnchor(1), today: () => this.setState({ anchor: T }),
+      rangeLabel: view === 'week' ? `${RG.fmtShort(mon)} – ${RG.fmtShort(RG.add(mon, 6))}` : view === 'month' ? `${RG.MFULL[Number(curM) - 1]} ${anchor.slice(0, 4)}` : RG.fmtD(anchor),
+      shiftLater: P.shiftLater, toggleShift: () => RG.update(s => s.profile.shiftLater = !s.profile.shiftLater),
+      calSync: P.calendarSync, toggleSync: () => { RG.update(s => s.profile.calendarSync = !s.profile.calendarSync); RG.toast(P.calendarSync ? 'Workouts now show in your main calendar.' : 'Removed from the main calendar.'); },
+      weekDays, monthDays, dowHead: RG.DN, dayItems, dayEmpty: !dayItems.length, dayTitle: RG.fmtD(anchor), dayType: RG.dayType(anchor) === 'training' ? 'Training day' : 'Rest day',
+      rotation, nextUp: nx ? `Next up: ${RG.workout(nx.workoutId, nx.planId).name} · ${RG.fmtD(nx.date)}` : 'Nothing scheduled',
+      trainDays: P.trainingDays.map(i => RG.DN[i]).join(', '), restDays: P.restDays.map(i => RG.DN[i]).join(', '), recoveryRule: plan.allowConsecutive ? 'same muscles allowed back-to-back' : 'no same-region days back-to-back',
+      attention, noAttention: !attention.length, pauses: S.pauses.map(p => ({ range: `${RG.fmtShort(p.from)} – ${p.to ? RG.fmtShort(p.to) : 'open'}`, reason: p.reason })),
+      swapMode: !!this.state.swapFrom, swapName: this.state.swapFrom ? RG.workout(RG.entry(this.state.swapFrom).workoutId).name : '', cancelSwap: () => this.setState({ swapFrom: null }),
+      hasSel: !!sel, selName: sw ? sw.name : '', selDate: sel ? RG.fmtD(sel.date) : '', selStatus: sel ? sel.status : '',
+      selHint: sel ? (sel.status === 'planned' ? 'Auto-scheduled workouts are only marked complete once you log them.' : sel.status === 'missed' ? 'Rescheduling adds a new session and keeps this one in your history as missed.' : sel.status === 'done' ? 'Logged sessions stay on the day they happened.' : 'Skipped — the rotation moved on to the next workout.') : '',
+      selPlanned: sel && sel.status === 'planned', selMissed: sel && (sel.status === 'missed' || sel.status === 'skipped'), selDone: sel && sel.status === 'done',
+      moveDate: this.state.moveDate, setMoveDate: e => this.setState({ moveDate: e.target.value }),
+      doMove: () => { const r = RG.moveEntry(sel.id, this.state.moveDate); close(); RG.toast(r.error || [`Moved to ${RG.fmtD(this.state.moveDate)}.`, r.note, r.warning].filter(Boolean).join(' ')); },
+      doSkip: () => { RG.skipEntry(sel.id); close(); RG.toast(`${sw.name} skipped.`); }, doMiss: () => { RG.missEntry(sel.id); close(); },
+      doSwap: () => this.setState({ swapFrom: sel.id, sel: null }), doStart: () => RG.startWorkout(sel.id),
+      doReschedule: () => { if (sel.status === 'skipped') RG.restoreEntry(sel.id); RG.rescheduleMissed(sel.id, this.state.moveDate); close(); RG.toast(`Rescheduled to ${RG.fmtD(this.state.moveDate)}.`); },
+      doRestore: () => { RG.restoreEntry(sel.id); close(); }, doHistory: () => RG.go('history', sel.sessionId), closeSel: close, stop: e => e.stopPropagation(),
+      paused: !!pause, notPaused: !pause, resume: () => { RG.resume(); RG.toast('Schedule resumed. Rotation continues in order.'); },
+      openPause: () => this.setState({ dlgPause: true, pFrom: T, pTo: '' }), closePause: () => this.setState({ dlgPause: false }), dlgPause: this.state.dlgPause,
+      reasons, pFrom: this.state.pFrom, pTo: this.state.pTo, setPFrom: e => this.setState({ pFrom: e.target.value }), setPTo: e => this.setState({ pTo: e.target.value }),
+      doPause: () => { RG.pause(this.state.pFrom, this.state.pTo || null, this.state.reason); this.setState({ dlgPause: false }); RG.toast(`Schedule paused (${this.state.reason}). Your rotation is saved.`); },
+      exportIcs: () => { const b = new Blob([RG.icsExport()], { type: 'text/calendar' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'regimen-workouts.ics'; a.click(); RG.toast('Calendar file downloaded — import it into any calendar app.'); }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-124ecda7-7b17-42bd-b77f-decc2e83e187/styles.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<script src="store.js"></script>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:16px;max-width:1000px">
+<header style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap"><div style="margin-right:auto"><div style="font-size:12px;color:var(--color-neutral-500)">Changes save instantly. History is never overwritten.</div><h2 style="margin:2px 0 0;font-size:28px">Fitness Settings</h2></div>
+<button class="btn btn-primary" onClick="{{ rerun }}"><i class="ph ph-magic-wand"></i>Run guided setup</button></header>
+<div class="seg" style="align-self:flex-start;flex-wrap:wrap"><sc-for list="{{ tabs }}" as="t" hint-placeholder-count="6"><button onClick="{{ t.pick }}" style="{{ t.style }}">{{ t.label }}</button></sc-for></div>
+<sc-if value="{{ tProfile }}" hint-placeholder-val="{{ true }}">
+<section class="card elev-sm" style="padding:16px 18px;gap:12px">
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">
+<div class="field"><label>Name</label><input class="input" value="{{ p.name }}" onChange="{{ set.name }}"></div>
+<div class="field"><label>Primary goal</label><select class="input" value="{{ p.goal }}" onChange="{{ set.goal }}"><option>Fat loss</option><option>Muscle gain</option><option>Recomposition</option><option>Strength</option><option>Maintenance</option><option>General fitness</option></select></div>
+<div class="field"><label>Goal weight ({{ wu }})</label><input class="input" type="number" value="{{ goalW }}" onChange="{{ setGoalW }}"></div>
+<div class="field"><label>Height ({{ lu }})</label><input class="input" type="number" value="{{ heightV }}" onChange="{{ setHeight }}"></div>
+<div class="field"><label>Age</label><input class="input" type="number" value="{{ p.age }}" onChange="{{ setNum.age }}"></div>
+<div class="field"><label>Sex</label><select class="input" value="{{ p.sex }}" onChange="{{ set.sex }}"><option>Female</option><option>Male</option><option>Prefer not to say</option></select></div>
+<div class="field"><label>Activity level</label><select class="input" value="{{ p.activity }}" onChange="{{ set.activity }}"><option>Sedentary</option><option>Lightly active</option><option>Moderately active</option><option>Very active</option></select></div>
+<div class="field"><label>Experience</label><select class="input" value="{{ p.experience }}" onChange="{{ set.experience }}"><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select></div>
+<div class="field"><label>Units</label><div class="seg"><button onClick="{{ setMetric }}" style="{{ sMetric }}">Metric</button><button onClick="{{ setImperial }}" style="{{ sImperial }}">Imperial</button></div></div>
+</div>
+<div style="font-size:12px;color:var(--color-neutral-500)">Current weight comes from your weight log (7-day average: {{ curW }} {{ wu }}). Calculations always run in metric.</div>
+</section>
+</sc-if>
+<sc-if value="{{ tTraining }}" hint-placeholder-val="{{ false }}">
+<section class="card elev-sm" style="padding:16px 18px;gap:14px">
+<div class="field"><label>Training days · the rest become rest days</label><div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ days }}" as="x" hint-placeholder-count="7"><button onClick="{{ x.pick }}" style="{{ x.style }}">{{ x.label }}</button></sc-for></div></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px">
+<div class="field"><label>Workout duration (min)</label><input class="input" type="number" value="{{ p.duration }}" onChange="{{ setNum.duration }}"></div>
+<div class="field"><label>Workout time</label><input class="input" type="time" value="{{ p.workoutTime }}" onChange="{{ set.workoutTime }}"></div>
+<div class="field"><label>Location</label><select class="input" value="{{ p.location }}" onChange="{{ set.location }}"><option>Gym</option><option>Home</option><option>Both</option></select></div>
+<div class="field"><label>Progression rule</label><select class="input" value="{{ p.progression }}" onChange="{{ set.progression }}"><option value="double">Double progression (reps, then load)</option><option value="linear">Linear (add load when min reps hit)</option></select></div>
+</div>
+<div class="field"><label>Equipment</label><div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ equip }}" as="x" hint-placeholder-count="5"><button onClick="{{ x.pick }}" style="{{ x.style }}">{{ x.label }}</button></sc-for></div></div>
+<div class="field"><label>Smallest available weight increments ({{ wu }})</label><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px"><sc-for list="{{ incs }}" as="x" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:11px;color:var(--color-neutral-500)">{{ x.label }}</span><input class="input" type="number" step="0.5" value="{{ x.v }}" onChange="{{ x.set }}"></div></sc-for></div></div>
+<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" checked="{{ p.shiftLater }}" onChange="{{ toggle.shiftLater }}" style="accent-color:var(--color-accent)">When a workout moves, shift later workouts to keep the order</label>
+<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" checked="{{ p.calendarSync }}" onChange="{{ toggle.calendarSync }}" style="accent-color:var(--color-accent)">Show workouts in the main calendar</label>
+</section>
+</sc-if>
+<sc-if value="{{ tNutrition }}" hint-placeholder-val="{{ false }}">
+<section class="card elev-sm" style="padding:16px 18px;gap:12px">
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px">
+<div class="field"><label>Calories</label><input class="input" type="number" value="{{ p.kcal }}" onChange="{{ setNum.kcal }}"></div>
+<div class="field"><label>Protein g</label><input class="input" type="number" value="{{ p.protein }}" onChange="{{ setNum.protein }}"></div>
+<div class="field"><label>Carbs g</label><input class="input" type="number" value="{{ p.carbs }}" onChange="{{ setNum.carbs }}"></div>
+<div class="field"><label>Fat g</label><input class="input" type="number" value="{{ p.fat }}" onChange="{{ setNum.fat }}"></div>
+<div class="field"><label>Meals per day</label><input class="input" type="number" min="2" max="6" value="{{ p.mealsPerDay }}" onChange="{{ setMeals }}"></div>
+<div class="field"><label>Water target (ml)</label><input class="input" type="number" value="{{ p.waterMl }}" onChange="{{ setNum.waterMl }}"></div>
+</div>
+<div style="font-size:12px;color:var(--color-neutral-400)">{{ macroCheck }}</div>
+<sc-if value="{{ lowWarn }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:8px;padding:10px 12px;border-radius:var(--radius-md);box-shadow:inset 0 0 0 1px var(--color-accent-700);font-size:13px"><i class="ph ph-warning" style="color:var(--color-accent)"></i><span>{{ lowWarn }}</span></div></sc-if>
+<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" checked="{{ p.water }}" onChange="{{ toggle.water }}" style="accent-color:var(--color-accent)">Track water</label>
+<div class="field"><label>Dietary preferences (boost matching alternatives)</label><div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ diets }}" as="x" hint-placeholder-count="4"><button onClick="{{ x.pick }}" style="{{ x.style }}">{{ x.label }}</button></sc-for></div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="field"><label>Allergies (never suggested)</label><input class="input" value="{{ allergies }}" onChange="{{ setAllergies }}"></div><div class="field"><label>Foods to exclude</label><input class="input" value="{{ exclude }}" onChange="{{ setExclude }}"></div></div>
+<div style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-top:4px">Meal structure</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
+<sc-for list="{{ structures }}" as="s" hint-placeholder-count="2"><div style="display:flex;flex-direction:column;gap:6px"><div style="font-size:13px">{{ s.label }}</div><sc-for list="{{ s.slots }}" as="sl" hint-placeholder-count="4"><div style="display:grid;grid-template-columns:60px minmax(0,1fr) 100px;gap:6px;align-items:center"><span style="font-size:12px;color:var(--color-neutral-500)">{{ sl.name }}</span><input class="input" value="{{ sl.label }}" onChange="{{ sl.setLabel }}"><input class="input" type="time" value="{{ sl.time }}" onChange="{{ sl.setTime }}"></div></sc-for></div></sc-for>
+</div>
+</section>
+</sc-if>
+<sc-if value="{{ tReminders }}" hint-placeholder-val="{{ false }}">
+<section class="card elev-sm" style="padding:12px 18px;gap:8px;overflow-x:auto">
+<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:13px"><span style="color:var(--color-neutral-400)">Quiet hours</span><input class="input" type="time" value="{{ p.quietStart }}" onChange="{{ set.quietStart }}" style="width:120px"><span>to</span><input class="input" type="time" value="{{ p.quietEnd }}" onChange="{{ set.quietEnd }}" style="width:120px"><span style="font-size:12px;color:var(--color-neutral-500)">Nothing is sent during quiet hours; reminders wait until they end.</span></div>
+<table class="table" style="min-width:860px">
+<thead><tr><th>On</th><th>Reminder</th><th>Time</th><th>Frequency</th><th>Channel</th><th>Snooze</th><th>Reschedule if missed</th></tr></thead>
+<tbody><sc-for list="{{ reminders }}" as="r" hint-placeholder-count="10"><tr>
+<td><input type="checkbox" checked="{{ r.enabled }}" onChange="{{ r.toggle }}" style="width:18px;height:18px;accent-color:var(--color-accent)"></td>
+<td>{{ r.type }}</td>
+<td><input class="input" type="time" value="{{ r.time }}" onChange="{{ r.setTime }}" style="width:110px"></td>
+<td><input class="input" value="{{ r.freq }}" onChange="{{ r.setFreq }}" style="min-width:150px"></td>
+<td><select class="input" value="{{ r.channel }}" onChange="{{ r.setChannel }}" style="width:auto"><option>Push</option><option>Email</option><option>Push + email</option><option>In-app only</option></select></td>
+<td><select class="input" value="{{ r.snooze }}" onChange="{{ r.setSnooze }}" style="width:auto"><option value="0">None</option><option value="10">10 min</option><option value="15">15 min</option><option value="30">30 min</option><option value="60">1 h</option></select></td>
+<td><input type="checkbox" checked="{{ r.reschedule }}" onChange="{{ r.toggleRes }}" style="width:18px;height:18px;accent-color:var(--color-accent)"></td>
+</tr></sc-for></tbody>
+</table>
+</section>
+</sc-if>
+<sc-if value="{{ tMotivation }}" hint-placeholder-val="{{ false }}">
+<section class="card elev-sm" style="padding:16px 18px;gap:10px">
+<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="font-size:13px;color:var(--color-neutral-400)">Tone shown on the dashboard</span><div class="seg" style="flex-wrap:wrap"><sc-for list="{{ tones }}" as="t" hint-placeholder-count="6"><button onClick="{{ t.pick }}" style="{{ t.style }}">{{ t.label }}</button></sc-for></div></div>
+<div style="display:flex;gap:8px"><input class="input" value="{{ ownQ }}" onChange="{{ setOwnQ }}" placeholder="Add your own statement, e.g. I train for the person I am becoming"><button class="btn btn-primary" onClick="{{ addQ }}">Add</button></div>
+<sc-for list="{{ quotes }}" as="q" hint-placeholder-count="8"><div style="{{ q.row }}"><span style="flex:1;font-size:14px">{{ q.text }}</span><span class="tag tag-neutral" style="font-size:10px">{{ q.tone }}</span><button class="btn btn-icon btn-ghost" onClick="{{ q.fav }}" title="Favourite"><i class="{{ q.favIcon }}" style="color:var(--color-accent)"></i></button><button class="btn btn-icon btn-ghost" onClick="{{ q.hide }}" title="{{ q.hideTitle }}"><i class="{{ q.hideIcon }}"></i></button><sc-if value="{{ q.custom }}" hint-placeholder-val="{{ false }}"><button class="btn btn-icon btn-ghost" onClick="{{ q.del }}"><i class="ph ph-trash" style="color:var(--color-neutral-500)"></i></button></sc-if></div></sc-for>
+<div style="font-size:12px;color:var(--color-neutral-500)">Lines are written to motivate without guilt, pressure or comments about bodies.</div>
+</section>
+</sc-if>
+<sc-if value="{{ tData }}" hint-placeholder-val="{{ false }}">
+<section class="card elev-sm" style="padding:16px 18px;gap:12px">
+<div style="display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--color-neutral-300)"><i class="ph ph-shield-check" style="font-size:20px;color:var(--color-accent)"></i><span style="text-wrap:pretty">Check-ins, measurements and progress photos are sensitive. They're stored only on this device and are never shared unless you export them. Nutrition data comes from USDA FoodData Central; custom and restaurant entries are labelled. Calculations are planning estimates and not medical advice.</span></div>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-secondary" onClick="{{ exportData }}"><i class="ph ph-download-simple"></i>Export my data (JSON)</button><button class="btn btn-secondary" onClick="{{ resetDemo }}"><i class="ph ph-arrow-counter-clockwise"></i>Restore sample data</button></div>
+<div style="display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:var(--radius-md);box-shadow:inset 0 0 0 1px var(--color-neutral-800)">
+<div style="font-size:14px">Permanently delete history</div>
+<div style="font-size:12px;color:var(--color-neutral-500)">Choose what to delete, then type DELETE to confirm. This cannot be undone.</div>
+<div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ delOpts }}" as="x" hint-placeholder-count="4"><button onClick="{{ x.pick }}" style="{{ x.style }}">{{ x.label }}</button></sc-for></div>
+<div style="display:flex;gap:8px"><input class="input" value="{{ delText }}" onChange="{{ setDelText }}" placeholder="Type DELETE" style="max-width:200px"><button class="btn btn-primary" disabled="{{ delDisabled }}" onClick="{{ doDelete }}">Delete selected</button></div>
+</div>
+</section>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { tab: 'profile', ownQ: '', del: {}, delText: '' };
+  componentDidMount() { const h = () => { if (!window.RG) return this.t = setTimeout(h, 30); this.u = window.RG.subscribe(() => this.forceUpdate()); this.forceUpdate(); }; h(); }
+  componentWillUnmount() { this.u && this.u(); clearTimeout(this.t); }
+  renderVals() {
+    const RG = window.RG; if (!RG) return {};
+    const S = RG.s, P = S.profile, wu = RG.wu(), lu = RG.lu(), tab = this.state.tab;
+    const seg = on => ({ font: 'inherit', fontSize: '12px', padding: '7px 12px', border: 0, cursor: 'pointer', background: on ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : 'transparent', color: on ? 'var(--color-accent)' : 'var(--color-neutral-400)' });
+    const chip = on => ({ font: 'inherit', fontSize: '13px', padding: '8px 13px', borderRadius: '8px', cursor: 'pointer', background: on ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : 'transparent', border: '1px solid ' + (on ? 'var(--color-accent)' : 'var(--color-neutral-800)'), color: on ? 'var(--color-accent)' : 'var(--color-neutral-300)' });
+    const up = fn => RG.update(s => fn(s.profile));
+    const set = {}, setNum = {}, toggle = {}; Object.keys(P).forEach(k => { set[k] = e => { const v = e.target.value; up(p => p[k] = v); }; setNum[k] = e => { const v = Number(e.target.value); up(p => p[k] = v); }; toggle[k] = () => up(p => p[k] = !p[k]); });
+    const inList = (k, v) => () => up(p => p[k] = p[k].includes(v) ? p[k].filter(x => x !== v) : p[k].concat([v]));
+    const mk = P.protein * 4 + P.carbs * 4 + P.fat * 9; const bmr = 10 * (RG.avgWeight() || P.weightKg) + 6.25 * P.heightCm - 5 * P.age + (P.sex === 'Male' ? 5 : -161);
+    const lowWarn = P.kcal < Math.max(bmr, P.sex === 'Male' ? 1500 : 1200) ? `${P.kcal} kcal is below your estimated resting need (~${Math.round(bmr)} kcal). Regimen doesn't recommend targets this low. Consider a smaller deficit, and consult a qualified professional for anything more aggressive.` : '';
+    const quotes = RG.quoteList();
+    const delKinds = [['sessions', 'Workout history'], ['checkins', 'Check-ins & photos'], ['nutrition', 'Nutrition logs'], ['weights', 'Weight log']];
+    return {
+      tabs: [['profile', 'Profile & goal'], ['training', 'Training'], ['nutrition', 'Nutrition'], ['reminders', 'Reminders'], ['motivation', 'Motivation'], ['data', 'Data & privacy']].map(([id, l]) => ({ label: l, pick: () => this.setState({ tab: id }), style: seg(tab === id) })),
+      tProfile: tab === 'profile', tTraining: tab === 'training', tNutrition: tab === 'nutrition', tReminders: tab === 'reminders', tMotivation: tab === 'motivation', tData: tab === 'data',
+      p: P, set, setNum, toggle, wu, lu, curW: RG.bw(RG.avgWeight()),
+      goalW: P.goalWeightKg ? RG.bw(P.goalWeightKg) : '', setGoalW: e => { const v = e.target.value; up(p => p.goalWeightKg = v === '' ? null : RG.r1(RG.toKg(Number(v)))); },
+      heightV: RG.len(P.heightCm), setHeight: e => { const v = Number(e.target.value); up(p => p.heightCm = Math.round(RG.toCm(v))); },
+      sMetric: seg(!RG.imp()), sImperial: seg(RG.imp()), setMetric: () => up(p => p.units = 'metric'), setImperial: () => up(p => p.units = 'imperial'),
+      days: RG.DN.map((l, i) => ({ label: l, style: chip(P.trainingDays.includes(i)), pick: () => { up(p => { p.trainingDays = p.trainingDays.includes(i) ? p.trainingDays.filter(x => x !== i) : p.trainingDays.concat([i]).sort(); p.restDays = [0, 1, 2, 3, 4, 5, 6].filter(x => !p.trainingDays.includes(x)); }); RG.regenerate(RG.TODAY); RG.toast('Training days updated. Future workouts rescheduled in rotation order.'); } })),
+      equip: ['Barbell', 'Dumbbell', 'Cable', 'Machine', 'Bodyweight'].map(l => ({ label: l, style: chip(P.equipment.includes(l)), pick: inList('equipment', l) })),
+      incs: ['Barbell', 'Dumbbell', 'Cable', 'Machine'].map(l => ({ label: l, v: RG.w(P.increments[l]), set: e => { const v = Number(e.target.value); up(p => p.increments[l] = RG.r1(RG.toKg(v))); } })),
+      setMeals: e => { const v = Math.min(6, Math.max(2, Number(e.target.value))); RG.update(s => { s.profile.mealsPerDay = v; ['training', 'rest'].forEach(t => { while (s.mealSlots[t].length < v) s.mealSlots[t].push({ name: 'Meal ' + (s.mealSlots[t].length + 1), label: 'Snack', time: '' }); }); s.distribution.custom = Array(v).fill(Math.round(100 / v)); s.distribution.manual = null; }); },
+      macroCheck: `Macros add up to ${RG.num(mk)} kcal (${mk - P.kcal >= 0 ? '+' : ''}${mk - P.kcal} vs target).`, lowWarn,
+      diets: ['Dairy-free', 'Gluten-free', 'Vegetarian', 'Vegan'].map(l => ({ label: l, style: chip(P.dietPrefs.includes(l)), pick: inList('dietPrefs', l) })),
+      allergies: P.allergies.join(', '), exclude: P.exclude.join(', '),
+      setAllergies: e => { const v = e.target.value; up(p => p.allergies = v.split(',').map(x => x.trim()).filter(Boolean)); }, setExclude: e => { const v = e.target.value; up(p => p.exclude = v.split(',').map(x => x.trim()).filter(Boolean)); },
+      structures: [['training', 'Training days'], ['rest', 'Rest days']].map(([t, l]) => ({ label: l, slots: S.mealSlots[t].slice(0, P.mealsPerDay).map((sl, i) => ({ name: sl.name, label: sl.label, time: sl.time, setLabel: e => { const v = e.target.value; RG.update(s => s.mealSlots[t][i].label = v); }, setTime: e => { const v = e.target.value; RG.update(s => s.mealSlots[t][i].time = v); } })) })),
+      reminders: S.reminders.filter(r => r.type !== 'Supplements' || true).map((r, i) => { const u = fn => RG.update(s => fn(s.reminders[i])); return { ...r, snooze: String(r.snooze), toggle: () => u(x => x.enabled = !x.enabled), toggleRes: () => u(x => x.reschedule = !x.reschedule), setTime: e => { const v = e.target.value; u(x => x.time = v); }, setFreq: e => { const v = e.target.value; u(x => x.freq = v); }, setChannel: e => { const v = e.target.value; u(x => x.channel = v); }, setSnooze: e => { const v = Number(e.target.value); u(x => x.snooze = v); } }; }),
+      tones: ['All', 'Disciplined', 'Supportive', 'Direct', 'Calm', 'Performance'].map(l => ({ label: l, style: seg(P.quoteTone === l), pick: () => up(p => p.quoteTone = l) })),
+      ownQ: this.state.ownQ, setOwnQ: e => this.setState({ ownQ: e.target.value }), addQ: () => { const t = this.state.ownQ.trim(); if (!t) return; RG.update(s => s.quotes.custom.push({ id: 'c' + RG.uid(), text: t, tone: 'Your own' })); this.setState({ ownQ: '' }); },
+      quotes: quotes.map(q => { const hid = !!S.quotes.hidden[q.id]; return { text: q.text, tone: q.tone, custom: q.custom, favIcon: S.quotes.fav[q.id] ? 'ph-fill ph-heart' : 'ph ph-heart', hideIcon: hid ? 'ph ph-eye' : 'ph ph-eye-slash', hideTitle: hid ? 'Show again' : 'Hide',
+        fav: () => RG.update(s => s.quotes.fav[q.id] = !s.quotes.fav[q.id]), hide: () => RG.update(s => { if (s.quotes.hidden[q.id]) delete s.quotes.hidden[q.id]; else s.quotes.hidden[q.id] = true; }), del: () => RG.update(s => s.quotes.custom = s.quotes.custom.filter(c => c.id !== q.id)),
+        row: { display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 0', opacity: hid ? 0.45 : 1, background: 'linear-gradient(to right,transparent,var(--color-divider) 48px,var(--color-divider) calc(100% - 48px),transparent) no-repeat top/100% 1px' } }; }),
+      rerun: () => RG.go('onboarding'),
+      exportData: () => { const b = new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'regimen-export.json'; a.click(); },
+      resetDemo: () => { if (confirm('Replace everything with the sample data? Your current data and photos on this device will be lost.')) { RG.reset(); RG.toast('Sample data restored.'); } },
+      delOpts: delKinds.map(([k, l]) => ({ label: l, style: chip(!!this.state.del[k]), pick: () => this.setState(s => ({ del: { ...s.del, [k]: !s.del[k] } })) })),
+      delText: this.state.delText, setDelText: e => this.setState({ delText: e.target.value }), delDisabled: this.state.delText !== 'DELETE' || !Object.values(this.state.del).some(Boolean),
+      doDelete: () => { const d = this.state.del; RG.update(s => { if (d.sessions) { s.sessions = []; s.schedule = s.schedule.filter(e => e.status === 'planned'); } if (d.checkins) { s.checkins.forEach(c => ['front', 'side', 'back'].forEach(p => RG.photo(c.id + ':' + p) && RG.setPhoto(c.id + ':' + p, null))); s.checkins = []; } if (d.nutrition) { s.nutritionLog = {}; } if (d.weights) { s.weights = s.weights.slice(-1); } }); this.setState({ del: {}, delText: '' }); RG.toast('Selected history deleted.'); }
+    };
+  }
+}
+</script>
+</body>
+</html>

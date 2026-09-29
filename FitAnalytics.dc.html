@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-124ecda7-7b17-42bd-b77f-decc2e83e187/styles.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<script src="store.js"></script>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:16px">
+<header style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap"><div style="margin-right:auto"><div style="font-size:12px;color:var(--color-neutral-500)">Trends over the last {{ weeksN }} weeks · single days are noise</div><h2 style="margin:2px 0 0;font-size:28px">Analytics</h2></div>
+<div class="seg"><sc-for list="{{ rollOpts }}" as="o" hint-placeholder-count="3"><button onClick="{{ o.pick }}" style="{{ o.style }}">{{ o.label }}</button></sc-for></div></header>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:16px">
+<section class="card elev-sm" style="padding:16px 18px;gap:8px">
+<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><div class="card-title" style="flex:1">Body-weight trend</div><span style="font-size:12px;color:var(--color-neutral-500)">{{ rollLabel }} rolling average</span></div>
+<div style="display:flex;gap:18px;flex-wrap:wrap"><div><div style="font-size:26px;font-variant-numeric:tabular-nums">{{ wNow }} <span style="font-size:13px;color:var(--color-neutral-500)">{{ wu }}</span></div><div style="font-size:11px;color:var(--color-neutral-500)">Trend now</div></div><div><div style="font-size:26px;font-variant-numeric:tabular-nums">{{ wRate }}</div><div style="font-size:11px;color:var(--color-neutral-500)">{{ wu }} per week, avg</div></div><div><div style="font-size:26px;font-variant-numeric:tabular-nums">{{ wTotal }}</div><div style="font-size:11px;color:var(--color-neutral-500)">since start</div></div></div>
+<svg viewBox="0 0 600 160" preserveAspectRatio="none" style="width:100%;height:170px;display:block"><polyline points="{{ wDaily }}" fill="none" stroke="var(--color-neutral-700)" stroke-width="1" vector-effect="non-scaling-stroke"></polyline><polyline points="{{ wAvg }}" fill="none" stroke="var(--color-accent)" stroke-width="2.4" vector-effect="non-scaling-stroke"></polyline></svg>
+<div style="font-size:12px;color:var(--color-neutral-500);text-wrap:pretty">{{ wNote }}</div>
+</section>
+<section class="card elev-sm" style="padding:16px 18px;gap:8px">
+<div style="display:flex;align-items:baseline;gap:8px"><div class="card-title" style="flex:1">Body measurements</div><div class="seg"><sc-for list="{{ measOpts }}" as="o" hint-placeholder-count="5"><button onClick="{{ o.pick }}" style="{{ o.style }}">{{ o.label }}</button></sc-for></div></div>
+<div style="font-size:26px;font-variant-numeric:tabular-nums">{{ mNow }} <span style="font-size:13px;color:var(--color-neutral-500)">{{ lu }}</span> <span style="font-size:13px;color:var(--color-accent-300)">{{ mDelta }}</span></div>
+<svg viewBox="0 0 600 140" preserveAspectRatio="none" style="width:100%;height:150px;display:block"><polyline points="{{ mLine }}" fill="none" stroke="var(--color-accent)" stroke-width="2.2" vector-effect="non-scaling-stroke"></polyline></svg>
+<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-neutral-600)"><sc-for list="{{ mLabels }}" as="l" hint-placeholder-count="7"><span>{{ l }}</span></sc-for></div>
+</section>
+<section class="card elev-sm" style="padding:16px 18px;gap:10px">
+<div style="display:flex;align-items:baseline"><div class="card-title" style="flex:1">Workout completion &amp; frequency</div><span style="font-size:12px;color:var(--color-neutral-500)">{{ compTotal }}</span></div>
+<div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:end;height:140px">
+<sc-for list="{{ weeks }}" as="w" hint-placeholder-count="7"><div style="display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end"><span style="font-size:11px;color:var(--color-neutral-400)">{{ w.label }}</span><div style="{{ w.bar }}"><div style="{{ w.fill }}"></div></div></div></sc-for>
+</div>
+<div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;font-size:10px;color:var(--color-neutral-600);text-align:center"><sc-for list="{{ weeks }}" as="w" hint-placeholder-count="7"><span>{{ w.wk }}</span></sc-for></div>
+</section>
+<section class="card elev-sm" style="padding:16px 18px;gap:10px">
+<div style="display:flex;align-items:baseline"><div class="card-title" style="flex:1">Training volume</div><span style="font-size:12px;color:var(--color-neutral-500)">working sets × reps × load, {{ wu }}</span></div>
+<div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:end;height:140px">
+<sc-for list="{{ vol }}" as="w" hint-placeholder-count="7"><div style="display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end"><span style="font-size:10px;color:var(--color-neutral-400)">{{ w.label }}</span><div style="{{ w.bar }}"></div></div></sc-for>
+</div>
+<div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;font-size:10px;color:var(--color-neutral-600);text-align:center"><sc-for list="{{ vol }}" as="w" hint-placeholder-count="7"><span>{{ w.wk }}</span></sc-for></div>
+</section>
+<section class="card elev-sm" style="padding:16px 18px;gap:8px">
+<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><div class="card-title" style="flex:1">Exercise strength</div><select class="input" value="{{ exId }}" onChange="{{ setEx }}" style="width:auto"><sc-for list="{{ exOpts }}" as="o" hint-placeholder-count="8"><option value="{{ o.id }}">{{ o.name }}</option></sc-for></select></div>
+<div style="font-size:26px;font-variant-numeric:tabular-nums">{{ e1Now }} <span style="font-size:13px;color:var(--color-neutral-500)">{{ wu }} est. 1RM</span> <span style="font-size:13px;color:var(--color-accent-300)">{{ e1Delta }}</span></div>
+<svg viewBox="0 0 600 140" preserveAspectRatio="none" style="width:100%;height:150px;display:block"><polyline points="{{ e1Line }}" fill="none" stroke="var(--color-accent)" stroke-width="2.2" vector-effect="non-scaling-stroke"></polyline></svg>
+<div style="font-size:12px;color:var(--color-neutral-500)">{{ prCount }} personal records across all exercises in this period.</div>
+</section>
+<section class="card elev-sm" style="padding:16px 18px;gap:10px">
+<div style="display:flex;align-items:baseline"><div class="card-title" style="flex:1">Calorie &amp; macro adherence</div><span style="font-size:12px;color:var(--color-neutral-500)">logged vs target, last 28 days</span></div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px"><sc-for list="{{ adh }}" as="a" hint-placeholder-count="3"><div><div style="font-size:26px;font-variant-numeric:tabular-nums">{{ a.pct }}</div><div style="font-size:11px;color:var(--color-neutral-500)">{{ a.label }}</div></div></sc-for></div>
+<div style="position:relative;display:grid;grid-template-columns:repeat(28,minmax(0,1fr));gap:2px;align-items:center;height:90px">
+<div style="position:absolute;left:0;right:0;top:50%;height:1px;background:var(--color-neutral-700)"></div>
+<sc-for list="{{ calDays }}" as="d" hint-placeholder-count="28"><div title="{{ d.title }}" style="{{ d.bar }}"></div></sc-for>
+</div>
+<div style="font-size:12px;color:var(--color-neutral-500)">Line = daily target. Filled bars are within ±10% of target.</div>
+</section>
+<section class="card elev-sm" style="padding:16px 18px;gap:10px">
+<div class="card-title">Meal-prep consistency</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><sc-for list="{{ prepWeeks }}" as="p" hint-placeholder-count="6"><div style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--color-neutral-500)"><i class="{{ p.icon }}" style="{{ p.color }}"></i>{{ p.label }}</div></sc-for></div>
+<div style="font-size:13px;color:var(--color-neutral-300)">{{ prepNote }}</div>
+</section>
+<section class="card elev-sm" style="padding:16px 18px;gap:10px">
+<div style="display:flex;align-items:baseline"><div class="card-title" style="flex:1">Progress-photo timeline</div><button class="btn btn-ghost" style="font-size:12px" onClick="{{ goPhotos }}">Open photos</button></div>
+<div style="display:flex;gap:8px;overflow-x:auto"><sc-for list="{{ photoTl }}" as="p" hint-placeholder-count="7"><div style="flex:none;width:70px;display:flex;flex-direction:column;gap:4px"><div style="position:relative;aspect-ratio:3/4;border-radius:6px;overflow:hidden;background:repeating-linear-gradient(135deg,var(--color-neutral-900) 0 6px,transparent 6px 12px)"><sc-if value="{{ p.has }}" hint-placeholder-val="{{ false }}"><img src="{{ p.src }}" alt="{{ p.date }}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></sc-if></div><span style="font-size:11px;color:var(--color-neutral-500)">{{ p.date }}</span></div></sc-for></div>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { roll: 7, meas: 'waist', ex: 'squat' };
+  componentDidMount() { const h = () => { if (!window.RG) return this.t = setTimeout(h, 30); this.u = window.RG.subscribe(() => this.forceUpdate()); this.forceUpdate(); }; h(); }
+  componentWillUnmount() { this.u && this.u(); clearTimeout(this.t); }
+  renderVals() {
+    const RG = window.RG; if (!RG) return {};
+    const S = RG.s, P = S.profile, T = RG.TODAY, wu = RG.wu(), lu = RG.lu(), K = RG.imp() ? 2.20462 : 1;
+    const seg = on => ({ font: 'inherit', fontSize: '12px', padding: '6px 10px', border: 0, cursor: 'pointer', background: on ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : 'transparent', color: on ? 'var(--color-accent)' : 'var(--color-neutral-400)' });
+    const ws = S.weights.map(w => w.kg); const av = RG.rolling(ws, this.state.roll); const lo = Math.min(...ws) - 0.3, hi = Math.max(...ws) + 0.3;
+    const days = Math.max(7, RG.diff(S.weights[0].date, T)); const tot = av[av.length - 1] - av[Math.min(av.length - 1, this.state.roll - 1)];
+    const rate = tot / ((days - this.state.roll + 1) / 7); const sgn = v => (v < 0 ? '−' : '+') + Math.abs(v * K).toFixed(1);
+    const weeklyPct = Math.abs(rate) / av[av.length - 1] * 100;
+    const cis = S.checkins.slice().sort((a, b) => a.date < b.date ? -1 : 1); const mk = this.state.meas; const mv = cis.map(c => c[mk]).filter(v => v != null);
+    const mons = []; for (let i = 6; i >= 0; i--) mons.push(RG.monday(RG.add(T, -7 * i)));
+    const weeks = mons.map(m => { const st = RG.weekStats(m); const h = st.total ? st.done / Math.max(st.total, 4) * 100 : 0; return { wk: RG.fmtShort(m), label: `${st.done}/${st.total}`, bar: { width: '100%', maxWidth: '44px', height: '100px', borderRadius: '5px', background: 'var(--color-neutral-900)', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'flex-end' }, fill: { width: '100%', height: h + '%', background: m === RG.monday(T) ? 'var(--color-accent-700)' : 'var(--color-accent)', borderRadius: '5px' }, done: st.done, total: st.total }; });
+    const vols = mons.map(m => RG.sum(S.sessions.filter(s => s.date >= m && s.date <= RG.add(m, 6)).flatMap(s => s.sets.filter(x => !x.warm)).map(x => x.kg * x.reps)) * K); const vmax = Math.max(...vols, 1);
+    const ids = [...new Set(S.sessions.flatMap(s => s.sets.map(x => x.exId)))]; const exId = ids.includes(this.state.ex) ? this.state.ex : ids[0];
+    const h = RG.history(exId); const e1 = h.map(s => Math.max(...s.sets.map(x => RG.e1rm(x.kg, x.reps))));
+    let prs = 0; ids.forEach(id => { let best = 0; RG.history(id).forEach((s, i) => { const v = Math.max(...s.sets.map(x => RG.e1rm(x.kg, x.reps))); if (i > 0 && v > best + 0.01) prs++; best = Math.max(best, v); }); });
+    const log = []; for (let i = 28; i >= 1; i--) { const d = RG.add(T, -i); if (S.nutritionLog[d]) log.push({ d, ...S.nutritionLog[d] }); }
+    const inK = log.filter(l => Math.abs(l.kcal - P.kcal) <= P.kcal * 0.1).length, inP = log.filter(l => l.p >= P.protein * 0.9).length, inF = log.filter(l => Math.abs(l.f - P.fat) <= P.fat * 0.15).length;
+    const prepW = mons.slice(0, 6).map(m => { const sun = RG.add(m, -1); const l = S.nutritionLog[sun]; return { label: RG.fmtShort(sun), ok: l && l.prepped }; });
+    const cnt = prepW.filter(p => p.ok).length;
+    return {
+      weeksN: 6, wu, lu, rollLabel: this.state.roll + '-day',
+      rollOpts: [3, 7, 14].map(n => ({ label: n + '-day avg', pick: () => this.setState({ roll: n }), style: seg(this.state.roll === n) })),
+      wNow: RG.bw(av[av.length - 1]), wRate: sgn(rate), wTotal: sgn(tot) + ' ' + wu,
+      wDaily: RG.pts(ws, 600, 160, lo, hi), wAvg: RG.pts(av, 600, 160, lo, hi),
+      wNote: `Trend is changing about ${weeklyPct.toFixed(2)}% of body weight per week. ${weeklyPct > 1 ? 'Faster than 1% a week is aggressive; consider raising calories slightly. This is not medical advice.' : 'That is a sustainable pace for most people.'} Daily readings (grey) include water and food; judge progress by the line.`,
+      measOpts: [['waist', 'Waist'], ['hips', 'Hips'], ['chest', 'Chest'], ['thighs', 'Thighs'], ['arms', 'Arms']].map(([k, l]) => ({ label: l, pick: () => this.setState({ meas: k }), style: seg(mk === k) })),
+      mNow: RG.len(mv[mv.length - 1]), mDelta: mv.length > 1 ? `${mv[mv.length - 1] - mv[0] < 0 ? '−' : '+'}${RG.len(Math.abs(mv[mv.length - 1] - mv[0]))} ${lu} since ${RG.fmtShort(cis[0].date)}` : '',
+      mLine: RG.pts(mv, 600, 140, Math.min(...mv) - 0.5, Math.max(...mv) + 0.5), mLabels: cis.map(c => RG.fmtShort(c.date)),
+      weeks, compTotal: `${RG.sum(weeks.map(w => w.done))} of ${RG.sum(weeks.map(w => w.total))} sessions · avg ${(RG.sum(weeks.slice(0, 6).map(w => w.done)) / 6).toFixed(1)}/week`,
+      vol: mons.map((m, i) => ({ wk: RG.fmtShort(m), label: vols[i] ? (vols[i] / 1000).toFixed(1) + 'k' : '—', bar: { width: '100%', maxWidth: '44px', height: Math.max(2, vols[i] / vmax * 100) + 'px', borderRadius: '5px', background: m === RG.monday(T) ? 'var(--color-accent-700)' : 'var(--color-neutral-500)' } })),
+      exId, setEx: e => this.setState({ ex: e.target.value }), exOpts: ids.map(id => ({ id, name: RG.ex(id).name })).sort((a, b) => a.name < b.name ? -1 : 1),
+      e1Now: RG.w(e1[e1.length - 1]), e1Delta: e1.length > 1 ? `${sgn((e1[e1.length - 1] - e1[0]))} since ${RG.fmtShort(h[0].date)}` : '', e1Line: RG.pts(e1, 600, 140, Math.min(...e1) * 0.97, Math.max(...e1) * 1.02), prCount: prs,
+      adh: [{ pct: Math.round(inK / log.length * 100) + '%', label: 'Days within ±10% kcal' }, { pct: Math.round(inP / log.length * 100) + '%', label: 'Days ≥90% protein' }, { pct: Math.round(inF / log.length * 100) + '%', label: 'Days within ±15% fat' }],
+      calDays: log.map(l => { const d = (l.kcal - P.kcal) / P.kcal; const ok = Math.abs(d) <= 0.1; const hgt = Math.min(45, Math.abs(d) * 150); return { title: `${RG.fmtD(l.d)} · ${RG.num(l.kcal)} kcal`, bar: { alignSelf: 'center', height: Math.max(2, hgt) + 'px', transform: `translateY(${d > 0 ? -hgt / 2 : hgt / 2}px)`, borderRadius: '2px', background: ok ? 'var(--color-accent)' : 'transparent', boxShadow: ok ? 'none' : 'inset 0 0 0 1px var(--color-neutral-500)' } }; }),
+      prepWeeks: prepW.map(p => ({ label: p.label, icon: p.ok ? 'ph-fill ph-check-circle' : 'ph ph-circle-dashed', color: { fontSize: '22px', color: p.ok ? 'var(--color-accent)' : 'var(--color-neutral-600)' } })),
+      prepNote: `Prepped ${cnt} of the last ${prepW.length} Sundays.`,
+      photoTl: cis.map(c => { const src = RG.photo(c.id + ':front'); return { has: !!src, src: src || '', date: RG.fmtShort(c.date) }; }), goPhotos: () => RG.go('photos')
+    };
+  }
+}
+</script>
+</body>
+</html>

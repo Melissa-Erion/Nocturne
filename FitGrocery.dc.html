@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-124ecda7-7b17-42bd-b77f-decc2e83e187/styles.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<script src="store.js"></script>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:16px;max-width:900px">
+<header style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap"><div style="margin-right:auto"><div style="font-size:12px;color:var(--color-neutral-500)">{{ source }}</div><h2 style="margin:2px 0 0;font-size:28px">Grocery List</h2></div>
+<span style="font-size:13px;color:var(--color-neutral-400)">{{ progress }}</span><button class="btn btn-secondary" onClick="{{ clearChecked }}">Uncheck all</button><button class="btn btn-secondary" onClick="{{ goPrep }}"><i class="ph ph-cooking-pot"></i>Edit prep plan</button></header>
+<sc-if value="{{ anyEst }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-radius:var(--radius-md);box-shadow:inset 0 0 0 1px var(--color-neutral-800);font-size:13px;color:var(--color-neutral-300)"><i class="ph ph-warning" style="color:var(--color-accent);font-size:18px;flex:none"></i><span style="text-wrap:pretty">Items marked <b style="font-weight:500">est. yield</b> were converted from cooked meal portions to raw purchase weight using average cooking yields. Buy a little extra, and enter actual cooked batch weights in Meal Prep for precise containers.</span></div>
+</sc-if>
+<sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+<section class="card elev-sm" style="padding:12px 18px;gap:2px">
+<div style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-neutral-500);padding:4px 0 6px">{{ g.cat }}</div>
+<sc-for list="{{ g.items }}" as="i" hint-placeholder-count="3">
+<label style="{{ i.row }}">
+<input type="checkbox" checked="{{ i.checked }}" onChange="{{ i.toggle }}" style="width:20px;height:20px;accent-color:var(--color-accent);flex:none">
+<div style="flex:1;min-width:0"><div style="{{ i.nameStyle }}">{{ i.name }} <span style="font-size:11px;color:var(--color-neutral-500);text-transform:uppercase;letter-spacing:0.05em">{{ i.basis }}</span></div><div style="font-size:11px;color:var(--color-neutral-500)">{{ i.from }}</div></div>
+<sc-if value="{{ i.est }}" hint-placeholder-val="{{ false }}"><span class="tag tag-neutral" style="font-size:10px">est. yield</span></sc-if>
+<div style="text-align:right;font-variant-numeric:tabular-nums"><div style="font-size:14px">{{ i.buy }}</div><div style="font-size:11px;color:var(--color-neutral-500)">{{ i.need }}</div></div>
+<sc-if value="{{ i.manual }}" hint-placeholder-val="{{ false }}"><button class="btn btn-icon btn-ghost" style="width:28px;height:28px;color:var(--color-neutral-500)" onClick="{{ i.remove }}"><i class="ph ph-x"></i></button></sc-if>
+</label>
+</sc-for>
+</section>
+</sc-for>
+<section class="card elev-sm" style="padding:14px 18px;gap:8px">
+<div class="card-title" style="font-size:15px">Add an item</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><input class="input" value="{{ mName }}" onChange="{{ setMName }}" placeholder="e.g. Coffee, dish soap" style="flex:2;min-width:180px"><input class="input" value="{{ mQty }}" onChange="{{ setMQty }}" placeholder="Qty" style="flex:1;min-width:80px"><select class="input" value="{{ mCat }}" onChange="{{ setMCat }}" style="width:auto"><sc-for list="{{ cats }}" as="c" hint-placeholder-count="6"><option>{{ c }}</option></sc-for></select><button class="btn btn-primary" onClick="{{ addManual }}">Add</button></div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { mName: '', mQty: '', mCat: 'Other' };
+  componentDidMount() { const h = () => { if (!window.RG) return this.t = setTimeout(h, 30); this.u = window.RG.subscribe(() => this.forceUpdate()); this.forceUpdate(); }; h(); }
+  componentWillUnmount() { this.u && this.u(); clearTimeout(this.t); }
+  renderVals() {
+    const RG = window.RG; if (!RG) return {};
+    const S = RG.s; const list = RG.groceryList(); const ck = S.grocery.checked;
+    const all = list.map(i => ({ ...i, manual: false })).concat(S.grocery.manual.map(m => ({ id: m.id, name: m.name, cat: m.cat, buy: m.qty || '', basis: '', from: ['Added manually'], manual: true, g: 0, est: false })));
+    const cats = [...new Set(all.map(i => i.cat))];
+    const mk = i => { const on = !!ck[i.id]; return { name: i.name, basis: i.manual ? '' : i.basis, from: i.from.join(' · '), est: i.est, buy: i.buy, need: i.manual ? '' : `need ${RG.g(i.g)}`, checked: on, manual: i.manual,
+      toggle: () => RG.update(s => { s.grocery.checked[i.id] = !s.grocery.checked[i.id]; }), remove: () => RG.update(s => { s.grocery.manual = s.grocery.manual.filter(m => m.id !== i.id); }),
+      row: { display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0', cursor: 'pointer', minHeight: '44px', opacity: on ? 0.5 : 1, background: 'linear-gradient(to right,transparent,var(--color-divider) 48px,var(--color-divider) calc(100% - 48px),transparent) no-repeat top/100% 1px' },
+      nameStyle: { fontSize: '14px', textDecoration: on ? 'line-through' : 'none' } }; };
+    const done = all.filter(i => ck[i.id]).length;
+    return {
+      source: `From ${S.prep.length} meal-prep plan${S.prep.length === 1 ? '' : 's'}: ${S.prep.map(p => { const c = RG.prepCalc(p); return c ? `${c.name} × ${c.n}` : ''; }).join(', ')} · updates automatically`,
+      progress: `${done} of ${all.length} checked`, anyEst: list.some(i => i.est),
+      groups: cats.map(c => ({ cat: c, items: all.filter(i => i.cat === c).map(mk) })),
+      clearChecked: () => RG.update(s => s.grocery.checked = {}), goPrep: () => RG.go('prep'),
+      mName: this.state.mName, mQty: this.state.mQty, mCat: this.state.mCat, setMName: e => this.setState({ mName: e.target.value }), setMQty: e => this.setState({ mQty: e.target.value }), setMCat: e => this.setState({ mCat: e.target.value }),
+      cats: ['Meat & fish', 'Dairy & eggs', 'Grains & starches', 'Produce', 'Pantry', 'Frozen', 'Other'],
+      addManual: () => { if (!this.state.mName.trim()) return; RG.update(s => s.grocery.manual.push({ id: 'm' + RG.uid(), name: this.state.mName.trim(), qty: this.state.mQty, cat: this.state.mCat })); this.setState({ mName: '', mQty: '' }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

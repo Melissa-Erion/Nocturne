@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-124ecda7-7b17-42bd-b77f-decc2e83e187/styles.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<script src="store.js"></script>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:18px;max-width:760px">
+<header style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:12px;color:var(--color-neutral-500);flex:1">Setup · step {{ stepN }} of 6 · editable any time in Settings, history is never lost</span><button class="btn btn-ghost" style="font-size:12px" onClick="{{ exit }}">Exit setup</button></div>
+<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px"><sc-for list="{{ bars }}" as="b" hint-placeholder-count="6"><div style="{{ b }}"></div></sc-for></div>
+<h2 style="margin:4px 0 0;font-size:30px">{{ title }}</h2>
+<div style="font-size:14px;color:var(--color-neutral-400);text-wrap:pretty">{{ sub }}</div>
+</header>
+<sc-if value="{{ s1 }}" hint-placeholder-val="{{ true }}">
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px">
+<sc-for list="{{ goals }}" as="g" hint-placeholder-count="6"><button onClick="{{ g.pick }}" style="{{ g.style }}"><i class="{{ g.icon }}" style="font-size:22px;color:var(--color-accent)"></i><span style="font-size:16px;font-weight:500">{{ g.label }}</span><span style="font-size:12px;color:var(--color-neutral-400);text-wrap:pretty">{{ g.desc }}</span></button></sc-for>
+</div>
+</sc-if>
+<sc-if value="{{ s2 }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;gap:8px;align-items:center"><span style="font-size:13px;color:var(--color-neutral-400)">Units</span><div class="seg"><button onClick="{{ setMetric }}" style="{{ sMetric }}">Metric</button><button onClick="{{ setImperial }}" style="{{ sImperial }}">Imperial</button></div></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px">
+<div class="field"><label>Current weight ({{ wu }})</label><input class="input" type="number" step="0.1" value="{{ d.weight }}" onChange="{{ set.weight }}" style="min-height:44px;font-size:16px"></div>
+<div class="field"><label>Goal weight ({{ wu }}, optional)</label><input class="input" type="number" step="0.1" value="{{ d.goalWeight }}" onChange="{{ set.goalWeight }}" style="min-height:44px;font-size:16px"></div>
+<div class="field"><label>Height ({{ lu }})</label><input class="input" type="number" value="{{ d.height }}" onChange="{{ set.height }}" style="min-height:44px;font-size:16px"></div>
+<div class="field"><label>Age</label><input class="input" type="number" value="{{ d.age }}" onChange="{{ set.age }}" style="min-height:44px;font-size:16px"></div>
+<div class="field"><label>Sex (for energy estimates)</label><select class="input" value="{{ d.sex }}" onChange="{{ set.sex }}" style="min-height:44px"><option>Female</option><option>Male</option><option>Prefer not to say</option></select></div>
+<div class="field"><label>Activity outside training</label><select class="input" value="{{ d.activity }}" onChange="{{ set.activity }}" style="min-height:44px"><option>Sedentary</option><option>Lightly active</option><option>Moderately active</option><option>Very active</option></select></div>
+<div class="field"><label>Training experience</label><select class="input" value="{{ d.experience }}" onChange="{{ set.experience }}" style="min-height:44px"><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select></div>
+</div>
+</sc-if>
+<sc-if value="{{ s3 }}" hint-placeholder-val="{{ false }}">
+<div class="field"><label>Available training days</label><div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ days }}" as="x" hint-placeholder-count="7"><button onClick="{{ x.pick }}" style="{{ x.style }}">{{ x.label }}</button></sc-for></div><div style="font-size:12px;color:var(--color-neutral-500);margin-top:6px">Other days become rest days. {{ dayHint }}</div></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px">
+<div class="field"><label>Typical duration (min)</label><input class="input" type="number" value="{{ d.duration }}" onChange="{{ set.duration }}" style="min-height:44px"></div>
+<div class="field"><label>Preferred workout time</label><input class="input" type="time" value="{{ d.workoutTime }}" onChange="{{ set.workoutTime }}" style="min-height:44px"></div>
+<div class="field"><label>Where</label><select class="input" value="{{ d.location }}" onChange="{{ set.location }}" style="min-height:44px"><option>Gym</option><option>Home</option><option>Both</option></select></div>
+</div>
+<div class="field"><label>Available equipment</label><div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ equip }}" as="x" hint-placeholder-count="5"><button onClick="{{ x.pick }}" style="{{ x.style }}">{{ x.label }}</button></sc-for></div></div>
+<div class="field"><label>Priorities</label><div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ prios }}" as="x" hint-placeholder-count="8"><button onClick="{{ x.pick }}" style="{{ x.style }}">{{ x.label }}</button></sc-for></div></div>
+</sc-if>
+<sc-if value="{{ s4 }}" hint-placeholder-val="{{ false }}">
+<div style="padding:12px 14px;border-radius:var(--radius-md);background:var(--color-neutral-900);font-size:13px;color:var(--color-neutral-300);text-wrap:pretty">{{ suggestNote }} <button class="btn btn-ghost" style="font-size:12px" onClick="{{ applySuggest }}">Use suggestion</button></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px">
+<div class="field"><label>Calories (kcal)</label><input class="input" type="number" value="{{ d.kcal }}" onChange="{{ set.kcal }}" style="min-height:44px;font-size:16px"></div>
+<div class="field"><label>Protein (g)</label><input class="input" type="number" value="{{ d.protein }}" onChange="{{ set.protein }}" style="min-height:44px;font-size:16px"></div>
+<div class="field"><label>Carbohydrates (g)</label><input class="input" type="number" value="{{ d.carbs }}" onChange="{{ set.carbs }}" style="min-height:44px;font-size:16px"></div>
+<div class="field"><label>Fat (g)</label><input class="input" type="number" value="{{ d.fat }}" onChange="{{ set.fat }}" style="min-height:44px;font-size:16px"></div>
+<div class="field"><label>Meals per day</label><input class="input" type="number" min="2" max="6" value="{{ d.meals }}" onChange="{{ set.meals }}" style="min-height:44px;font-size:16px"></div>
+</div>
+<div style="font-size:12px;color:var(--color-neutral-400)">{{ macroCheck }}</div>
+<sc-if value="{{ lowWarn }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:8px;padding:10px 12px;border-radius:var(--radius-md);box-shadow:inset 0 0 0 1px var(--color-accent-700);font-size:13px"><i class="ph ph-warning" style="color:var(--color-accent)"></i><span>{{ lowWarn }}</span></div></sc-if>
+<div class="field"><label>Dietary preferences</label><div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ diets }}" as="x" hint-placeholder-count="4"><button onClick="{{ x.pick }}" style="{{ x.style }}">{{ x.label }}</button></sc-for></div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="field"><label>Allergies (comma separated)</label><input class="input" value="{{ d.allergies }}" onChange="{{ set.allergies }}" placeholder="e.g. peanut, shellfish"></div><div class="field"><label>Foods to exclude</label><input class="input" value="{{ d.exclude }}" onChange="{{ set.exclude }}" placeholder="e.g. pork"></div></div>
+</sc-if>
+<sc-if value="{{ s5 }}" hint-placeholder-val="{{ false }}">
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">
+<div class="field"><label>Check-in day</label><select class="input" value="{{ d.checkInDay }}" onChange="{{ set.checkInDay }}" style="min-height:44px"><sc-for list="{{ dayOpts }}" as="o" hint-placeholder-count="7"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select></div>
+<div class="field"><label>Check-in frequency</label><select class="input" value="{{ d.checkInFreq }}" onChange="{{ set.checkInFreq }}" style="min-height:44px"><option>Weekly</option><option>Biweekly</option><option>Monthly</option></select></div>
+<div class="field"><label>Workout reminder</label><select class="input" value="{{ d.remLead }}" onChange="{{ set.remLead }}" style="min-height:44px"><option value="30">30 min before</option><option value="60">1 h before</option><option value="120">2 h before</option><option value="0">Off</option></select></div>
+<div class="field"><label>Weigh-in reminder</label><input class="input" type="time" value="{{ d.weighTime }}" onChange="{{ set.weighTime }}" style="min-height:44px"></div>
+<div class="field"><label>Quiet hours from</label><input class="input" type="time" value="{{ d.quietStart }}" onChange="{{ set.quietStart }}" style="min-height:44px"></div>
+<div class="field"><label>Quiet hours until</label><input class="input" type="time" value="{{ d.quietEnd }}" onChange="{{ set.quietEnd }}" style="min-height:44px"></div>
+</div>
+</sc-if>
+<sc-if value="{{ s6 }}" hint-placeholder-val="{{ false }}">
+<section class="card elev-sm" style="padding:16px 18px;gap:6px">
+<sc-for list="{{ review }}" as="r" hint-placeholder-count="8"><div style="display:flex;gap:12px;font-size:14px;padding:6px 0;background:linear-gradient(to right,transparent,var(--color-divider) 48px,var(--color-divider) calc(100% - 48px),transparent) no-repeat top/100% 1px"><span style="width:160px;flex:none;color:var(--color-neutral-500)">{{ r.k }}</span><span>{{ r.v }}</span></div></sc-for>
+</section>
+<div style="font-size:12px;color:var(--color-neutral-500);text-wrap:pretty">Saving updates your profile and reschedules future workouts from today in rotation order. Logged workouts, check-ins, photos and nutrition history are kept. Targets are planning estimates, not medical advice.</div>
+</sc-if>
+<div style="display:flex;gap:8px;justify-content:space-between;padding-top:6px"><button class="btn btn-secondary" style="min-height:44px" disabled="{{ isFirst }}" onClick="{{ back }}">Back</button><button class="btn btn-primary" style="min-height:44px;padding-inline:22px" onClick="{{ next }}">{{ nextLabel }}</button></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { step: 1, d: null };
+  componentDidMount() { const h = () => { if (!window.RG) return this.t = setTimeout(h, 30); this.u = window.RG.subscribe(() => this.forceUpdate()); this.forceUpdate(); }; h(); }
+  componentWillUnmount() { this.u && this.u(); clearTimeout(this.t); }
+  draft() {
+    const RG = window.RG, P = RG.s.profile;
+    return { goal: P.goal, weight: RG.bw(P.weightKg), goalWeight: P.goalWeightKg ? RG.bw(P.goalWeightKg) : '', height: RG.imp() ? RG.len(P.heightCm) : P.heightCm, age: P.age, sex: P.sex, activity: P.activity, experience: P.experience,
+      trainingDays: P.trainingDays.slice(), duration: P.duration, workoutTime: P.workoutTime, location: P.location, equipment: P.equipment.slice(), priorities: P.priorities.slice(),
+      kcal: P.kcal, protein: P.protein, carbs: P.carbs, fat: P.fat, meals: P.mealsPerDay, dietPrefs: P.dietPrefs.slice(), allergies: P.allergies.join(', '), exclude: P.exclude.join(', '),
+      checkInDay: String(P.checkInDay), checkInFreq: P.checkInFreq, remLead: '120', weighTime: '07:15', quietStart: P.quietStart, quietEnd: P.quietEnd };
+  }
+  renderVals() {
+    const RG = window.RG; if (!RG) return {};
+    const d = this.state.d || this.draft(); const step = this.state.step; const wu = RG.wu(), lu = RG.lu();
+    const setD = patch => this.setState({ d: { ...d, ...patch } });
+    const set = {}; Object.keys(d).forEach(k => set[k] = e => setD({ [k]: e.target.value }));
+    const chip = (on) => ({ font: 'inherit', fontSize: '13px', padding: '9px 14px', minHeight: '40px', borderRadius: '8px', cursor: 'pointer', background: on ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : 'transparent', border: '1px solid ' + (on ? 'var(--color-accent)' : 'var(--color-neutral-800)'), color: on ? 'var(--color-accent)' : 'var(--color-neutral-300)' });
+    const toggleIn = (k, v) => () => setD({ [k]: d[k].includes(v) ? d[k].filter(x => x !== v) : d[k].concat([v]) });
+    const seg = on => ({ font: 'inherit', fontSize: '12px', padding: '7px 12px', border: 0, cursor: 'pointer', background: on ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : 'transparent', color: on ? 'var(--color-accent)' : 'var(--color-neutral-400)' });
+    const kg = RG.toKg(Number(d.weight) || 0), cm = RG.imp() ? Number(d.height) * 2.54 : Number(d.height);
+    const bmr = 10 * kg + 6.25 * cm - 5 * Number(d.age) + (d.sex === 'Male' ? 5 : d.sex === 'Female' ? -161 : -78);
+    const af = { Sedentary: 1.35, 'Lightly active': 1.45, 'Moderately active': 1.55, 'Very active': 1.7 }[d.activity] || 1.5;
+    const tdee = bmr * af + (d.trainingDays.length * d.duration * 5) / 7;
+    const adj = { 'Fat loss': -0.18, 'Muscle gain': 0.1, Recomposition: -0.08, Strength: 0.05, Maintenance: 0, 'General fitness': 0 }[d.goal] || 0;
+    const sK = Math.round(tdee * (1 + adj) / 10) * 10; const sP = Math.round(kg * (d.goal === 'Fat loss' || d.goal === 'Recomposition' ? 1.8 : 1.6)); const sF = Math.round(Math.max(kg * 0.7, sK * 0.25 / 9)); const sC = Math.max(50, Math.round((sK - sP * 4 - sF * 9) / 4));
+    const mk = Number(d.protein) * 4 + Number(d.carbs) * 4 + Number(d.fat) * 9;
+    const floor = Math.max(bmr, d.sex === 'Male' ? 1500 : 1200);
+    const lowWarn = Number(d.kcal) && Number(d.kcal) < floor ? `${d.kcal} kcal is below the estimated resting need (${Math.round(bmr)} kcal) or a common minimum. Regimen won't set targets this low by default; consider a smaller deficit or talk to a qualified professional.` : '';
+    const titles = [['What are you training for?', 'This shapes the suggested targets. You choose the plan; Regimen organises it.'], ['About you', 'Used only to estimate energy needs. Stored privately on this device.'], ['Your training week', 'Workouts are placed on these days in rotation order, avoiding back-to-back sessions for the same muscles.'], ['Daily targets', 'Start from the estimate or enter your own. Meals are portioned to these numbers.'], ['Check-ins & reminders', 'Pick a rhythm you can keep. Every reminder is adjustable later.'], ['Review', 'Confirm and save. You can change any of this in Fitness Settings.']];
+    const goals = [['Fat loss', 'ph-trend-down', 'Moderate deficit, high protein, keep strength'], ['Muscle gain', 'ph-trend-up', 'Small surplus, progressive volume'], ['Recomposition', 'ph-arrows-down-up', 'Near maintenance, build while leaning out'], ['Strength', 'ph-barbell', 'Heavier loads, lower reps, longer rests'], ['Maintenance', 'ph-equals', 'Hold weight, keep training consistent'], ['General fitness', 'ph-heartbeat', 'Balanced training and energy']];
+    const save = () => {
+      RG.update(s => { const P = s.profile; Object.assign(P, { goal: d.goal, goalWeightKg: d.goalWeight === '' ? null : RG.r1(RG.toKg(Number(d.goalWeight))), heightCm: Math.round(cm), age: Number(d.age), sex: d.sex, activity: d.activity, experience: d.experience,
+        trainingDays: d.trainingDays.slice().sort(), restDays: [0, 1, 2, 3, 4, 5, 6].filter(x => !d.trainingDays.includes(x)), duration: Number(d.duration), workoutTime: d.workoutTime, location: d.location, equipment: d.equipment, priorities: d.priorities,
+        kcal: Number(d.kcal), protein: Number(d.protein), carbs: Number(d.carbs), fat: Number(d.fat), mealsPerDay: Math.min(6, Math.max(2, Number(d.meals))), dietPrefs: d.dietPrefs,
+        allergies: d.allergies.split(',').map(x => x.trim()).filter(Boolean), exclude: d.exclude.split(',').map(x => x.trim()).filter(Boolean), checkInDay: Number(d.checkInDay), checkInFreq: d.checkInFreq, quietStart: d.quietStart, quietEnd: d.quietEnd, onboarded: true });
+        if (Math.abs(RG.toKg(Number(d.weight)) - (RG.avgWeight() || 0)) > 0.05) { const w = s.weights.find(x => x.date === RG.TODAY); const v = RG.r1(RG.toKg(Number(d.weight))); if (w) w.kg = v; else s.weights.push({ date: RG.TODAY, kg: v }); }
+        const r1 = s.reminders.find(r => r.id === 'r1'); if (r1) { r1.enabled = d.remLead !== '0'; if (d.remLead !== '0') { const [h, m] = d.workoutTime.split(':').map(Number); const t = h * 60 + m - Number(d.remLead); r1.time = `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`; } }
+        const r6 = s.reminders.find(r => r.id === 'r6'); if (r6) r6.time = d.weighTime;
+        Object.keys(s.days).forEach(k => { if (k > RG.TODAY) delete s.days[k]; });
+      });
+      RG.regenerate(RG.TODAY); RG.go('dashboard'); RG.toast('Setup saved. Future workouts rescheduled, history kept.');
+    };
+    return {
+      stepN: step, title: titles[step - 1][0], sub: titles[step - 1][1], s1: step === 1, s2: step === 2, s3: step === 3, s4: step === 4, s5: step === 5, s6: step === 6,
+      bars: [1, 2, 3, 4, 5, 6].map(i => ({ height: '3px', borderRadius: '2px', background: i <= step ? 'var(--color-accent)' : 'var(--color-neutral-800)' })),
+      d, set, wu, lu,
+      goals: goals.map(([l, ic, desc]) => ({ label: l, icon: 'ph ' + ic, desc, pick: () => setD({ goal: l }), style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px', padding: '16px', minHeight: '120px', borderRadius: 'var(--radius-md)', font: 'inherit', color: 'var(--color-text)', textAlign: 'left', cursor: 'pointer', background: d.goal === l ? 'var(--color-accent-900)' : 'var(--color-surface)', border: '1px solid ' + (d.goal === l ? 'var(--color-accent)' : 'transparent') } })),
+      sMetric: seg(!RG.imp()), sImperial: seg(RG.imp()),
+      setMetric: () => { if (RG.imp()) { setD({ weight: RG.r1(Number(d.weight) / 2.20462), goalWeight: d.goalWeight ? RG.r1(Number(d.goalWeight) / 2.20462) : '', height: Math.round(Number(d.height) * 2.54) }); RG.update(s => s.profile.units = 'metric'); } },
+      setImperial: () => { if (!RG.imp()) { setD({ weight: RG.r1(Number(d.weight) * 2.20462), goalWeight: d.goalWeight ? RG.r1(Number(d.goalWeight) * 2.20462) : '', height: RG.r1(Number(d.height) / 2.54) }); RG.update(s => s.profile.units = 'imperial'); } },
+      days: RG.DN.map((l, i) => ({ label: l, pick: toggleIn('trainingDays', i), style: chip(d.trainingDays.includes(i)) })),
+      dayHint: d.trainingDays.length ? `${d.trainingDays.length} training days per week.` : 'Pick at least one day.',
+      equip: ['Barbell', 'Dumbbell', 'Cable', 'Machine', 'Bodyweight'].map(l => ({ label: l, pick: toggleIn('equipment', l), style: chip(d.equipment.includes(l)) })),
+      prios: ['Glutes', 'Quads', 'Hamstrings', 'Upper back', 'Chest', 'Shoulders', 'Arms', 'Core', 'Strength on big lifts'].map(l => ({ label: l, pick: toggleIn('priorities', l), style: chip(d.priorities.includes(l)) })),
+      diets: ['Dairy-free', 'Gluten-free', 'Vegetarian', 'Vegan'].map(l => ({ label: l, pick: toggleIn('dietPrefs', l), style: chip(d.dietPrefs.includes(l)) })),
+      suggestNote: `Estimated maintenance ≈ ${RG.num(tdee)} kcal (Mifflin-St Jeor × activity + training). For ${d.goal.toLowerCase()}: ${RG.num(sK)} kcal · ${sP} g protein · ${sC} g carbs · ${sF} g fat. This is an estimate, not medical advice.`,
+      applySuggest: () => setD({ kcal: sK, protein: sP, carbs: sC, fat: sF }),
+      macroCheck: `Macros add up to ${RG.num(mk)} kcal (${mk - Number(d.kcal) >= 0 ? '+' : ''}${RG.num(mk - Number(d.kcal))} vs calorie target). Small gaps are normal rounding.`, lowWarn,
+      dayOpts: RG.DFULL.map((l, i) => ({ v: String(i), label: l })),
+      review: [['Goal', d.goal], ['Body', `${d.weight} ${wu} → ${d.goalWeight || '—'} ${wu} · ${d.height} ${lu} · ${d.age} y · ${d.sex}`], ['Training', `${d.trainingDays.map(i => RG.DN[i]).join(', ')} · ${d.duration} min at ${d.workoutTime} · ${d.location}`], ['Equipment', d.equipment.join(', ')], ['Priorities', d.priorities.join(', ') || '—'], ['Targets', `${RG.num(Number(d.kcal))} kcal · ${d.protein} P · ${d.carbs} C · ${d.fat} F · ${d.meals} meals`], ['Diet', [d.dietPrefs.join(', '), d.allergies && 'allergies: ' + d.allergies, d.exclude && 'exclude: ' + d.exclude].filter(Boolean).join(' · ') || 'No restrictions'], ['Check-ins', `${d.checkInFreq} on ${RG.DFULL[Number(d.checkInDay)]}`], ['Quiet hours', `${d.quietStart}–${d.quietEnd}`]].map(([k, v]) => ({ k, v })),
+      isFirst: step === 1, back: () => this.setState({ step: Math.max(1, step - 1), d }), next: () => { if (step === 3 && !d.trainingDays.length) return RG.toast('Choose at least one training day.'); if (step < 6) this.setState({ step: step + 1, d }); else save(); }, nextLabel: step < 6 ? 'Continue' : 'Save & build schedule',
+      exit: () => { RG.update(s => s.profile.onboarded = true); RG.go('settings'); }
+    };
+  }
+}
+</script>
+</body>
+</html>

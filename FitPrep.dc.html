@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-124ecda7-7b17-42bd-b77f-decc2e83e187/styles.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<script src="store.js"></script>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:16px">
+<header style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap"><div style="margin-right:auto"><div style="font-size:12px;color:var(--color-neutral-500)">Batch cook, then divide by actual cooked weight</div><h2 style="margin:2px 0 0;font-size:28px">Meal-Prep Calculator</h2></div>
+<button class="btn btn-secondary" onClick="{{ addPlan }}"><i class="ph ph-plus"></i>Add prep</button><button class="btn btn-primary" onClick="{{ goGrocery }}"><i class="ph ph-shopping-cart"></i>Grocery list</button></header>
+<sc-for list="{{ preps }}" as="p" hint-placeholder-count="2">
+<section class="card elev-sm" style="padding:16px 18px;gap:14px">
+<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+<div class="field" style="flex:1;min-width:220px"><label>Recipe or meal</label><select class="input" value="{{ p.srcVal }}" onChange="{{ p.setSrc }}"><sc-for list="{{ srcOpts }}" as="o" hint-placeholder-count="6"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select></div>
+<div class="field" style="width:100px"><label>Meals / days</label><input class="input" type="number" value="{{ p.containers }}" onChange="{{ p.setContainers }}"></div>
+<div class="field" style="width:90px"><label>People</label><input class="input" type="number" value="{{ p.people }}" onChange="{{ p.setPeople }}"></div>
+<div class="field"><label>Version</label><div class="seg"><button onClick="{{ p.setTrain }}" style="{{ p.sTrain }}">Training</button><button onClick="{{ p.setRest }}" style="{{ p.sRest }}">Rest</button></div></div>
+<button class="btn btn-icon btn-ghost" onClick="{{ p.remove }}" title="Remove"><i class="ph ph-trash" style="color:var(--color-neutral-500)"></i></button>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;padding:12px;border-radius:var(--radius-md);background:var(--color-neutral-900)">
+<div><div style="font-size:11px;color:var(--color-neutral-500)">Containers</div><div style="font-size:24px">{{ p.n }}</div></div>
+<div><div style="font-size:11px;color:var(--color-neutral-500)">Per container</div><div style="font-size:24px;font-variant-numeric:tabular-nums">{{ p.kcal }}<span style="font-size:12px;color:var(--color-neutral-500)"> kcal</span></div><div style="font-size:12px;color:var(--color-neutral-400)">{{ p.macros }}</div></div>
+<sc-if value="{{ p.isRecipe }}" hint-placeholder-val="{{ false }}"><div><div style="font-size:11px;color:var(--color-neutral-500)">Cooked per container</div><div style="font-size:24px;font-variant-numeric:tabular-nums">{{ p.perContainerG }}<span style="font-size:12px;color:var(--color-neutral-500)"> g</span></div></div></sc-if>
+</div>
+<div style="overflow-x:auto">
+<table class="table" style="min-width:720px">
+<thead><tr><th>Ingredient</th><th>Buy / weigh raw</th><th>Expected cooked yield</th><th>Actual cooked batch (g)</th><th>Per container</th></tr></thead>
+<tbody><sc-for list="{{ p.lines }}" as="l" hint-placeholder-count="3"><tr>
+<td><div>{{ l.name }}</div><div style="font-size:11px;color:var(--color-neutral-500)">{{ l.listed }}</div></td>
+<td style="font-variant-numeric:tabular-nums">{{ l.buy }}<div style="font-size:11px;color:var(--color-neutral-500)">{{ l.buyBasis }}</div></td>
+<td style="font-variant-numeric:tabular-nums">{{ l.expected }}<sc-if value="{{ l.est }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;color:var(--color-accent-300)"><i class="ph ph-warning"></i> estimated yield</div></sc-if></td>
+<td><sc-if value="{{ l.canActual }}" hint-placeholder-val="{{ true }}"><input class="input" type="number" value="{{ l.actual }}" placeholder="weigh after cooking" onChange="{{ l.setActual }}" style="width:150px"></sc-if></td>
+<td style="font-variant-numeric:tabular-nums;font-size:15px">{{ l.per }}<div style="font-size:11px;color:var(--color-neutral-500)">{{ l.perBasis }}</div></td>
+</tr></sc-for></tbody>
+</table>
+</div>
+<sc-if value="{{ p.isRecipe }}" hint-placeholder-val="{{ false }}"><div class="field" style="max-width:280px"><label>Actual total cooked weight of the batch (g)</label><input class="input" type="number" value="{{ p.totalActual }}" placeholder="{{ p.totalPh }}" onChange="{{ p.setTotal }}"></div></sc-if>
+<div style="font-size:12px;color:var(--color-neutral-500);text-wrap:pretty">{{ p.note }}</div>
+</section>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount() { const h = () => { if (!window.RG) return this.t = setTimeout(h, 30); this.u = window.RG.subscribe(() => this.forceUpdate()); this.forceUpdate(); }; h(); }
+  componentWillUnmount() { this.u && this.u(); clearTimeout(this.t); }
+  renderVals() {
+    const RG = window.RG; if (!RG) return {};
+    const S = RG.s; const seg = on => ({ font: 'inherit', fontSize: '12px', padding: '7px 12px', border: 0, cursor: 'pointer', background: on ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : 'transparent', color: on ? 'var(--color-accent)' : 'var(--color-neutral-400)' });
+    const srcOpts = S.recipes.map(r => ({ v: 'recipe:' + r.id, label: 'Recipe · ' + r.name })).concat(S.savedMeals.filter(m => m.items.length).map(m => ({ v: 'meal:' + m.id, label: 'Meal · ' + m.name })));
+    const preps = S.prep.map((p, pi) => {
+      const c = RG.prepCalc(p) || { lines: [], perContainer: { kcal: 0, p: 0, c: 0, f: 0 }, n: 0 }; const up = fn => RG.update(s => fn(s.prep[pi]));
+      const isR = p.kind === 'recipe';
+      const lines = c.lines.map(l => {
+        const f = RG.food(l.foodId);
+        return { name: f.name, listed: isR ? `${Math.round(l.buyG / c.n)} g raw per serving in recipe` : `${Math.round(RG.prepSource(p).items.find(i => i.foodId === l.foodId).g)} g ${f.basis} per meal`,
+          buy: RG.g(l.buyG), buyBasis: isR ? 'raw, total' : (l.rawBasis || f.basis) + ', total',
+          expected: l.expected ? RG.g(l.expected) + ' cooked' : isR ? '—' : 'no cooking change', est: !!l.est && !isR,
+          canActual: !isR && (f.basis === 'cooked' || !!f.cookedId), actual: l.actual || '', setActual: e => { const v = e.target.value; up(pp => { if (v === '') delete pp.actual[l.foodId]; else pp.actual[l.foodId] = Number(v); }); },
+          per: isR ? '—' : RG.g(l.perG), perBasis: isR ? '' : l.perBasis + (l.actual ? ' · from actual batch' : f.basis === 'cooked' || f.cookedId ? ' · target' : '') };
+      });
+      const rn = isR ? RG.recipeNutrition(RG.prepSource(p)) : null;
+      return {
+        srcVal: p.kind + ':' + p.mealId, setSrc: e => { const [k, id] = e.target.value.split(':'); up(pp => { pp.kind = k; pp.mealId = id; pp.actual = {}; }); },
+        containers: p.containers, people: p.people, setContainers: e => { const v = Math.max(1, Number(e.target.value)); up(pp => pp.containers = v); }, setPeople: e => { const v = Math.max(1, Number(e.target.value)); up(pp => pp.people = v); },
+        sTrain: seg(p.version === 'training'), sRest: seg(p.version === 'rest'), setTrain: () => up(pp => pp.version = 'training'), setRest: () => up(pp => pp.version = 'rest'),
+        remove: () => RG.update(s => s.prep.splice(pi, 1)), n: c.n, kcal: RG.num(c.perContainer.kcal), macros: `${RG.r1(c.perContainer.p)} P · ${RG.r1(c.perContainer.c)} C · ${RG.r1(c.perContainer.f)} F`,
+        isRecipe: isR, perContainerG: isR ? Math.round(c.perContainerG) : '', totalActual: isR ? (p.actual.total || '') : '', totalPh: isR ? `est. ${Math.round(rn.cooked * c.n / RG.prepSource(p).servings)} g` : '',
+        setTotal: e => { const v = e.target.value; up(pp => { if (v === '') delete pp.actual.total; else pp.actual.total = Number(v); }); },
+        lines,
+        note: isR ? (p.actual.total ? `Divided by your weighed batch (${RG.g(p.actual.total)}): portion each container to ${Math.round(c.perContainerG)} g. Macros come from the full ingredient list.` : 'Weigh the finished batch and enter it above. Containers are then divided by actual weight, not an estimate.')
+          : (c.estimated ? 'Raw purchase amounts use estimated cooking yields (USDA retention averages), which vary with method and time. Enter each actual cooked batch weight to divide containers precisely.' : 'All quantities come from your weighed batches.')
+      };
+    });
+    return { preps, srcOpts, addPlan: () => RG.update(s => s.prep.push({ id: 'pp' + RG.uid(), mealId: 'sm1', kind: 'meal', containers: 5, people: 1, days: 5, version: 'training', actual: {} })), goGrocery: () => RG.go('grocery') };
+  }
+}
+</script>
+</body>
+</html>

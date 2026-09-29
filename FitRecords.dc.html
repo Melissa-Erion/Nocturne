@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-124ecda7-7b17-42bd-b77f-decc2e83e187/styles.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<script src="store.js"></script>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:16px">
+<header style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap"><div style="margin-right:auto"><div style="font-size:12px;color:var(--color-neutral-500)">Working sets only · warm-ups excluded · e1RM uses the Epley estimate</div><h2 style="margin:2px 0 0;font-size:28px">Personal Records</h2></div>
+<div class="seg"><sc-for list="{{ filters }}" as="f" hint-placeholder-count="3"><button onClick="{{ f.pick }}" style="{{ f.style }}">{{ f.label }}</button></sc-for></div></header>
+<section style="display:flex;flex-direction:column;gap:8px">
+<div style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-neutral-500)">Set in the last 14 days</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px">
+<sc-for list="{{ recent }}" as="r" hint-placeholder-count="4"><div class="card elev-sm" style="padding:12px 14px;gap:4px;background:linear-gradient(150deg,var(--color-accent-900),var(--color-surface) 70%)"><div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-accent-300)"><i class="ph-fill ph-trophy"></i>{{ r.kind }} · {{ r.date }}</div><div style="font-size:15px">{{ r.name }}</div><div style="font-size:20px;font-variant-numeric:tabular-nums">{{ r.value }}</div></div></sc-for>
+</div>
+<sc-if value="{{ noRecent }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--color-neutral-500)">No new records in the last two weeks. Plateaus are normal; the trend matters more than any single session.</div></sc-if>
+</section>
+<section class="card elev-sm" style="padding:12px 18px;overflow-x:auto">
+<table class="table" style="min-width:820px">
+<thead><tr><th>Exercise</th><th>Heaviest weight</th><th>Est. 1RM</th><th>Highest session volume</th><th>Best working-set performance</th><th>Most reps at weight</th></tr></thead>
+<tbody><sc-for list="{{ rows }}" as="r" hint-placeholder-count="10"><tr style="cursor:pointer" onClick="{{ r.open }}"><td><div>{{ r.name }}</div><div style="font-size:11px;color:var(--color-neutral-500)">{{ r.muscle }}</div></td><td style="font-variant-numeric:tabular-nums">{{ r.heavy }}<div style="font-size:11px;color:var(--color-neutral-500)">{{ r.heavyD }}</div></td><td style="font-variant-numeric:tabular-nums">{{ r.e1 }}<div style="font-size:11px;color:var(--color-neutral-500)">{{ r.e1D }}</div></td><td style="font-variant-numeric:tabular-nums">{{ r.vol }}<div style="font-size:11px;color:var(--color-neutral-500)">{{ r.volD }}</div></td><td style="font-variant-numeric:tabular-nums">{{ r.best }}<div style="font-size:11px;color:var(--color-neutral-500)">{{ r.bestD }}</div></td><td style="font-size:12px;color:var(--color-neutral-300);font-variant-numeric:tabular-nums">{{ r.repsAt }}</td></tr></sc-for></tbody>
+</table>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { f: 'All' };
+  componentDidMount() { const h = () => { if (!window.RG) return this.t = setTimeout(h, 30); this.u = window.RG.subscribe(() => this.forceUpdate()); this.forceUpdate(); }; h(); }
+  componentWillUnmount() { this.u && this.u(); clearTimeout(this.t); }
+  renderVals() {
+    const RG = window.RG; if (!RG) return {};
+    const S = RG.s, wu = RG.wu(), T = RG.TODAY; const ids = [...new Set(S.sessions.flatMap(s => s.sets.filter(x => !x.warm).map(x => x.exId)))];
+    const f = this.state.f;
+    const list = ids.map(id => ({ id, e: RG.ex(id), p: RG.prs(id) })).filter(x => x.p && (f === 'All' || x.e.region === f.toLowerCase())).sort((a, b) => b.p.e1.v - a.p.e1.v);
+    const recent = [];
+    list.forEach(({ e, p }) => { const lim = RG.add(T, -14); const firstSes = RG.history(e.id)[0]; if (firstSes && firstSes.date >= lim) return;
+      if (p.heavy.date >= lim) recent.push({ kind: 'Heaviest', name: e.name, value: `${RG.w(p.heavy.kg)} ${wu} × ${p.heavy.reps}`, date: RG.fmtShort(p.heavy.date), d: p.heavy.date });
+      else if (p.e1.date >= lim) recent.push({ kind: 'Est. 1RM', name: e.name, value: `${RG.w(p.e1.v)} ${wu}`, date: RG.fmtShort(p.e1.date), d: p.e1.date }); });
+    recent.sort((a, b) => a.d < b.d ? 1 : -1);
+    const volK = RG.imp() ? 2.20462 : 1;
+    return {
+      filters: ['All', 'Upper', 'Lower'].map(l => ({ label: l, pick: () => this.setState({ f: l }), style: { font: 'inherit', fontSize: '12px', padding: '7px 12px', border: 0, cursor: 'pointer', background: f === l ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : 'transparent', color: f === l ? 'var(--color-accent)' : 'var(--color-neutral-400)' } })),
+      recent: recent.slice(0, 8), noRecent: !recent.length,
+      rows: list.map(({ id, e, p }) => ({ name: e.name, muscle: `${e.muscle} · ${e.equip}`, open: () => RG.go('history', 'ex:' + id),
+        heavy: `${RG.w(p.heavy.kg)} ${wu} × ${p.heavy.reps}`, heavyD: RG.fmtShort(p.heavy.date), e1: `${RG.w(p.e1.v)} ${wu}`, e1D: `${RG.w(p.e1.kg)} × ${p.e1.reps} · ${RG.fmtShort(p.e1.date)}`,
+        vol: `${RG.num(p.vol.v * volK)} ${wu}`, volD: RG.fmtShort(p.vol.date), best: `${RG.w(p.best.kg)} ${wu} × ${p.best.reps.join(', ')}`, bestD: RG.fmtShort(p.best.date),
+        repsAt: Object.entries(p.repsAt).sort((a, b) => b[0] - a[0]).slice(0, 3).map(([kg, r]) => `${RG.w(Number(kg))}: ${r.reps}`).join(' · ') }))
+    };
+  }
+}
+</script>
+</body>
+</html>

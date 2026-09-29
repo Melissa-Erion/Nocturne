@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-124ecda7-7b17-42bd-b77f-decc2e83e187/styles.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<script src="store.js"></script>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:16px">
+<header style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap"><div style="margin-right:auto"><div style="font-size:12px;color:var(--color-neutral-500)">Private by default</div><h2 style="margin:2px 0 0;font-size:28px">Progress Photos</h2></div>
+<div class="seg"><sc-for list="{{ poses }}" as="p" hint-placeholder-count="3"><button onClick="{{ p.pick }}" style="{{ p.style }}">{{ p.label }}</button></sc-for></div></header>
+<div style="display:flex;gap:12px;align-items:flex-start;padding:12px 16px;border-radius:var(--radius-md);box-shadow:inset 0 0 0 1px var(--color-neutral-800);font-size:13px;color:var(--color-neutral-300)"><i class="ph ph-shield-check" style="font-size:20px;color:var(--color-accent);flex:none"></i><div style="text-wrap:pretty"><b style="font-weight:500;color:var(--color-text)">Your photos stay on this device.</b> They are never shared, posted or used for anything except your own comparisons. They leave the app only when you choose Download. Weight and measurement labels can be hidden from any comparison.</div></div>
+<section class="card elev-sm" style="padding:16px 18px;gap:12px">
+<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+<div class="card-title" style="margin-right:auto">Compare</div>
+<select class="input" value="{{ aId }}" onChange="{{ setA }}" style="width:auto"><sc-for list="{{ ciOpts }}" as="o" hint-placeholder-count="5"><option value="{{ o.id }}">{{ o.label }}</option></sc-for></select>
+<i class="ph ph-arrow-right" style="color:var(--color-neutral-500)"></i>
+<select class="input" value="{{ bId }}" onChange="{{ setB }}" style="width:auto"><sc-for list="{{ ciOpts }}" as="o" hint-placeholder-count="5"><option value="{{ o.id }}">{{ o.label }}</option></sc-for></select>
+<div class="seg"><button onClick="{{ modeSide }}" style="{{ sSide }}">Side by side</button><button onClick="{{ modeSlide }}" style="{{ sSlide }}">Slider</button></div>
+</div>
+<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--color-neutral-300)">
+<label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" checked="{{ showW }}" onChange="{{ toggleW }}" style="accent-color:var(--color-accent)">Show weight</label>
+<label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" checked="{{ showM }}" onChange="{{ toggleM }}" style="accent-color:var(--color-accent)">Show measurements</label>
+<label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" checked="{{ grid }}" onChange="{{ toggleGrid }}" style="accent-color:var(--color-accent)">Alignment overlay</label>
+</div>
+<sc-if value="{{ isSide }}" hint-placeholder-val="{{ true }}">
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:760px">
+<sc-for list="{{ pair }}" as="p" hint-placeholder-count="2">
+<figure style="display:flex;flex-direction:column;gap:6px">
+<div style="position:relative;aspect-ratio:3/4;border-radius:var(--radius-md);overflow:hidden;background:repeating-linear-gradient(135deg,var(--color-neutral-900) 0 10px,transparent 10px 20px);box-shadow:inset 0 0 0 1px var(--color-neutral-800)">
+<sc-if value="{{ p.has }}" hint-placeholder-val="{{ false }}"><img src="{{ p.src }}" alt="{{ p.alt }}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></sc-if>
+<sc-if value="{{ p.none }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;inset:0;display:grid;place-items:center;font:11px ui-monospace,Menlo,monospace;color:var(--color-neutral-500);text-align:center;padding:10px">{{ p.pose }} photo · {{ p.date }}<br>not added</div></sc-if>
+<sc-if value="{{ grid }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(color-mix(in srgb, var(--color-accent) 35%, transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb, var(--color-accent) 35%, transparent) 1px,transparent 1px);background-size:100% 20%,33.33% 100%"></div><div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--color-accent);opacity:.7"></div></sc-if>
+<div style="position:absolute;left:8px;bottom:8px;display:flex;flex-direction:column;gap:2px;padding:6px 8px;border-radius:6px;background:color-mix(in srgb, var(--color-bg) 80%, transparent);font-size:11px"><span style="font-weight:500">{{ p.date }}</span><sc-if value="{{ showW }}" hint-placeholder-val="{{ true }}"><span>{{ p.kg }}</span></sc-if><sc-if value="{{ showM }}" hint-placeholder-val="{{ false }}"><span>{{ p.meas }}</span></sc-if></div>
+</div>
+<div style="display:flex;gap:4px;flex-wrap:wrap">
+<label class="btn btn-secondary" style="font-size:12px;cursor:pointer"><i class="ph ph-upload-simple"></i>{{ p.upLabel }}<input type="file" accept="image/*" onChange="{{ p.upload }}" style="display:none"></label>
+<sc-if value="{{ p.has }}" hint-placeholder-val="{{ false }}"><button class="btn btn-ghost" style="font-size:12px" onClick="{{ p.download }}"><i class="ph ph-download-simple"></i>Download</button><button class="btn btn-ghost" style="font-size:12px;color:var(--color-neutral-500)" onClick="{{ p.del }}"><i class="ph ph-trash"></i>Delete</button></sc-if>
+</div>
+</figure>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{ isSlide }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:8px;max-width:420px">
+<div style="position:relative;aspect-ratio:3/4;border-radius:var(--radius-md);overflow:hidden;background:repeating-linear-gradient(135deg,var(--color-neutral-900) 0 10px,transparent 10px 20px);box-shadow:inset 0 0 0 1px var(--color-neutral-800)">
+<sc-if value="{{ bHas }}" hint-placeholder-val="{{ false }}"><img src="{{ bSrc }}" alt="Current" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></sc-if>
+<sc-if value="{{ aHas }}" hint-placeholder-val="{{ false }}"><img src="{{ aSrc }}" alt="Before" style="{{ aClip }}"></sc-if>
+<sc-if value="{{ noneBoth }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;inset:0;display:grid;place-items:center;font:11px ui-monospace,Menlo,monospace;color:var(--color-neutral-500);text-align:center">add both photos to use the slider</div></sc-if>
+<div style="{{ divider }}"></div>
+<sc-if value="{{ grid }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(color-mix(in srgb, var(--color-accent) 35%, transparent) 1px,transparent 1px);background-size:100% 20%"></div></sc-if>
+<span style="position:absolute;left:8px;top:8px;font-size:11px;padding:3px 7px;border-radius:5px;background:color-mix(in srgb, var(--color-bg) 80%, transparent)">{{ aLabel }}</span><span style="position:absolute;right:8px;top:8px;font-size:11px;padding:3px 7px;border-radius:5px;background:color-mix(in srgb, var(--color-bg) 80%, transparent)">{{ bLabel }}</span>
+</div>
+<input type="range" min="0" max="100" value="{{ slide }}" onChange="{{ setSlide }}" style="accent-color:var(--color-accent)">
+</div>
+</sc-if>
+</section>
+<section class="card elev-sm" style="padding:16px 18px;gap:10px">
+<div class="card-title">Same-pose guidance</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px 18px;font-size:13px;color:var(--color-neutral-300)">
+<div><i class="ph ph-sun" style="color:var(--color-accent)"></i> Same spot, same light, morning, before eating.</div>
+<div><i class="ph ph-ruler" style="color:var(--color-accent)"></i> Camera at chest height, about 2 m away, not tilted.</div>
+<div><i class="ph ph-person" style="color:var(--color-accent)"></i> Relaxed stance, arms slightly out, feet hip-width.</div>
+<div><i class="ph ph-t-shirt" style="color:var(--color-accent)"></i> Same clothing each time so changes are comparable.</div>
+</div>
+</section>
+<section style="display:flex;flex-direction:column;gap:10px">
+<div style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-neutral-500)">Timeline · {{ poseLabel }}</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px">
+<sc-for list="{{ timeline }}" as="t" hint-placeholder-count="7">
+<button onClick="{{ t.pick }}" style="{{ t.style }}">
+<div style="position:relative;aspect-ratio:3/4;border-radius:6px;overflow:hidden;background:repeating-linear-gradient(135deg,var(--color-neutral-900) 0 8px,transparent 8px 16px)"><sc-if value="{{ t.has }}" hint-placeholder-val="{{ false }}"><img src="{{ t.src }}" alt="{{ t.date }}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></sc-if><sc-if value="{{ t.none }}" hint-placeholder-val="{{ true }}"><i class="ph ph-image" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:22px;color:var(--color-neutral-700)"></i></sc-if></div>
+<span style="font-size:12px">{{ t.date }}</span><span style="font-size:11px;color:var(--color-neutral-500)">{{ t.kg }}</span>
+</button>
+</sc-for>
+</div>
+</section>
+<sc-if value="{{ dlgDel }}" hint-placeholder-val="{{ false }}">
+<div class="dialog-backdrop" style="z-index:50" onClick="{{ closeDlg }}"><div class="dialog" onClick="{{ stop }}">
+<div class="dialog-title">Delete this photo?</div>
+<div class="dialog-body">The photo is removed from this device permanently.</div>
+<div class="dialog-actions"><button class="btn btn-secondary" onClick="{{ closeDlg }}">Cancel</button><button class="btn btn-primary" onClick="{{ doDelete }}">Delete photo</button></div>
+</div></div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { pose: 'front', a: null, b: null, mode: 'side', showW: true, showM: false, grid: false, slide: 50, del: null };
+  componentDidMount() { const h = () => { if (!window.RG) return this.t = setTimeout(h, 30); this.u = window.RG.subscribe(() => this.forceUpdate()); this.forceUpdate(); }; h(); }
+  componentWillUnmount() { this.u && this.u(); clearTimeout(this.t); }
+  renderVals() {
+    const RG = window.RG; if (!RG) return {};
+    const S = RG.s, wu = RG.wu(), lu = RG.lu(); const cis = S.checkins.slice().sort((x, y) => x.date < y.date ? -1 : 1);
+    const pose = this.state.pose; const a = cis.find(c => c.id === this.state.a) || cis[0]; const b = cis.find(c => c.id === this.state.b) || cis[cis.length - 1];
+    const key = (c, p) => c.id + ':' + (p || pose);
+    const upload = c => ev => { const file = ev.target.files && ev.target.files[0]; if (!file) return; const r = new FileReader(); r.onload = () => { const img = new Image(); img.onload = () => { const s = Math.min(1, 1000 / Math.max(img.width, img.height)); const cv = document.createElement('canvas'); cv.width = img.width * s; cv.height = img.height * s; cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); RG.setPhoto(key(c), cv.toDataURL('image/jpeg', 0.82)); RG.toast('Photo saved privately to this device.'); }; img.src = r.result; }; r.readAsDataURL(file); ev.target.value = ''; };
+    const card = c => { const src = RG.photo(key(c)); return { has: !!src, none: !src, src: src || '', alt: `${pose} progress photo ${c.date}`, pose: pose[0].toUpperCase() + pose.slice(1), date: RG.fmtD(c.date), kg: `${RG.bw(c.kg)} ${wu}`, meas: `Waist ${RG.len(c.waist)} · Hips ${RG.len(c.hips)} ${lu}`, upLabel: src ? 'Replace' : 'Upload', upload: upload(c),
+      download: () => { const l = document.createElement('a'); l.href = src; l.download = `progress-${pose}-${c.date}.jpg`; l.click(); }, del: () => this.setState({ del: key(c) }) }; };
+    const seg = on => ({ font: 'inherit', fontSize: '12px', padding: '7px 12px', border: 0, cursor: 'pointer', background: on ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : 'transparent', color: on ? 'var(--color-accent)' : 'var(--color-neutral-400)' });
+    const aSrc = RG.photo(key(a)), bSrc = RG.photo(key(b)); const sl = this.state.slide;
+    return {
+      poses: ['front', 'side', 'back'].map(p => ({ label: p[0].toUpperCase() + p.slice(1), pick: () => this.setState({ pose: p }), style: seg(pose === p) })), poseLabel: pose,
+      ciOpts: cis.map(c => ({ id: c.id, label: RG.fmtD(c.date) })), aId: a && a.id, bId: b && b.id, setA: e => this.setState({ a: e.target.value }), setB: e => this.setState({ b: e.target.value }),
+      isSide: this.state.mode === 'side', isSlide: this.state.mode === 'slide', sSide: seg(this.state.mode === 'side'), sSlide: seg(this.state.mode === 'slide'), modeSide: () => this.setState({ mode: 'side' }), modeSlide: () => this.setState({ mode: 'slide' }),
+      showW: this.state.showW, showM: this.state.showM, grid: this.state.grid, toggleW: () => this.setState({ showW: !this.state.showW }), toggleM: () => this.setState({ showM: !this.state.showM }), toggleGrid: () => this.setState({ grid: !this.state.grid }),
+      pair: a && b ? [card(a), card(b)] : [],
+      aHas: !!aSrc, bHas: !!bSrc, aSrc: aSrc || '', bSrc: bSrc || '', noneBoth: !aSrc || !bSrc, slide: sl, setSlide: e => this.setState({ slide: Number(e.target.value) }),
+      aClip: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', clipPath: `inset(0 ${100 - sl}% 0 0)` }, divider: { position: 'absolute', top: 0, bottom: 0, left: sl + '%', width: '2px', background: 'var(--color-accent)', boxShadow: '0 0 10px var(--color-accent)' },
+      aLabel: a ? RG.fmtShort(a.date) + (this.state.showW ? ` · ${RG.bw(a.kg)} ${wu}` : '') : '', bLabel: b ? RG.fmtShort(b.date) + (this.state.showW ? ` · ${RG.bw(b.kg)} ${wu}` : '') : '',
+      timeline: cis.slice().reverse().map(c => { const src = RG.photo(key(c)); const on = b && c.id === b.id; return { has: !!src, none: !src, src: src || '', date: RG.fmtShort(c.date), kg: this.state.showW ? `${RG.bw(c.kg)} ${wu}` : '', pick: () => this.setState({ b: c.id }),
+        style: { display: 'flex', flexDirection: 'column', gap: '4px', padding: '6px', borderRadius: 'var(--radius-md)', font: 'inherit', color: 'var(--color-text)', cursor: 'pointer', textAlign: 'left', background: 'transparent', border: '1px solid ' + (on ? 'var(--color-accent)' : 'var(--color-neutral-800)') } }; }),
+      dlgDel: !!this.state.del, closeDlg: () => this.setState({ del: null }), stop: e => e.stopPropagation(), doDelete: () => { RG.setPhoto(this.state.del, null); this.setState({ del: null }); RG.toast('Photo deleted.'); }
+    };
+  }
+}
+</script>
+</body>
+</html>

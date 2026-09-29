@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-124ecda7-7b17-42bd-b77f-decc2e83e187/styles.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<script src="store.js"></script>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:16px">
+<header style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap"><div style="margin-right:auto"><div style="font-size:12px;color:var(--color-neutral-500)">{{ sessionCount }} logged sessions</div><h2 style="margin:2px 0 0;font-size:28px">Exercise History</h2></div></header>
+<sc-if value="{{ hasSession }}" hint-placeholder-val="{{ false }}">
+<section class="card elev-sm" style="padding:16px 18px;gap:10px;box-shadow:inset 0 0 0 1px var(--color-accent-700)">
+<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><div class="card-kicker">Logged session · {{ sDate }}</div><span style="flex:1"></span><button class="btn btn-ghost" style="font-size:12px;color:var(--color-neutral-400)" onClick="{{ askDelete }}"><i class="ph ph-trash"></i>Delete session</button><button class="btn btn-icon btn-ghost" onClick="{{ closeSession }}"><i class="ph ph-x" style="color:var(--color-text)"></i></button></div>
+<div style="font-size:22px">{{ sName }}</div>
+<div style="font-size:13px;color:var(--color-neutral-400)">{{ sMeta }}</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px">
+<sc-for list="{{ sExercises }}" as="x" hint-placeholder-count="6"><div style="padding:8px 10px;border-radius:6px;background:var(--color-neutral-900)"><div style="font-size:13px">{{ x.name }}</div><div style="font-size:12px;color:var(--color-neutral-400);font-variant-numeric:tabular-nums">{{ x.sets }}</div></div></sc-for>
+</div>
+</section>
+</sc-if>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:16px;align-items:start">
+<section class="card elev-sm" style="padding:12px;gap:6px;max-height:640px;overflow-y:auto">
+<input class="input" placeholder="Search exercises" value="{{ q }}" onChange="{{ setQ }}">
+<sc-for list="{{ exList }}" as="e" hint-placeholder-count="10">
+<button onClick="{{ e.pick }}" style="{{ e.style }}"><span style="flex:1;text-align:left">{{ e.name }}</span><span style="font-size:11px;color:var(--color-neutral-500)">{{ e.count }}</span></button>
+</sc-for>
+</section>
+<div style="display:flex;flex-direction:column;gap:16px;grid-column:span 2;min-width:0">
+<section class="card elev-sm" style="padding:16px 18px;gap:10px">
+<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><h3 style="margin:0;font-size:22px">{{ exName }}</h3><span style="font-size:13px;color:var(--color-neutral-500)">{{ exMeta }}</span></div>
+<div style="display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--color-neutral-400)"><span><span style="display:inline-block;width:12px;height:2px;background:var(--color-accent);vertical-align:middle"></span> Estimated 1RM</span><span><span style="display:inline-block;width:12px;height:2px;background:var(--color-neutral-500);vertical-align:middle"></span> Working weight</span></div>
+<svg viewBox="0 0 600 140" preserveAspectRatio="none" style="width:100%;height:160px;display:block"><polyline points="{{ lineW }}" fill="none" stroke="var(--color-neutral-500)" stroke-width="1.5" vector-effect="non-scaling-stroke"></polyline><polyline points="{{ lineE }}" fill="none" stroke="var(--color-accent)" stroke-width="2.2" vector-effect="non-scaling-stroke"></polyline></svg>
+<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-neutral-600)"><span>{{ firstDate }}</span><span>{{ lastDate }}</span></div>
+<div style="font-size:13px;color:var(--color-neutral-300);padding:8px 10px;border-radius:6px;background:var(--color-accent-900)"><span style="color:var(--color-accent-300)">Next session · </span>{{ recText }}</div>
+</section>
+<section class="card elev-sm" style="padding:12px 18px;gap:6px;overflow-x:auto">
+<table class="table" style="min-width:520px">
+<thead><tr><th>Date</th><th>Workout</th><th>Sets ({{ wu }} × reps @ RIR)</th><th>Volume</th><th>e1RM</th></tr></thead>
+<tbody><sc-for list="{{ rows }}" as="r" hint-placeholder-count="6"><tr><td style="white-space:nowrap">{{ r.date }}</td><td style="color:var(--color-neutral-400)">{{ r.workout }}</td><td style="font-variant-numeric:tabular-nums">{{ r.sets }}</td><td style="font-variant-numeric:tabular-nums">{{ r.vol }}</td><td style="font-variant-numeric:tabular-nums">{{ r.e1 }}</td></tr></sc-for></tbody>
+</table>
+<sc-if value="{{ noRows }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--color-neutral-500);padding:8px 0">No sessions logged for this exercise yet.</div></sc-if>
+</section>
+</div>
+</div>
+<sc-if value="{{ dlgDel }}" hint-placeholder-val="{{ false }}">
+<div class="dialog-backdrop" style="z-index:50" onClick="{{ closeDlg }}"><div class="dialog" onClick="{{ stop }}">
+<div class="dialog-title">Permanently delete this session?</div>
+<div class="dialog-body">All sets from {{ sName }} on {{ sDate }} will be removed from history, records and progression targets. This cannot be undone.</div>
+<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" checked="{{ delOk }}" onChange="{{ toggleDelOk }}" style="accent-color:var(--color-accent)">I understand this is permanent</label>
+<div class="dialog-actions"><button class="btn btn-secondary" onClick="{{ closeDlg }}">Cancel</button><button class="btn btn-primary" disabled="{{ delDisabled }}" onClick="{{ doDelete }}">Delete permanently</button></div>
+</div></div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { ex: null, q: '', dlg: false, ok: false };
+  componentDidMount() { const h = () => { if (!window.RG) return this.t = setTimeout(h, 30); this.u = window.RG.subscribe(() => this.forceUpdate()); this.forceUpdate(); }; h(); }
+  componentWillUnmount() { this.u && this.u(); clearTimeout(this.t); }
+  renderVals() {
+    const RG = window.RG; if (!RG) return {};
+    const S = RG.s, wu = RG.wu();
+    const counts = {}; S.sessions.forEach(s => new Set(s.sets.filter(x => !x.warm).map(x => x.exId)).forEach(id => counts[id] = (counts[id] || 0) + 1));
+    const rp = S.route === 'history' ? S.routeParam : null; const exParam = typeof rp === 'string' && rp.startsWith('ex:') ? rp.slice(3) : null;
+    const ses = rp && !exParam ? S.sessions.find(s => s.id === rp) : null;
+    const exId = this.state.ex || exParam || (ses ? ses.sets[0].exId : Object.keys(counts)[0]);
+    const q = this.state.q.toLowerCase();
+    const exList = Object.values(RG.EX).filter(e => counts[e.id] || e.id === exId).filter(e => !q || e.name.toLowerCase().includes(q)).sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0) || (a.name < b.name ? -1 : 1)).map(e => ({ name: e.name, count: counts[e.id] ? counts[e.id] + '×' : '', pick: () => this.setState({ ex: e.id }),
+      style: { display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', border: 0, borderRadius: '6px', font: 'inherit', fontSize: '13px', cursor: 'pointer', color: e.id === exId ? 'var(--color-text)' : 'var(--color-neutral-400)', background: e.id === exId ? 'color-mix(in srgb, var(--color-accent) 12%, transparent)' : 'transparent' } }));
+    const h = RG.history(exId); const ex = RG.ex(exId);
+    const e1 = h.map(s => Math.max(...s.sets.map(x => RG.e1rm(x.kg, x.reps)))); const wk = h.map(s => s.sets[0].kg);
+    const lo = Math.min(...wk, ...e1) * 0.95, hi = Math.max(...wk, ...e1) * 1.03;
+    const rec = RG.recommend(exId);
+    const subsFor = Object.values(RG.EX).filter(o => (o.alts || []).includes(exId));
+    const byWorkout = id => { const w = RG.workout(id); return w ? w.name : id; };
+    const sexs = ses ? [...new Set(ses.sets.map(x => x.exId))].map(id => ({ name: RG.ex(id).name + (ses.sets.find(x => x.exId === id && x.sub) ? ' (substitute)' : ''), sets: ses.sets.filter(x => x.exId === id).map(x => `${x.warm ? 'W ' : ''}${RG.w(x.kg)}×${x.reps}`).join(' · ') })) : [];
+    return {
+      wu, sessionCount: S.sessions.length, q: this.state.q, setQ: e => this.setState({ q: e.target.value }), exList,
+      exName: ex ? ex.name : '', exMeta: ex ? `${ex.muscle} · ${ex.equip} · ${h.length} sessions${subsFor.length ? '' : ''}` : '',
+      lineE: h.length > 1 ? RG.pts(e1, 600, 140, lo, hi) : '', lineW: h.length > 1 ? RG.pts(wk, 600, 140, lo, hi) : '',
+      firstDate: h[0] ? RG.fmtShort(h[0].date) : '', lastDate: h.length ? RG.fmtShort(h[h.length - 1].date) : '',
+      recText: rec ? (rec.kg != null ? `${RG.w(rec.kg)} ${wu} × ${rec.reps.join(', ')} — ${rec.reason}` : rec.reason) : 'Not in the active plan — no target set.',
+      rows: h.slice().reverse().map(s => ({ date: RG.fmtD(s.date), workout: byWorkout(s.workoutId), sets: s.sets.map(x => `${RG.w(x.kg)}×${x.reps}${x.rir != null ? '@' + x.rir : ''}`).join('  '), vol: RG.num((RG.imp() ? 2.20462 : 1) * RG.sum(s.sets.map(x => x.kg * x.reps))), e1: RG.w(Math.max(...s.sets.map(x => RG.e1rm(x.kg, x.reps)))) })),
+      noRows: !h.length,
+      hasSession: !!ses, sName: ses ? byWorkout(ses.workoutId) : '', sDate: ses ? RG.fmtD(ses.date) : '', sMeta: ses ? `${ses.durationMin} min · ${ses.sets.filter(x => !x.warm).length} working sets · volume ${RG.num((RG.imp() ? 2.20462 : 1) * RG.sum(ses.sets.filter(x => !x.warm).map(x => x.kg * x.reps)))} ${wu}${ses.notes ? ' · ' + ses.notes : ''}` : '',
+      sExercises: sexs, closeSession: () => RG.go('history'),
+      dlgDel: this.state.dlg, delOk: this.state.ok, delDisabled: !this.state.ok, toggleDelOk: () => this.setState({ ok: !this.state.ok }),
+      askDelete: () => this.setState({ dlg: true, ok: false }), closeDlg: () => this.setState({ dlg: false }), stop: e => e.stopPropagation(),
+      doDelete: () => { RG.update(s => { s.sessions = s.sessions.filter(x => x.id !== ses.id); const en = s.schedule.find(e => e.sessionId === ses.id); if (en) { en.status = en.date < RG.TODAY ? 'missed' : 'planned'; en.sessionId = null; } }); this.setState({ dlg: false }); RG.go('history'); RG.toast('Session deleted.'); }
+    };
+  }
+}
+</script>
+</body>
+</html>

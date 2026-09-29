@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-124ecda7-7b17-42bd-b77f-decc2e83e187/styles.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<script src="store.js"></script>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:16px">
+<header style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
+<div style="margin-right:auto"><div style="font-size:12px;color:var(--color-neutral-500)">Exact portions from your targets · weights in grams</div><h2 style="margin:2px 0 0;font-size:28px">Meal Planner</h2></div>
+<div style="display:flex;gap:4px;align-items:center"><button class="btn btn-icon btn-secondary" onClick="{{ prevDay }}"><i class="ph ph-caret-left"></i></button><span style="min-width:110px;text-align:center;font-size:14px">{{ dayLabel }}</span><button class="btn btn-icon btn-secondary" onClick="{{ nextDay }}"><i class="ph ph-caret-right"></i></button></div>
+<div class="seg"><button onClick="{{ setTraining }}" style="{{ sTrain }}">Training day</button><button onClick="{{ setRest }}" style="{{ sRest }}">Rest day</button></div>
+</header>
+<section class="card elev-sm" style="padding:16px 18px;gap:12px">
+<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><div class="card-title" style="margin-right:auto">Daily targets split across {{ mealCount }} meals</div>
+<select class="input" value="{{ mode }}" onChange="{{ setMode }}" style="width:auto"><option value="equal">Equal distribution</option><option value="custom">Custom percentages</option><option value="prepost">More carbs pre/post-workout</option><option value="protein">Higher-protein meals</option><option value="manual">Enter targets per meal</option></select></div>
+<div style="overflow-x:auto">
+<table class="table" style="min-width:560px">
+<thead><tr><th>Meal</th><sc-if value="{{ isCustom }}" hint-placeholder-val="{{ false }}"><th>Share %</th></sc-if><th>Protein g</th><th>Carbs g</th><th>Fat g</th><th>kcal</th></tr></thead>
+<tbody>
+<sc-for list="{{ targetRows }}" as="t" hint-placeholder-count="4">
+<tr style="{{ t.rowStyle }}" onClick="{{ t.pick }}">
+<td><div style="font-size:14px">{{ t.name }}</div><div style="font-size:11px;color:var(--color-neutral-500)">{{ t.label }} · {{ t.time }}</div></td>
+<sc-if value="{{ isCustom }}" hint-placeholder-val="{{ false }}"><td><input class="input" type="number" value="{{ t.pct }}" onChange="{{ t.setPct }}" onClick="{{ stop }}" style="width:64px"></td></sc-if>
+<sc-if value="{{ isManual }}" hint-placeholder-val="{{ false }}"><td><input class="input" type="number" value="{{ t.p }}" onChange="{{ t.setP }}" onClick="{{ stop }}" style="width:64px"></td><td><input class="input" type="number" value="{{ t.c }}" onChange="{{ t.setC }}" onClick="{{ stop }}" style="width:64px"></td><td><input class="input" type="number" value="{{ t.f }}" onChange="{{ t.setF }}" onClick="{{ stop }}" style="width:64px"></td></sc-if>
+<sc-if value="{{ notManual }}" hint-placeholder-val="{{ true }}"><td style="font-variant-numeric:tabular-nums">{{ t.p }}</td><td style="font-variant-numeric:tabular-nums">{{ t.c }}</td><td style="font-variant-numeric:tabular-nums">{{ t.f }}</td></sc-if>
+<td style="font-variant-numeric:tabular-nums;color:var(--color-neutral-400)">{{ t.kcal }}</td>
+</tr>
+</sc-for>
+<tr><td style="font-weight:500">Sum of meals</td><sc-if value="{{ isCustom }}" hint-placeholder-val="{{ false }}"><td style="{{ pctStyle }}">{{ pctSum }}%</td></sc-if><td style="{{ sumP.style }}">{{ sumP.v }}</td><td style="{{ sumC.style }}">{{ sumC.v }}</td><td style="{{ sumF.style }}">{{ sumF.v }}</td><td style="color:var(--color-neutral-400)">{{ sumK }}</td></tr>
+<tr><td style="color:var(--color-neutral-500)">Daily target</td><sc-if value="{{ isCustom }}" hint-placeholder-val="{{ false }}"><td style="color:var(--color-neutral-500)">100%</td></sc-if><td style="color:var(--color-neutral-500)">{{ dP }}</td><td style="color:var(--color-neutral-500)">{{ dC }}</td><td style="color:var(--color-neutral-500)">{{ dF }}</td><td style="color:var(--color-neutral-500)">{{ dK }}</td></tr>
+</tbody>
+</table>
+</div>
+<div style="font-size:12px;color:var(--color-neutral-500);text-wrap:pretty">{{ reconcileNote }}</div>
+</section>
+<div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ mealTabs }}" as="m" hint-placeholder-count="4"><button onClick="{{ m.pick }}" style="{{ m.style }}"><span style="font-size:13px;font-weight:500">{{ m.name }}</span><span style="font-size:11px;opacity:.75">{{ m.sub }}</span></button></sc-for></div>
+<section class="card elev-md" style="padding:18px 20px;gap:14px">
+<div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">
+<div style="flex:1;min-width:220px"><div class="card-kicker">{{ mLabel }} · target</div><div style="font-size:22px;font-variant-numeric:tabular-nums;margin-top:4px">{{ mTarget }}</div></div>
+<div style="display:flex;gap:6px;flex-wrap:wrap">
+<button class="btn btn-primary" onClick="{{ solve }}"><i class="ph ph-calculator"></i>Calculate portions</button>
+<button class="btn btn-secondary" onClick="{{ toggleLogged }}"><i class="{{ loggedIcon }}"></i>{{ loggedLabel }}</button>
+<button class="btn btn-secondary" onClick="{{ togglePrepped }}"><i class="ph ph-package"></i>{{ preppedLabel }}</button>
+</div>
+</div>
+<div style="display:flex;flex-direction:column">
+<div style="display:grid;grid-template-columns:minmax(0,1.6fr) 110px 44px minmax(0,1.3fr) auto;gap:10px;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-neutral-500);padding:0 0 6px"><span>Food · weight basis</span><span>Amount (g)</span><span>Lock</span><span>kcal · P · C · F</span><span></span></div>
+<sc-for list="{{ items }}" as="i" hint-placeholder-count="3">
+<div style="display:grid;grid-template-columns:minmax(0,1.6fr) 110px 44px minmax(0,1.3fr) auto;gap:10px;align-items:center;padding:8px 0;background:linear-gradient(to right,transparent,var(--color-divider) 48px,var(--color-divider) calc(100% - 48px),transparent) no-repeat top/100% 1px">
+<div style="min-width:0"><div style="font-size:14px">{{ i.name }}</div><div style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--color-neutral-500);flex-wrap:wrap"><span style="{{ i.basisStyle }}">{{ i.basis }}</span><span>{{ i.serving }}</span></div></div>
+<input class="input" type="number" value="{{ i.g }}" onChange="{{ i.setG }}" style="font-size:16px;text-align:right;font-variant-numeric:tabular-nums">
+<button onClick="{{ i.toggleLock }}" title="{{ i.lockTitle }}" style="{{ i.lockStyle }}"><i class="{{ i.lockIcon }}" style="font-size:16px"></i></button>
+<div style="font-size:12px;color:var(--color-neutral-300);font-variant-numeric:tabular-nums">{{ i.macro }}</div>
+<div style="display:flex;gap:2px"><button class="btn btn-ghost" style="font-size:12px" onClick="{{ i.alts }}">Alternatives</button><button class="btn btn-icon btn-ghost" style="width:30px;height:30px;color:var(--color-neutral-500)" onClick="{{ i.remove }}"><i class="ph ph-x"></i></button></div>
+</div>
+</sc-for>
+</div>
+<div style="position:relative">
+<input class="input" placeholder="Add a food — search the database" value="{{ q }}" onChange="{{ setQ }}">
+<sc-if value="{{ hasResults }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;z-index:10;left:0;right:0;top:calc(100% + 4px);max-height:280px;overflow-y:auto;padding:4px;border-radius:var(--radius-md);background:var(--color-surface);box-shadow:var(--shadow-lg)">
+<sc-for list="{{ results }}" as="r" hint-placeholder-count="5"><button onClick="{{ r.add }}" style="display:flex;width:100%;gap:10px;align-items:baseline;padding:8px 10px;border:0;border-radius:6px;background:transparent;color:var(--color-text);font:inherit;font-size:13px;cursor:pointer;text-align:left" style-hover="background:color-mix(in srgb, var(--color-accent) 10%, transparent)"><span style="flex:1">{{ r.name }} <span style="color:var(--color-neutral-500)">· {{ r.basis }}</span></span><span style="font-size:11px;color:var(--color-neutral-500);font-variant-numeric:tabular-nums">{{ r.per }}</span></button></sc-for>
+</div>
+</sc-if>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;padding:12px;border-radius:var(--radius-md);background:var(--color-neutral-900)">
+<sc-for list="{{ totals }}" as="t" hint-placeholder-count="4"><div><div style="font-size:11px;color:var(--color-neutral-500)">{{ t.k }}</div><div style="font-size:20px;font-variant-numeric:tabular-nums">{{ t.v }}<span style="font-size:12px;color:var(--color-neutral-500)"> / {{ t.t }}</span></div><div style="{{ t.dStyle }}">{{ t.d }}</div></div></sc-for>
+</div>
+<div style="font-size:12px;color:var(--color-neutral-400);text-wrap:pretty">{{ matchNote }}</div>
+<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><button class="btn btn-ghost" onClick="{{ saveFav }}"><i class="ph ph-star"></i>Save as favourite meal</button><select class="input" value="" onChange="{{ loadSaved }}" style="width:auto"><option value="">Load a saved meal…</option><sc-for list="{{ saved }}" as="s" hint-placeholder-count="4"><option value="{{ s.id }}">{{ s.name }}</option></sc-for></select><span style="flex:1"></span><span style="font-size:11px;color:var(--color-neutral-600)">Nutrition: USDA FoodData Central unless marked custom · values per 100 g of the stated basis</span></div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { date: null, meal: 0, q: '' };
+  componentDidMount() { const h = () => { if (!window.RG) return this.t = setTimeout(h, 30); this.u = window.RG.subscribe(() => this.forceUpdate()); const p = window.RG.s.routeParam; if (p && typeof p === 'object' && p.date) this.setState({ date: p.date, meal: p.meal || 0 }); this.forceUpdate(); }; h(); }
+  componentWillUnmount() { this.u && this.u(); clearTimeout(this.t); }
+  renderVals() {
+    const RG = window.RG; if (!RG) return {};
+    const S = RG.s, P = S.profile; const date = this.state.date || RG.TODAY; const day = RG.getDay(date);
+    const tgs = RG.mealTargets(day.type); const mi = Math.min(this.state.meal, day.meals.length - 1); const meal = day.meals[mi]; const tg = tgs[mi];
+    const upM = fn => RG.update(s => fn(s.days[date].meals[mi], s.days[date]));
+    const seg = on => ({ font: 'inherit', fontSize: '12px', padding: '7px 12px', border: 0, cursor: 'pointer', background: on ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : 'transparent', color: on ? 'var(--color-accent)' : 'var(--color-neutral-400)' });
+    const mode = S.distribution.mode; const n = tgs.length;
+    const sumOf = k => RG.sum(tgs.map(t => t[k]));
+    const sumCell = (k, d) => { const v = sumOf(k); return { v, style: { fontVariantNumeric: 'tabular-nums', fontWeight: 500, color: v === d ? 'var(--color-text)' : 'var(--color-accent-300)' } }; };
+    const pctSum = RG.sum(S.distribution.custom.slice(0, n));
+    const ensureManual = s => { if (!s.distribution.manual || s.distribution.manual.length !== n) s.distribution.manual = tgs.map(t => ({ p: t.p, c: t.c, f: t.f })); };
+    const targetRows = tgs.map((t, i) => ({ ...t, pct: S.distribution.custom[i] ?? 0, pick: () => this.setState({ meal: i }),
+      rowStyle: { cursor: 'pointer', background: i === mi ? 'color-mix(in srgb, var(--color-accent) 8%, transparent)' : undefined },
+      setPct: e => { const v = Number(e.target.value); RG.update(s => { s.distribution.custom[i] = v; }); },
+      setP: e => { const v = Number(e.target.value); RG.update(s => { ensureManual(s); s.distribution.manual[i].p = v; }); }, setC: e => { const v = Number(e.target.value); RG.update(s => { ensureManual(s); s.distribution.manual[i].c = v; }); }, setF: e => { const v = Number(e.target.value); RG.update(s => { ensureManual(s); s.distribution.manual[i].f = v; }); } }));
+    const off = ['p', 'c', 'f'].map(k => sumOf(k) - ({ p: P.protein, c: P.carbs, f: P.fat })[k]);
+    const reconcileNote = mode === 'manual' ? (off.every(x => x === 0) ? 'Your per-meal targets add up exactly to the daily target.' : `Per-meal targets differ from the daily target by ${off.map((x, i) => `${['P', 'C', 'F'][i]} ${x > 0 ? '+' : ''}${x} g`).join(', ')}. Adjust a meal to reconcile.`)
+      : mode === 'custom' && pctSum !== 100 ? `Shares add up to ${pctSum}%. Grams are still scaled so meals sum to the daily target; set shares to 100% to make that explicit.`
+      : `Meal grams are whole numbers. Rounding remainders go to the meals with the largest fractions, so every column adds up exactly to the daily target. kcal is calculated from macros (4/4/9), so it can differ slightly from the ${RG.num(P.kcal)} kcal target.`;
+    const items = meal.items.map((it, ii) => {
+      const f = RG.food(it.foodId); const m = RG.macros(it.foodId, it.g);
+      return { name: f.name, basis: f.basis === 'edible' ? 'edible portion' : f.basis, serving: f.serving ? `1 ${f.serving.label} = ${f.serving.g} g · ${Math.round(it.g / f.serving.g * 10) / 10} servings` : (f.src !== 'USDA FoodData Central' ? f.src : ''),
+        basisStyle: { padding: '1px 6px', borderRadius: '4px', background: f.basis === 'raw' ? 'var(--color-neutral-800)' : f.basis === 'cooked' ? 'var(--color-accent-800)' : 'var(--color-neutral-900)', color: f.basis === 'cooked' ? 'var(--color-accent-100)' : 'var(--color-neutral-300)', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '10px' },
+        g: Math.round(it.g), setG: e => { const v = Number(e.target.value); upM(mm => { mm.items[ii].g = v; }); },
+        lockIcon: it.locked ? 'ph-fill ph-lock-simple' : 'ph ph-lock-simple-open', lockTitle: it.locked ? 'Locked — stays fixed when recalculating' : 'Lock this amount',
+        lockStyle: { width: '40px', height: '36px', borderRadius: '6px', cursor: 'pointer', display: 'grid', placeItems: 'center', border: '1px solid ' + (it.locked ? 'var(--color-accent)' : 'var(--color-neutral-800)'), background: it.locked ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : 'transparent', color: it.locked ? 'var(--color-accent)' : 'var(--color-neutral-500)' },
+        toggleLock: () => upM(mm => { mm.items[ii].locked = !mm.items[ii].locked; }),
+        macro: `${Math.round(m.kcal)} · ${RG.r1(m.p)} · ${RG.r1(m.c)} · ${RG.r1(m.f)}`,
+        alts: () => RG.go('alternatives', { date, meal: mi, key: it.key, foodId: it.foodId, g: it.g }), remove: () => upM(mm => { mm.items.splice(ii, 1); }) };
+    });
+    const tot = RG.sumM(meal.items);
+    const dd = (v, t) => { const x = v - t; return { d: Math.abs(x) < 0.5 ? 'on target' : (x > 0 ? '+' : '−') + RG.r1(Math.abs(x)) + (t > 100 ? ' kcal' : ' g'), dStyle: { fontSize: '12px', color: Math.abs(x) <= (t > 100 ? 25 : 3) ? 'var(--color-accent-300)' : 'var(--color-neutral-300)' } }; };
+    const totals = [['Calories', tot.kcal, tg.kcal, 0], ['Protein', tot.p, tg.p, 1], ['Carbs', tot.c, tg.c, 1], ['Fat', tot.f, tg.f, 1]].map(([k, v, t, dp]) => ({ k, v: dp ? RG.r1(v) : RG.num(v), t: dp ? t + ' g' : RG.num(t), ...dd(v, t) }));
+    const gap = Math.max(Math.abs(tot.p - tg.p), Math.abs(tot.c - tg.c), Math.abs(tot.f - tg.f));
+    const cooked = meal.items.filter(i => RG.food(i.foodId).basis === 'cooked').length, raw = meal.items.filter(i => RG.food(i.foodId).basis === 'raw').length;
+    const matchNote = (gap <= 3 ? 'Close match: every macro is within 3 g of the meal target. ' : `Closest practical combination with these foods. The largest remaining gap is ${RG.r1(gap)} g. Add, swap or unlock a food to close it; an exact match isn't always possible.`) + (cooked && raw ? ' Mixed bases: weigh cooked items after cooking and raw items before.' : cooked ? ' Weigh these foods after cooking.' : raw ? ' Weigh these foods raw, before cooking.' : '');
+    const q = this.state.q.trim().toLowerCase();
+    const results = q.length > 1 ? RG.allFoods().filter(f => f.name.toLowerCase().includes(q) || f.cat.toLowerCase().includes(q)).slice(0, 10).map(f => ({ name: f.name, basis: f.basis, per: `per 100 g: ${f.kcal} kcal · ${f.p}P ${f.c}C ${f.f}F`, add: () => { upM(mm => { mm.items.push({ key: RG.uid(), foodId: f.id, g: f.serving ? f.serving.g : 100, locked: false }); }); this.setState({ q: '' }); } })) : [];
+    return {
+      dayLabel: date === RG.TODAY ? 'Today' : RG.fmtD(date), prevDay: () => this.setState({ date: RG.add(date, -1) }), nextDay: () => this.setState({ date: RG.add(date, 1) }),
+      sTrain: seg(day.type === 'training'), sRest: seg(day.type === 'rest'), setTraining: () => RG.update(s => s.days[date].type = 'training'), setRest: () => RG.update(s => s.days[date].type = 'rest'),
+      mealCount: n, mode, setMode: e => { const v = e.target.value; RG.update(s => { s.distribution.mode = v; }); },
+      isCustom: mode === 'custom', isManual: mode === 'manual', notManual: mode !== 'manual', targetRows, stop: e => e.stopPropagation(),
+      pctSum, pctStyle: { color: pctSum === 100 ? 'var(--color-text)' : 'var(--color-accent-300)', fontWeight: 500 },
+      sumP: sumCell('p', P.protein), sumC: sumCell('c', P.carbs), sumF: sumCell('f', P.fat), sumK: RG.num(sumOf('kcal')), dP: P.protein, dC: P.carbs, dF: P.fat, dK: RG.num(P.kcal), reconcileNote,
+      mealTabs: tgs.map((t, i) => { const mm = day.meals[i]; const on = i === mi; return { name: `${t.name} · ${t.label}`, sub: `${mm.logged ? 'Logged' : mm.prepped ? 'Prepped' : 'Planned'} · ${RG.num(RG.sumM(mm.items).kcal)} kcal`, pick: () => this.setState({ meal: i }),
+        style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '2px', padding: '8px 14px', borderRadius: 'var(--radius-md)', font: 'inherit', cursor: 'pointer', color: on ? 'var(--color-accent-100)' : 'var(--color-neutral-300)', background: on ? 'var(--color-accent-900)' : 'transparent', border: '1px solid ' + (on ? 'var(--color-accent)' : 'var(--color-neutral-800)') } }; }),
+      mLabel: `${tg.name} · ${tg.label} · ${tg.time}`, mTarget: `${tg.p} P · ${tg.c} C · ${tg.f} F · ${RG.num(tg.kcal)} kcal`,
+      solve: () => { upM(mm => { mm.items = RG.solve(mm.items, tg); }); RG.toast('Portions recalculated around locked foods.'); },
+      toggleLogged: () => upM(mm => { mm.logged = !mm.logged; }), loggedIcon: meal.logged ? 'ph-fill ph-check-circle' : 'ph ph-check-circle', loggedLabel: meal.logged ? 'Logged' : 'Mark as eaten',
+      togglePrepped: () => upM(mm => { mm.prepped = !mm.prepped; }), preppedLabel: meal.prepped ? 'Prepped' : 'Mark prepped',
+      items, q: this.state.q, setQ: e => this.setState({ q: e.target.value }), results, hasResults: results.length > 0, totals, matchNote,
+      saved: S.savedMeals.filter(s => s.items.length).map(s => ({ id: s.id, name: s.name })),
+      loadSaved: e => { const id = e.target.value; const sm = S.savedMeals.find(x => x.id === id); if (!sm) return; upM(mm => { mm.items = sm.items.map(x => ({ ...x, key: RG.uid(), locked: false })); }); RG.toast(`Loaded ${sm.name}. Recalculate to fit this meal's target.`); },
+      saveFav: () => { const name = prompt('Name this meal', `${tg.label} · ${meal.items.map(i => RG.food(i.foodId).name.split(',')[0]).join(', ')}`); if (!name) return; RG.update(s => s.savedMeals.push({ id: 'sm' + RG.uid(), name, items: meal.items.map(i => ({ foodId: i.foodId, g: i.g })), fav: true, uses: 0 })); RG.toast('Saved to Recipes & Saved Meals.'); }
+    };
+  }
+}
+</script>
+</body>
+</html>

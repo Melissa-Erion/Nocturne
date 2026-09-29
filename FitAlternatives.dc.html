@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-124ecda7-7b17-42bd-b77f-decc2e83e187/styles.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<script src="store.js"></script>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:16px">
+<header style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap"><div style="margin-right:auto"><div style="font-size:12px;color:var(--color-neutral-500)">{{ context }}</div><h2 style="margin:2px 0 0;font-size:28px">Food Alternatives</h2></div>
+<sc-if value="{{ inMeal }}" hint-placeholder-val="{{ false }}"><button class="btn btn-secondary" onClick="{{ backToMeal }}"><i class="ph ph-arrow-left"></i>Back to meal</button></sc-if></header>
+<section class="card elev-sm" style="padding:16px 18px;gap:12px">
+<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+<div class="field" style="flex:1;min-width:220px"><label>Original food</label><select class="input" value="{{ foodId }}" onChange="{{ setFood }}"><sc-for list="{{ foodOpts }}" as="o" hint-placeholder-count="10"><option value="{{ o.id }}">{{ o.label }}</option></sc-for></select></div>
+<div class="field" style="width:120px"><label>Amount (g)</label><input class="input" type="number" value="{{ g }}" onChange="{{ setG }}"></div>
+</div>
+<div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13px;font-variant-numeric:tabular-nums"><span style="color:var(--color-neutral-400)">{{ origBasis }}</span><span>{{ origMacro }}</span><span style="color:var(--color-neutral-500)">Role: {{ role }} · matched on {{ matchOn }}</span></div>
+<div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ filters }}" as="f" hint-placeholder-count="6"><button onClick="{{ f.pick }}" style="{{ f.style }}">{{ f.label }}</button></sc-for></div>
+</section>
+<div style="font-size:12px;color:var(--color-neutral-500);text-wrap:pretty">Ranked by closest macro match, then same food role, similar calories and your dietary preferences. Substitute weights match the main nutrient. Other macros will differ, and every difference is shown. No two foods are nutritionally identical.</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<sc-for list="{{ alts }}" as="a" hint-placeholder-count="8">
+<section class="card elev-sm" style="padding:12px 16px;gap:8px">
+<div style="display:grid;grid-template-columns:minmax(0,1.4fr) 90px minmax(0,1.6fr) auto;gap:12px;align-items:center">
+<div style="min-width:0"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:var(--color-neutral-600)">#{{ a.rank }}</span><span style="font-size:14px">{{ a.name }}</span></div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px"><span class="tag tag-neutral" style="font-size:10px;padding:1px 6px">{{ a.basis }}</span><sc-for list="{{ a.tags }}" as="t" hint-placeholder-count="2"><span class="tag tag-outline" style="font-size:10px;padding:1px 6px">{{ t }}</span></sc-for></div></div>
+<div style="font-size:20px;font-variant-numeric:tabular-nums">{{ a.g }}<span style="font-size:12px;color:var(--color-neutral-500)"> g</span></div>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;font-size:12px;font-variant-numeric:tabular-nums"><sc-for list="{{ a.cells }}" as="c" hint-placeholder-count="4"><div><div style="color:var(--color-neutral-500);font-size:10px">{{ c.k }}</div><div>{{ c.v }}</div><div style="{{ c.dStyle }}">{{ c.d }}</div></div></sc-for></div>
+<sc-if value="{{ inMeal }}" hint-placeholder-val="{{ false }}"><button class="btn btn-primary" style="font-size:12px" onClick="{{ a.use }}">Use</button></sc-if>
+</div>
+</section>
+</sc-for>
+</div>
+<sc-if value="{{ afterSwap }}" hint-placeholder-val="{{ false }}">
+<div style="position:sticky;bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border-radius:var(--radius-md);background:var(--color-surface);box-shadow:var(--shadow-lg)"><i class="ph ph-scales" style="font-size:20px;color:var(--color-accent)"></i><span style="flex:1;font-size:13px">{{ swapNote }}</span><button class="btn btn-primary" onClick="{{ rebalance }}">Rebalance meal</button></div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { foodId: null, g: null, tag: '', ctx: null, swapped: null };
+  componentDidMount() { const h = () => { if (!window.RG) return this.t = setTimeout(h, 30); this.u = window.RG.subscribe(() => this.forceUpdate()); const p = window.RG.s.routeParam; if (p && typeof p === 'object' && p.key) this.setState({ ctx: p, foodId: p.foodId, g: p.g }); this.forceUpdate(); }; h(); }
+  componentWillUnmount() { this.u && this.u(); clearTimeout(this.t); }
+  renderVals() {
+    const RG = window.RG; if (!RG) return {};
+    const S = RG.s, ctx = this.state.ctx; const foodId = this.state.foodId || 'chicken_c'; const g = this.state.g ?? 145; const f = RG.food(foodId); const m0 = RG.macros(foodId, g);
+    const tagOpts = [['', 'All'], ['Dairy-free', 'Dairy-free'], ['Vegan', 'Vegan'], ['Gluten-free', 'Gluten-free'], ['lower', 'Lower calorie'], ['higher', 'Higher calorie']];
+    const t = this.state.tag;
+    const list = RG.alternatives(foodId, g, { tag: t && t !== 'lower' && t !== 'higher' ? t : '', lower: t === 'lower', higher: t === 'higher' }).slice(0, 12);
+    const sg = v => (v > 0 ? '+' : v < 0 ? '−' : '±') + RG.r1(Math.abs(v));
+    const cell = (k, v, d, unit) => ({ k, v: unit === 'kcal' ? Math.round(v) : RG.r1(v), d: Math.abs(d) < 0.5 ? 'same' : sg(unit === 'kcal' ? Math.round(d) : d), dStyle: { fontSize: '11px', color: Math.abs(d) < (unit === 'kcal' ? 20 : 2) ? 'var(--color-neutral-500)' : 'var(--color-accent-300)' } });
+    const day = ctx && RG.getDay(ctx.date); const meal = day && day.meals[ctx.meal]; const tg = ctx && RG.mealTargets(day.type)[ctx.meal];
+    const key = { protein: 'protein', carb: 'carbohydrate', fat: 'fat', veg: 'calories' }[f.role] || 'calories';
+    let swapNote = '';
+    if (this.state.swapped && meal) { const tot = RG.sumM(meal.items); swapNote = `Meal is now ${RG.num(tot.kcal)} kcal · ${RG.r1(tot.p)}P ${RG.r1(tot.c)}C ${RG.r1(tot.f)}F vs target ${tg.p}/${tg.c}/${tg.f}. Rebalance adjusts the other foods and keeps ${RG.food(this.state.swapped).name} locked.`; }
+    return {
+      context: ctx ? `Swapping in ${RG.mealTargets(day.type)[ctx.meal].name} · ${ctx.date === RG.TODAY ? 'today' : RG.fmtD(ctx.date)}` : 'Browse substitutes for any food',
+      inMeal: !!ctx, backToMeal: () => RG.go('meals', { date: ctx.date, meal: ctx.meal }),
+      foodId, g, setFood: e => this.setState({ foodId: e.target.value }), setG: e => this.setState({ g: Number(e.target.value) }),
+      foodOpts: RG.allFoods().map(x => ({ id: x.id, label: `${x.name} · ${x.basis}` })).sort((a, b) => a.label < b.label ? -1 : 1),
+      origBasis: `${g} g ${f.basis}`, origMacro: `${Math.round(m0.kcal)} kcal · ${RG.r1(m0.p)}P · ${RG.r1(m0.c)}C · ${RG.r1(m0.f)}F`, role: f.role, matchOn: key,
+      filters: tagOpts.map(([v, l]) => ({ label: l, pick: () => this.setState({ tag: v }), style: { font: 'inherit', fontSize: '12px', padding: '5px 11px', borderRadius: '6px', cursor: 'pointer', background: t === v ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : 'transparent', border: '1px solid ' + (t === v ? 'var(--color-accent)' : 'var(--color-neutral-800)'), color: t === v ? 'var(--color-accent)' : 'var(--color-neutral-400)' } })),
+      alts: list.map((a, i) => ({ rank: i + 1, name: a.food.name, basis: a.food.basis, tags: a.food.tags.slice(0, 3), g: a.g,
+        cells: [cell('kcal', a.m.kcal, a.d.kcal, 'kcal'), cell('Protein', a.m.p, a.d.p), cell('Carbs', a.m.c, a.d.c), cell('Fat', a.m.f, a.d.f)],
+        use: () => { RG.update(s => { const it = s.days[ctx.date].meals[ctx.meal].items.find(x => x.key === ctx.key); if (it) { it.foodId = a.food.id; it.g = a.g; it.locked = true; } }); this.setState({ foodId: a.food.id, g: a.g, swapped: a.food.id, ctx: { ...ctx, foodId: a.food.id, g: a.g } }); RG.toast(`Swapped to ${a.g} g ${a.food.name}.`); } })),
+      afterSwap: !!this.state.swapped && !!meal, swapNote,
+      rebalance: () => { RG.update(s => { const mm = s.days[ctx.date].meals[ctx.meal]; mm.items = RG.solve(mm.items, tg); }); RG.go('meals', { date: ctx.date, meal: ctx.meal }); RG.toast('Meal rebalanced around the substitute.'); }
+    };
+  }
+}
+</script>
+</body>
+</html>

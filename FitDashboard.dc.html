@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-124ecda7-7b17-42bd-b77f-decc2e83e187/styles.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<script src="store.js"></script>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:16px">
+<header style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap">
+<div style="margin-right:auto"><div style="font-size:12px;color:var(--color-neutral-500)">{{ dateLabel }}</div><h2 style="margin:2px 0 0;font-size:28px">{{ greeting }}</h2></div>
+<div style="display:flex;gap:6px;flex-wrap:wrap">
+<button class="btn btn-secondary" onClick="{{ openWeight }}"><i class="ph ph-scales"></i>Log weight</button>
+<button class="btn btn-secondary" onClick="{{ goPhotos }}"><i class="ph ph-camera"></i>Progress photos</button>
+<button class="btn btn-secondary" onClick="{{ openMove }}"><i class="ph ph-arrows-left-right"></i>Move workout</button>
+<button class="btn btn-secondary" onClick="{{ goPrep }}"><i class="ph ph-cooking-pot"></i>Prepare meals</button>
+</div>
+<div class="seg"><button onClick="{{ setMetric }}" style="{{ segM }}">kg</button><button onClick="{{ setImperial }}" style="{{ segI }}">lb</button></div>
+</header>
+<sc-if value="{{ paused }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border-radius:var(--radius-md);box-shadow:inset 0 0 0 1px var(--color-accent-700);background:var(--color-accent-900)"><i class="ph ph-pause-circle" style="font-size:20px;color:var(--color-accent)"></i><span style="flex:1;font-size:14px">{{ pauseText }}</span><button class="btn btn-primary" onClick="{{ resume }}">Resume schedule</button></div>
+</sc-if>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px">
+<section class="card elev-sm" style="padding:18px 20px;gap:12px;background:linear-gradient(160deg,#272a3b,var(--color-surface) 60%);grid-column:span 1">
+<sc-if value="{{ hasWorkout }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">
+<div style="margin-right:auto"><div class="card-kicker">{{ todayKicker }}</div><h3 style="margin:6px 0 0;font-size:30px">{{ todayName }}</h3><div style="font-size:13px;color:var(--color-neutral-400);margin-top:4px">{{ todaySub }}</div></div>
+<sc-if value="{{ canStart }}" hint-placeholder-val="{{ true }}"><button class="btn btn-primary" style="padding:10px 18px;font-size:15px" onClick="{{ start }}"><i class="ph-fill ph-play"></i>{{ startLabel }}</button></sc-if>
+<sc-if value="{{ todayDone }}" hint-placeholder-val="{{ false }}"><span class="tag tag-accent"><i class="ph-fill ph-check-circle"></i>&nbsp;Logged</span></sc-if>
+</div>
+<div style="display:grid;grid-template-columns:minmax(0,1fr) max-content max-content;gap:0 14px;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 0 4px"><span>Exercise</span><span>Last session</span><span>Next target</span></div>
+<sc-for list="{{ exercises }}" as="ex" hint-placeholder-count="6">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) max-content max-content;gap:0 14px;align-items:center;padding:8px 0;white-space:nowrap;background:linear-gradient(to right,transparent,var(--color-divider) 48px,var(--color-divider) calc(100% - 48px),transparent) no-repeat top/100% 1px">
+<div style="min-width:0;overflow:hidden;text-overflow:ellipsis"><div style="font-size:14px;overflow:hidden;text-overflow:ellipsis">{{ ex.name }}</div><div style="font-size:12px;color:var(--color-neutral-500)">{{ ex.scheme }}</div></div>
+<div style="font-size:13px;color:var(--color-neutral-300);font-variant-numeric:tabular-nums">{{ ex.last }}</div>
+<div style="display:flex;align-items:center;gap:6px;font-size:13px;font-variant-numeric:tabular-nums" title="{{ ex.reason }}"><i class="{{ ex.recIcon }}" style="{{ ex.recColor }}"></i><span>{{ ex.next }}</span></div>
+</div>
+</sc-for>
+<div style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost" onClick="{{ openMove }}"><i class="ph ph-calendar-blank"></i>Move</button><button class="btn btn-ghost" onClick="{{ skip }}"><i class="ph ph-skip-forward"></i>Skip</button><button class="btn btn-ghost" onClick="{{ goSchedule }}"><i class="ph ph-calendar-dots"></i>Full schedule</button></div>
+</sc-if>
+<sc-if value="{{ isRest }}" hint-placeholder-val="{{ false }}">
+<div class="card-kicker">Today</div><h3 style="margin:0;font-size:30px">Rest day</h3>
+<div style="font-size:14px;color:var(--color-neutral-400)">{{ nextLabel }}</div>
+<div style="display:flex;gap:6px"><button class="btn btn-secondary" onClick="{{ goSchedule }}">Open schedule</button></div>
+</sc-if>
+</section>
+<div style="display:flex;flex-direction:column;gap:16px">
+<section class="card elev-sm" style="padding:16px 18px;gap:12px">
+<div style="display:flex;align-items:baseline"><div class="card-title" style="margin-right:auto">This week</div><span style="font-size:12px;color:var(--color-neutral-500)">{{ weekRange }}</span></div>
+<div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px">
+<sc-for list="{{ week }}" as="d" hint-placeholder-count="7">
+<button onClick="{{ goSchedule }}" title="{{ d.title }}" style="{{ d.box }}"><span style="font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--color-neutral-500)">{{ d.d }}</span><i class="{{ d.icon }}" style="font-size:18px"></i><span style="font-size:11px;line-height:1.2">{{ d.label }}</span></button>
+</sc-for>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+<div><div style="font-size:22px;font-variant-numeric:tabular-nums">{{ wkDone }}<span style="color:var(--color-neutral-500)"> / {{ wkTotal }}</span></div><div style="font-size:11px;color:var(--color-neutral-500)">{{ wkNote }}</div></div>
+<div><div style="font-size:22px;font-variant-numeric:tabular-nums">{{ streak }}</div><div style="font-size:11px;color:var(--color-neutral-500)">Sessions in a row</div></div>
+<div><div style="font-size:22px">{{ checkIn }}</div><div style="font-size:11px;color:var(--color-neutral-500)">Next check-in</div></div>
+</div>
+</section>
+<section class="card elev-sm" style="padding:16px 18px;gap:8px">
+<div style="display:flex;align-items:baseline;gap:8px"><div class="card-title" style="margin-right:auto">Body weight</div><span class="tag tag-neutral">7-day average</span></div>
+<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><span style="font-size:32px;letter-spacing:-0.02em;font-variant-numeric:tabular-nums">{{ wAvg }}</span><span style="font-size:14px;color:var(--color-neutral-400)">{{ wu }}</span><span style="font-size:13px;color:var(--color-accent-300)">{{ wChange }} vs last week</span></div>
+<svg viewBox="0 0 280 80" preserveAspectRatio="none" style="width:100%;height:80px;display:block"><polyline points="{{ spDaily }}" fill="none" stroke="var(--color-neutral-700)" stroke-width="1.2" vector-effect="non-scaling-stroke"></polyline><polyline points="{{ spAvg }}" fill="none" stroke="var(--color-accent)" stroke-width="2" vector-effect="non-scaling-stroke"></polyline></svg>
+<div style="display:flex;font-size:11px;color:var(--color-neutral-600)"><span style="margin-right:auto">4 weeks</span><span>Latest scale reading {{ wToday }} {{ wu }}</span></div>
+</section>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:16px">
+<section class="card elev-sm" style="padding:16px 18px;gap:12px">
+<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><div class="card-title" style="margin-right:auto">Calories &amp; macros</div><span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--color-neutral-500)"><span style="width:10px;height:6px;border-radius:2px;background:var(--color-accent)"></span>Logged<span style="width:10px;height:6px;border-radius:2px;background:var(--color-neutral-700);margin-left:6px"></span>Planned</span></div>
+<sc-for list="{{ macros }}" as="m" hint-placeholder-count="4">
+<div style="display:flex;flex-direction:column;gap:5px">
+<div style="display:flex;align-items:baseline;gap:8px;font-size:13px;font-variant-numeric:tabular-nums"><span style="margin-right:auto">{{ m.k }}</span><span>{{ m.logged }}</span><span style="color:var(--color-neutral-500)">/ {{ m.target }} {{ m.unit }}</span><span style="min-width:76px;text-align:right;color:var(--color-accent-300)">{{ m.remaining }}</span></div>
+<div style="position:relative;height:6px;border-radius:3px;background:var(--color-neutral-900)"><div style="{{ m.plannedBar }}"></div><div style="{{ m.loggedBar }}"></div></div>
+</div>
+</sc-for>
+<div style="font-size:11px;color:var(--color-neutral-500);text-wrap:pretty">{{ macroNote }}</div>
+<div style="display:flex;gap:4px"><button class="btn btn-ghost" onClick="{{ goNutrition }}">Nutrition dashboard</button><button class="btn btn-ghost" onClick="{{ goMeals }}">Meal planner</button></div>
+</section>
+<section class="card elev-sm" style="padding:16px 18px;gap:6px">
+<div style="display:flex;align-items:baseline;gap:8px"><div class="card-title" style="margin-right:auto">Meals today</div><button class="btn btn-ghost" onClick="{{ goGrocery }}"><i class="ph ph-shopping-cart"></i>Grocery list</button></div>
+<sc-for list="{{ meals }}" as="ml" hint-placeholder-count="4">
+<div style="display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;background:linear-gradient(to right,transparent,var(--color-divider) 48px,var(--color-divider) calc(100% - 48px),transparent) no-repeat top/100% 1px">
+<span style="font-size:12px;color:var(--color-neutral-500);font-variant-numeric:tabular-nums">{{ ml.time }}</span>
+<div style="min-width:0"><div style="font-size:14px">{{ ml.name }} <span style="color:var(--color-neutral-500)">· {{ ml.label }}</span></div><div style="font-size:12px;color:var(--color-neutral-500);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ ml.foods }}</div><div style="font-size:11px;color:var(--color-neutral-400);font-variant-numeric:tabular-nums">{{ ml.macro }} · {{ ml.prep }}</div></div>
+<button onClick="{{ ml.toggle }}" style="{{ ml.btn }}"><i class="{{ ml.icon }}"></i>{{ ml.status }}</button>
+</div>
+</sc-for>
+</section>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:16px">
+<section style="display:flex;align-items:center;gap:14px;padding:16px 20px;border-radius:var(--radius-md);box-shadow:inset 0 0 0 1px var(--color-accent-800);background:linear-gradient(100deg,var(--color-accent-900),transparent 70%)">
+<i class="ph ph-quotes" style="font-size:26px;color:var(--color-accent);flex:none"></i>
+<div style="margin-right:auto;min-width:0"><div style="font-size:18px;line-height:1.35;text-wrap:pretty">{{ quote }}</div><div style="font-size:11px;color:var(--color-neutral-500);margin-top:4px">Today's line · {{ quoteTone }}</div></div>
+<button class="btn btn-icon btn-ghost" onClick="{{ toggleFav }}" title="Save to favourites"><i class="{{ favIcon }}" style="font-size:18px"></i></button>
+<button class="btn btn-icon btn-ghost" onClick="{{ hideQuote }}" title="Hide this line"><i class="ph ph-eye-slash" style="font-size:18px"></i></button>
+<button class="btn btn-icon btn-ghost" onClick="{{ nextQuote }}" title="Another"><i class="ph ph-arrows-clockwise" style="font-size:18px"></i></button>
+</section>
+<section class="card elev-sm" style="padding:14px 18px;gap:4px">
+<div style="display:flex;align-items:baseline"><div class="card-title" style="font-size:15px;margin-right:auto">Upcoming reminders</div><button class="btn btn-ghost" style="font-size:12px" onClick="{{ goSettings }}">Manage</button></div>
+<sc-for list="{{ reminders }}" as="r" hint-placeholder-count="4">
+<div style="display:flex;align-items:center;gap:10px;font-size:13px;padding:3px 0"><i class="{{ r.icon }}" style="color:var(--color-neutral-500)"></i><span style="width:78px;flex:none;color:var(--color-neutral-500);font-variant-numeric:tabular-nums">{{ r.when }}</span><span>{{ r.text }}</span></div>
+</sc-for>
+</section>
+</div>
+<sc-if value="{{ dlgWeight }}" hint-placeholder-val="{{ false }}">
+<div class="dialog-backdrop" style="z-index:50" onClick="{{ closeDlg }}"><div class="dialog" onClick="{{ stop }}">
+<div class="dialog-title">Log today's weight</div>
+<div class="dialog-body">Weigh at the same time each day. The dashboard shows the 7-day average, so one reading won't swing your trend.</div>
+<div class="field"><label>Weight ({{ wu }})</label><input class="input" type="number" step="0.1" inputmode="decimal" value="{{ wInput }}" onChange="{{ setWInput }}" style="font-size:22px;min-height:52px"></div>
+<div class="dialog-actions"><button class="btn btn-secondary" onClick="{{ closeDlg }}">Cancel</button><button class="btn btn-primary" onClick="{{ saveWeight }}">Save</button></div>
+</div></div>
+</sc-if>
+<sc-if value="{{ dlgMove }}" hint-placeholder-val="{{ false }}">
+<div class="dialog-backdrop" style="z-index:50" onClick="{{ closeDlg }}"><div class="dialog" onClick="{{ stop }}" style="width:min(520px,100%)">
+<div class="dialog-title">Move {{ moveName }}</div>
+<div class="dialog-body">Choose a new date. Completed sessions can't be moved.</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:6px">
+<sc-for list="{{ moveDays }}" as="md" hint-placeholder-count="10">
+<button onClick="{{ md.pick }}" style="{{ md.style }}"><span style="font-size:12px">{{ md.label }}</span><span style="font-size:10px;color:var(--color-neutral-500)">{{ md.occ }}</span></button>
+</sc-for>
+</div>
+<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" checked="{{ shift }}" onChange="{{ toggleShift }}" style="accent-color:var(--color-accent)">Shift later workouts to keep the rotation order</label>
+<div class="dialog-actions"><button class="btn btn-secondary" onClick="{{ closeDlg }}">Cancel</button><button class="btn btn-primary" onClick="{{ confirmMove }}">Move workout</button></div>
+</div></div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { q: 0, dlg: null, wInput: '', moveTo: null, shift: null };
+  componentDidMount() { const h = () => { if (!window.RG) return this.t = setTimeout(h, 30); this.u = window.RG.subscribe(() => this.forceUpdate()); this.forceUpdate(); }; h(); }
+  componentWillUnmount() { this.u && this.u(); clearTimeout(this.t); }
+  renderVals() {
+    const RG = window.RG; if (!RG) return {};
+    const S = RG.s, P = S.profile, T = RG.TODAY, wu = RG.wu();
+    const entry = S.schedule.find(e => e.date === T && (e.status === 'planned' || e.status === 'done'));
+    const moveTarget = entry && entry.status === 'planned' ? entry : RG.nextEntry(T);
+    const w = entry && RG.workout(entry.workoutId, entry.planId);
+    const exercises = w ? w.items.map(item => {
+      const e = RG.ex(item.exId); const last = RG.lastPerf(item.exId); const rec = RG.recommend(item.exId, item) || {};
+      const up = rec.type === 'increase', dn = rec.type === 'reduce';
+      return { name: e.name, scheme: `${item.sets} × ${item.repMin}–${item.repMax} · RIR ${item.rir}${item.superset ? ' · superset ' + item.superset : ''}`,
+        last: last ? `${RG.w(last.sets[0].kg)} ${wu} × ${last.sets.map(s => s.reps).join(', ')}` : '—',
+        next: rec.kg != null ? `${RG.w(rec.kg)} ${wu} × ${rec.reps.join(', ')}` : 'Set baseline', reason: rec.reason || '',
+        recIcon: up ? 'ph ph-arrow-up-right' : dn ? 'ph ph-arrow-down-right' : rec.type === 'baseline' ? 'ph ph-flag' : 'ph ph-equals',
+        recColor: { color: up ? 'var(--color-accent)' : dn ? 'var(--color-neutral-300)' : 'var(--color-neutral-500)', fontSize: '14px' } };
+    }) : [];
+    const mon = RG.monday(T); const ws = RG.weekStats(mon);
+    const week = [0, 1, 2, 3, 4, 5, 6].map(i => {
+      const d = RG.add(mon, i); const es = RG.entriesOn(d); const e = es.find(x => x.status === 'done') || es.find(x => x.status === 'planned') || es[0];
+      const st = !e ? (RG.inPause(d) ? 'paused' : 'rest') : e.status; const isT = d === T;
+      const ww = e && RG.workout(e.workoutId, e.planId);
+      const lab = ww ? ww.id : (d === RG.nextCheckIn() ? 'Check' : st === 'paused' ? 'Paused' : 'Rest');
+      return { d: RG.DN[i] + ' ' + Number(d.slice(8)), label: lab, title: ww ? `${ww.name} · ${st}` : lab,
+        icon: st === 'done' ? 'ph-fill ph-check-circle' : st === 'missed' ? 'ph ph-x-circle' : st === 'skipped' ? 'ph ph-skip-forward-circle' : st === 'planned' ? (isT ? 'ph ph-barbell' : 'ph ph-circle-dashed') : st === 'paused' ? 'ph ph-pause' : lab === 'Check' ? 'ph ph-clipboard-text' : 'ph ph-moon',
+        box: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', padding: '8px 2px', borderRadius: 'var(--radius-md)', border: 0, font: 'inherit', cursor: 'pointer', textAlign: 'center',
+          background: st === 'done' ? 'var(--color-accent-900)' : isT ? 'color-mix(in srgb, var(--color-accent) 10%, transparent)' : 'transparent',
+          boxShadow: isT ? 'inset 0 0 0 1px var(--color-accent)' : st === 'planned' ? 'inset 0 0 0 1px var(--color-neutral-800)' : 'none',
+          color: st === 'rest' || st === 'paused' ? 'var(--color-neutral-600)' : st === 'missed' ? 'var(--color-neutral-400)' : 'var(--color-text)' } };
+    });
+    const ww = S.weights.slice(-28).map(x => x.kg); const avg = RG.rolling(S.weights.map(x => x.kg), 7).slice(-28);
+    const lo = Math.min(...ww) - 0.3, hi = Math.max(...ww) + 0.3;
+    const a0 = RG.avgWeight(T), a1 = RG.avgWeight(RG.add(T, -7)); const ch = a0 - a1;
+    const chStr = (ch < 0 ? '−' : '+') + (RG.imp() ? Math.abs(ch * 2.20462).toFixed(1) : Math.abs(ch).toFixed(1)) + ' ' + wu;
+    const day = RG.getDay(T); const tot = RG.dayTotals(T); const tgs = RG.mealTargets(day.type);
+    const bar = (pct, col) => ({ position: 'absolute', left: 0, top: 0, bottom: 0, width: Math.min(100, Math.max(0, pct)) + '%', borderRadius: '3px', background: col });
+    const mk = [['Calories', P.kcal, tot.planned.kcal, tot.logged.kcal, 'kcal'], ['Protein', P.protein, tot.planned.p, tot.logged.p, 'g'], ['Carbs', P.carbs, tot.planned.c, tot.logged.c, 'g'], ['Fat', P.fat, tot.planned.f, tot.logged.f, 'g']];
+    const macros = mk.map(m => { const rem = m[1] - m[3]; return { k: m[0], target: RG.num(m[1]), unit: m[4], logged: RG.num(m[3]), remaining: rem >= 0 ? `${RG.num(rem)}${m[4] === 'g' ? ' g' : ''} left` : `${RG.num(-rem)} over`, plannedBar: bar(m[2] / m[1] * 100, 'var(--color-neutral-700)'), loggedBar: bar(m[3] / m[1] * 100, 'var(--color-accent)') }; });
+    const macroKcal = P.protein * 4 + P.carbs * 4 + P.fat * 9; const dk = macroKcal - P.kcal;
+    const macroNote = `Planned today: ${RG.num(tot.planned.kcal)} kcal. ` + (Math.abs(dk) > 5 ? `Your macro targets add up to ${RG.num(macroKcal)} kcal, ${Math.abs(dk)} kcal ${dk > 0 ? 'above' : 'below'} the ${RG.num(P.kcal)} kcal calorie target. Macros are rounded to whole grams.` : 'Macro targets reconcile with the calorie target.');
+    const meals = day.meals.map((m, i) => {
+      const t = tgs[i] || {}; const sm = RG.sumM(m.items);
+      return { name: t.name || 'Meal ' + (i + 1), label: t.label || '', time: t.time || '', foods: m.items.map(x => `${RG.food(x.foodId).name.split(',')[0]} ${Math.round(x.g)} g${RG.food(x.foodId).basis === 'cooked' ? ' cooked' : RG.food(x.foodId).basis === 'raw' ? ' raw' : ''}`).join(' · '),
+        macro: `${RG.num(sm.kcal)} kcal · ${Math.round(sm.p)}P ${Math.round(sm.c)}C ${Math.round(sm.f)}F`, prep: m.prepped ? 'Prepped' : 'Not prepped',
+        status: m.logged ? 'Logged' : 'Log', icon: m.logged ? 'ph-fill ph-check-circle' : 'ph ph-plus-circle',
+        btn: { display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 10px', borderRadius: '6px', font: 'inherit', fontSize: '12px', cursor: 'pointer', border: '1px solid ' + (m.logged ? 'var(--color-accent-800)' : 'var(--color-accent)'), background: m.logged ? 'var(--color-accent-800)' : 'transparent', color: m.logged ? 'var(--color-accent-100)' : 'var(--color-accent)' },
+        toggle: () => RG.update(s => { const mm = s.days[T].meals[i]; mm.logged = !mm.logged; }) };
+    });
+    const q = RG.todayQuote(this.state.q);
+    const icons = { 'Upcoming workout': 'ph ph-barbell', 'Start workout': 'ph ph-play', 'Progress check-in': 'ph ph-clipboard-text', 'Progress photos': 'ph ph-camera', 'Meal prep': 'ph ph-cooking-pot', 'Grocery shopping': 'ph ph-shopping-cart', "Prepare tomorrow's meals": 'ph ph-cooking-pot', 'Drink water': 'ph ph-drop', 'Wind-down routine': 'ph ph-moon', 'Weight log': 'ph ph-scales', 'Supplements': 'ph ph-pill', 'Missed workout': 'ph ph-warning' };
+    const now = '13:10';
+    const todays = S.reminders.filter(r => r.enabled && /Daily|Training|Every/.test(r.freq) && r.time > now && (!/Training/.test(r.freq) || (entry && entry.status === 'planned')));
+    const reminders = todays.slice(0, 3).map(r => ({ when: r.time, icon: icons[r.type] || 'ph ph-bell', text: r.type + (r.type === 'Upcoming workout' && w ? ` · ${w.name} at ${P.workoutTime}` : '') }))
+      .concat(S.reminders.filter(r => r.enabled && /Sat|Sun/.test(r.freq)).slice(0, 2).map(r => ({ when: (r.freq.includes('Sat') ? 'Sat ' : 'Sun ') + r.time, icon: icons[r.type] || 'ph ph-bell', text: r.type })));
+    const pause = RG.activePause();
+    const nx = RG.nextEntry(T);
+    const mv = moveTarget;
+    const moveDays = mv ? Array.from({ length: 12 }, (_, i) => RG.add(T, i)).filter(d => d !== mv.date).map(d => { const o = S.schedule.find(e => e.date === d && e.status === 'planned'); const on = this.state.moveTo === d; return { label: RG.fmtD(d), occ: o ? RG.workout(o.workoutId, o.planId).name.replace(' Body ', ' ') : RG.inPause(d) ? 'Paused' : 'Free', pick: () => this.setState({ moveTo: d }),
+      style: { display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px', borderRadius: '6px', font: 'inherit', cursor: 'pointer', textAlign: 'left', color: 'var(--color-text)', background: on ? 'color-mix(in srgb, var(--color-accent) 16%, transparent)' : 'transparent', border: '1px solid ' + (on ? 'var(--color-accent)' : 'var(--color-neutral-800)') } }; }) : [];
+    const shift = this.state.shift ?? P.shiftLater;
+    const segBtn = on => ({ font: 'inherit', fontSize: '12px', padding: '6px 12px', border: 0, cursor: 'pointer', background: on ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : 'transparent', color: on ? 'var(--color-accent)' : 'var(--color-neutral-400)' });
+    const d0 = new Date(Date.UTC(2026, 8, 29));
+    return {
+      dateLabel: `${RG.DFULL[RG.dow(T)]}, ${Number(T.slice(8))} ${RG.MFULL[Number(T.slice(5, 7)) - 1]}`, greeting: `Good afternoon, ${P.name}`,
+      hasWorkout: !!entry, isRest: !entry, todayDone: entry && entry.status === 'done', canStart: entry && entry.status === 'planned' && !pause,
+      startLabel: S.active && S.active.entryId === (entry && entry.id) ? 'Resume workout' : 'Start workout',
+      todayKicker: entry ? `Today · ${P.workoutTime} · ~${P.duration} min · ${P.location}` : '', todayName: w ? w.name : '',
+      todaySub: w ? (() => { const n = w.items.filter(i => (RG.recommend(i.exId, i) || {}).type === 'increase').length; return `${w.focus} · ${w.items.reduce((a, i) => a + i.sets, 0)} working sets · ${n ? n + ' weight increase' + (n > 1 ? 's' : '') + ' suggested' : 'hold weights, add reps'}`; })() : '',
+      exercises, nextLabel: nx ? `Next: ${RG.workout(nx.workoutId, nx.planId).name} · ${RG.fmtD(nx.date)}` : 'No upcoming sessions',
+      week, weekRange: `${RG.fmtShort(mon)} – ${RG.fmtShort(RG.add(mon, 6))}`, wkDone: ws.done, wkTotal: ws.total, wkNote: `${ws.pct}% done${ws.missed ? ` · ${ws.missed} missed` : ''}`,
+      streak: RG.streak(), checkIn: RG.fmtD(RG.nextCheckIn()).replace(/ \w+$/, ''),
+      wAvg: RG.bw(a0), wToday: RG.bw(S.weights[S.weights.length - 1].kg), wChange: chStr, wu, spDaily: RG.pts(ww, 280, 80, lo, hi), spAvg: RG.pts(avg, 280, 80, lo, hi),
+      macros, macroNote, meals,
+      quote: q.text, quoteTone: q.tone, favIcon: S.quotes.fav[q.id] ? 'ph-fill ph-heart' : 'ph ph-heart',
+      toggleFav: () => RG.update(s => { s.quotes.fav[q.id] = !s.quotes.fav[q.id]; }), hideQuote: () => { RG.update(s => { s.quotes.hidden[q.id] = true; }); RG.toast('Line hidden. Restore it in Settings → Motivation.'); }, nextQuote: () => this.setState(s => ({ q: s.q + 1 })),
+      reminders, paused: !!pause, pauseText: pause ? `Schedule paused since ${RG.fmtD(pause.from)} · ${pause.reason}. Your rotation is saved and resumes with the next workout in order.` : '', resume: () => { RG.resume(); RG.toast('Schedule resumed — rotation picks up where it left off.'); },
+      segM: segBtn(!RG.imp()), segI: segBtn(RG.imp()), setMetric: () => RG.update(s => s.profile.units = 'metric'), setImperial: () => RG.update(s => s.profile.units = 'imperial'),
+      start: () => RG.startWorkout(entry.id), skip: () => { if (entry && entry.status === 'planned') { RG.skipEntry(entry.id); RG.toast(`${w.name} skipped. The rotation continues with the next workout.`); } },
+      goSchedule: () => RG.go('schedule'), goPhotos: () => RG.go('photos'), goPrep: () => RG.go('prep'), goGrocery: () => RG.go('grocery'), goNutrition: () => RG.go('nutrition'), goMeals: () => RG.go('meals'), goSettings: () => RG.go('settings'),
+      dlgWeight: this.state.dlg === 'weight', dlgMove: this.state.dlg === 'move', wInput: this.state.wInput,
+      openWeight: () => this.setState({ dlg: 'weight', wInput: RG.w(S.weights[S.weights.length - 1].kg) }), setWInput: e => this.setState({ wInput: e.target.value }),
+      saveWeight: () => { const v = parseFloat(this.state.wInput); if (!(v > 20)) return; RG.logWeight(RG.toKg(v)); this.setState({ dlg: null }); RG.toast(`Weight logged: ${v} ${wu}. The 7-day average is updated.`); },
+      openMove: () => { if (!mv) return RG.toast('No upcoming workout to move.'); this.setState({ dlg: 'move', moveTo: null }); }, moveName: mv ? RG.workout(mv.workoutId, mv.planId).name + ' · ' + RG.fmtD(mv.date) : '', moveDays,
+      shift, toggleShift: () => this.setState({ shift: !shift }),
+      confirmMove: () => { if (!this.state.moveTo) return; const r = RG.moveEntry(mv.id, this.state.moveTo, shift); this.setState({ dlg: null }); RG.toast(r.error || [`Moved to ${RG.fmtD(this.state.moveTo)}.`, r.note, r.warning].filter(Boolean).join(' ')); },
+      closeDlg: () => this.setState({ dlg: null }), stop: e => e.stopPropagation()
+    };
+  }
+}
+</script>
+</body>
+</html>

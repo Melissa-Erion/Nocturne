@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-124ecda7-7b17-42bd-b77f-decc2e83e187/styles.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<script src="store.js"></script>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:16px">
+<header style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap"><div style="margin-right:auto"><div style="font-size:12px;color:var(--color-neutral-500)">Recipes, favourites, custom foods and estimates</div><h2 style="margin:2px 0 0;font-size:28px">Recipes &amp; Saved Meals</h2></div>
+<div class="seg"><sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4"><button onClick="{{ t.pick }}" style="{{ t.style }}">{{ t.label }}</button></sc-for></div></header>
+<sc-if value="{{ tRecipes }}" hint-placeholder-val="{{ true }}">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:16px;align-items:start">
+<section class="card elev-sm" style="padding:10px;gap:4px">
+<sc-for list="{{ recipes }}" as="r" hint-placeholder-count="2"><button onClick="{{ r.pick }}" style="{{ r.style }}"><i class="{{ r.star }}" style="color:var(--color-accent)"></i><span style="flex:1;text-align:left">{{ r.name }}</span><span style="font-size:11px;color:var(--color-neutral-500)">{{ r.sub }}</span></button></sc-for>
+<button class="btn btn-ghost" onClick="{{ newRecipe }}"><i class="ph ph-plus"></i>New recipe</button>
+</section>
+<section class="card elev-sm" style="padding:16px 18px;gap:12px;grid-column:span 2;min-width:0">
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input class="input" value="{{ rName }}" onChange="{{ setRName }}" style="font-size:18px;flex:1;min-width:200px"><button class="btn btn-icon btn-ghost" onClick="{{ toggleRFav }}" title="Favourite"><i class="{{ rStar }}" style="font-size:18px;color:var(--color-accent)"></i></button><button class="btn btn-ghost" onClick="{{ dupRecipe }}"><i class="ph ph-copy"></i>Duplicate</button><button class="btn btn-ghost" style="color:var(--color-neutral-500)" onClick="{{ delRecipe }}"><i class="ph ph-trash"></i></button></div>
+<div style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-neutral-500)">Ingredients, by weight</div>
+<sc-for list="{{ ingredients }}" as="i" hint-placeholder-count="4">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 100px minmax(0,1fr) 30px;gap:8px;align-items:center">
+<select class="input" value="{{ i.foodId }}" onChange="{{ i.setFood }}"><sc-for list="{{ foodOpts }}" as="o" hint-placeholder-count="10"><option value="{{ o.id }}">{{ o.label }}</option></sc-for></select>
+<input class="input" type="number" value="{{ i.g }}" onChange="{{ i.setG }}" style="text-align:right">
+<span style="font-size:12px;color:var(--color-neutral-400);font-variant-numeric:tabular-nums">{{ i.macro }}</span>
+<button class="btn btn-icon btn-ghost" style="width:30px;height:30px;color:var(--color-neutral-500)" onClick="{{ i.remove }}"><i class="ph ph-x"></i></button>
+</div>
+</sc-for>
+<button class="btn btn-ghost" style="align-self:flex-start" onClick="{{ addIng }}"><i class="ph ph-plus"></i>Add ingredient</button>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
+<div class="field"><label>Total cooked weight (g)</label><input class="input" type="number" value="{{ cooked }}" onChange="{{ setCooked }}"></div>
+<div class="field"><label>Divide by</label><div class="seg"><button onClick="{{ byCount }}" style="{{ sCount }}">Servings</button><button onClick="{{ byWeight }}" style="{{ sWeight }}">Serving weight</button></div></div>
+<sc-if value="{{ isCount }}" hint-placeholder-val="{{ true }}"><div class="field"><label>Servings</label><input class="input" type="number" value="{{ servings }}" onChange="{{ setServings }}"></div></sc-if>
+<sc-if value="{{ isWeight }}" hint-placeholder-val="{{ false }}"><div class="field"><label>Serving weight (g, cooked)</label><input class="input" type="number" value="{{ servingW }}" onChange="{{ setServingW }}"></div></sc-if>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:12px;border-radius:var(--radius-md);background:var(--color-neutral-900)">
+<div><div style="font-size:11px;color:var(--color-neutral-500)">Per serving · {{ servingG }} g cooked</div><div style="font-size:22px;font-variant-numeric:tabular-nums">{{ perKcal }} kcal</div><div style="font-size:12px;color:var(--color-neutral-400)">{{ perMacro }}</div></div>
+<div><div style="font-size:11px;color:var(--color-neutral-500)">Per 100 g cooked</div><div style="font-size:22px;font-variant-numeric:tabular-nums">{{ p100Kcal }} kcal</div><div style="font-size:12px;color:var(--color-neutral-400)">{{ p100Macro }}</div></div>
+<div><div style="font-size:11px;color:var(--color-neutral-500)">Whole recipe</div><div style="font-size:22px;font-variant-numeric:tabular-nums">{{ totKcal }} kcal</div><div style="font-size:12px;color:var(--color-neutral-400)">{{ rawTotal }} g raw → {{ cooked }} g cooked</div></div>
+</div>
+<div style="font-size:12px;color:var(--color-neutral-500)">Nutrition is calculated from every ingredient, then spread over the actual cooked weight, so water lost or gained in cooking is accounted for.</div>
+</section>
+</div>
+</sc-if>
+<sc-if value="{{ tMeals }}" hint-placeholder-val="{{ false }}">
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:12px">
+<sc-for list="{{ meals }}" as="m" hint-placeholder-count="4">
+<section class="card elev-sm" style="padding:14px 16px;gap:8px">
+<div style="display:flex;align-items:center;gap:8px"><span style="font-size:15px;flex:1">{{ m.name }}</span><button class="btn btn-icon btn-ghost" onClick="{{ m.fav }}"><i class="{{ m.star }}" style="color:var(--color-accent)"></i></button></div>
+<div style="font-size:12px;color:var(--color-neutral-500)">{{ m.foods }}</div>
+<div style="font-size:13px;font-variant-numeric:tabular-nums">{{ m.macro }}<sc-if value="{{ m.est }}" hint-placeholder-val="{{ false }}"> <span class="tag tag-neutral" style="font-size:10px">Estimate</span></sc-if></div>
+<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center"><select class="input" value="" onChange="{{ m.addTo }}" style="width:auto;font-size:12px;min-height:30px"><option value="">Add to today…</option><sc-for list="{{ slotOpts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select><button class="btn btn-ghost" style="font-size:12px" onClick="{{ m.dup }}">Duplicate</button><button class="btn btn-ghost" style="font-size:12px;color:var(--color-neutral-500)" onClick="{{ m.del }}">Delete</button><span style="flex:1"></span><span style="font-size:11px;color:var(--color-neutral-600)">used {{ m.uses }}×</span></div>
+</section>
+</sc-for>
+</div>
+<section class="card elev-sm" style="padding:16px 18px;gap:10px;max-width:640px">
+<div class="card-title">Save a restaurant meal as an estimate</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px">
+<div class="field" style="grid-column:1 / -1"><label>Name</label><input class="input" value="{{ est.name }}" onChange="{{ setEst.name }}" placeholder="e.g. Burrito bowl, no cheese"></div>
+<div class="field"><label>kcal</label><input class="input" type="number" value="{{ est.kcal }}" onChange="{{ setEst.kcal }}"></div><div class="field"><label>Protein g</label><input class="input" type="number" value="{{ est.p }}" onChange="{{ setEst.p }}"></div><div class="field"><label>Carbs g</label><input class="input" type="number" value="{{ est.c }}" onChange="{{ setEst.c }}"></div><div class="field"><label>Fat g</label><input class="input" type="number" value="{{ est.f }}" onChange="{{ setEst.f }}"></div>
+</div>
+<div style="display:flex;gap:8px;align-items:center"><span style="flex:1;font-size:12px;color:var(--color-neutral-500)">Restaurant values are labelled as estimates wherever they appear.</span><button class="btn btn-primary" onClick="{{ saveEst }}">Save estimate</button></div>
+</section>
+</sc-if>
+<sc-if value="{{ tFoods }}" hint-placeholder-val="{{ false }}">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:16px;align-items:start">
+<section class="card elev-sm" style="padding:16px 18px;gap:10px">
+<div class="card-title">Custom food from a nutrition label</div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+<div class="field" style="grid-column:1 / -1"><label>Name</label><input class="input" value="{{ cf.name }}" onChange="{{ setCf.name }}" placeholder="Brand + product"></div>
+<div class="field"><label>Weight basis</label><select class="input" value="{{ cf.basis }}" onChange="{{ setCf.basis }}"><option value="prepared">As sold / prepared</option><option value="raw">Raw</option><option value="cooked">Cooked</option><option value="drained">Drained</option><option value="edible">Edible portion</option></select></div>
+<div class="field"><label>Serving size (g)</label><input class="input" type="number" value="{{ cf.serving }}" onChange="{{ setCf.serving }}"></div>
+<div class="field"><label>kcal per serving</label><input class="input" type="number" value="{{ cf.kcal }}" onChange="{{ setCf.kcal }}"></div>
+<div class="field"><label>Protein g</label><input class="input" type="number" value="{{ cf.p }}" onChange="{{ setCf.p }}"></div>
+<div class="field"><label>Carbs g</label><input class="input" type="number" value="{{ cf.c }}" onChange="{{ setCf.c }}"></div>
+<div class="field"><label>Fat g</label><input class="input" type="number" value="{{ cf.f }}" onChange="{{ setCf.f }}"></div>
+<div class="field"><label>Role</label><select class="input" value="{{ cf.role }}" onChange="{{ setCf.role }}"><option value="protein">Protein</option><option value="carb">Carbohydrate</option><option value="fat">Fat</option><option value="veg">Vegetable</option></select></div>
+<div class="field"><label>Category</label><select class="input" value="{{ cf.cat }}" onChange="{{ setCf.cat }}"><option>Meat &amp; fish</option><option>Dairy &amp; eggs</option><option>Grains &amp; starches</option><option>Produce</option><option>Pantry</option><option>Frozen</option></select></div>
+</div>
+<div style="font-size:12px;color:var(--color-neutral-400)">{{ cfCheck }}</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-secondary" onClick="{{ scan }}"><i class="ph ph-barcode"></i>Scan barcode</button><span style="flex:1"></span><button class="btn btn-primary" onClick="{{ saveCf }}">Save food</button></div>
+</section>
+<section class="card elev-sm" style="padding:12px 18px;gap:4px">
+<div class="card-title">Your custom foods</div>
+<sc-for list="{{ customs }}" as="c" hint-placeholder-count="0"><div style="display:flex;gap:10px;align-items:center;font-size:13px;padding:6px 0"><span style="flex:1">{{ c.name }} <span style="color:var(--color-neutral-500)">· {{ c.basis }}</span></span><span style="font-size:12px;color:var(--color-neutral-400);font-variant-numeric:tabular-nums">{{ c.per }}</span><button class="btn btn-icon btn-ghost" style="width:28px;height:28px;color:var(--color-neutral-500)" onClick="{{ c.del }}"><i class="ph ph-x"></i></button></div></sc-for>
+<sc-if value="{{ noCustoms }}" hint-placeholder-val="{{ true }}"><div style="font-size:13px;color:var(--color-neutral-500)">None yet. Values from a label are stored per 100 g of the basis you choose.</div></sc-if>
+</section>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { tab: 'recipes', rid: null, est: { name: '', kcal: '', p: '', c: '', f: '' }, cf: { name: '', basis: 'prepared', serving: 100, kcal: '', p: '', c: '', f: '', role: 'protein', cat: 'Pantry' } };
+  componentDidMount() { const h = () => { if (!window.RG) return this.t = setTimeout(h, 30); this.u = window.RG.subscribe(() => this.forceUpdate()); this.forceUpdate(); }; h(); }
+  componentWillUnmount() { this.u && this.u(); clearTimeout(this.t); }
+  renderVals() {
+    const RG = window.RG; if (!RG) return {};
+    const S = RG.s; const tab = this.state.tab;
+    const seg = on => ({ font: 'inherit', fontSize: '12px', padding: '7px 12px', border: 0, cursor: 'pointer', background: on ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : 'transparent', color: on ? 'var(--color-accent)' : 'var(--color-neutral-400)' });
+    const r = S.recipes.find(x => x.id === this.state.rid) || S.recipes[0];
+    const ri = S.recipes.indexOf(r); const upR = fn => RG.update(s => fn(s.recipes[ri]));
+    const rn = r ? RG.recipeNutrition(r) : null;
+    const foodOpts = RG.allFoods().map(f => ({ id: f.id, label: `${f.name} · ${f.basis}` })).sort((a, b) => a.label < b.label ? -1 : 1);
+    const today = RG.getDay(RG.TODAY); const tgs = RG.mealTargets(today.type);
+    const setObj = (k, fields) => { const o = {}; fields.forEach(f => o[f] = e => { const v = e.target.value; this.setState(s => ({ [k]: { ...s[k], [f]: v } })); }); return o; };
+    const cf = this.state.cf; const cfK = (Number(cf.p) || 0) * 4 + (Number(cf.c) || 0) * 4 + (Number(cf.f) || 0) * 9;
+    return {
+      tabs: [['recipes', 'Recipes'], ['meals', 'Saved meals'], ['foods', 'Custom foods']].map(([id, l]) => ({ label: l, pick: () => this.setState({ tab: id }), style: seg(tab === id) })),
+      tRecipes: tab === 'recipes', tMeals: tab === 'meals', tFoods: tab === 'foods',
+      recipes: S.recipes.map(x => ({ name: x.name, sub: `${x.servings} servings`, star: x.fav ? 'ph-fill ph-star' : 'ph ph-star', pick: () => this.setState({ rid: x.id }), style: { display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 10px', border: 0, borderRadius: '6px', font: 'inherit', fontSize: '13px', cursor: 'pointer', color: 'var(--color-text)', background: r && x.id === r.id ? 'color-mix(in srgb, var(--color-accent) 12%, transparent)' : 'transparent' } })),
+      newRecipe: () => { const id = 'rc' + RG.uid(); RG.update(s => s.recipes.push({ id, name: 'New recipe', ingredients: [{ foodId: 'chicken_r', g: 500 }], cookedWeight: 400, servings: 4, byWeight: false, fav: false })); this.setState({ rid: id }); },
+      rName: r ? r.name : '', setRName: e => { const v = e.target.value; upR(x => x.name = v); }, rStar: r && r.fav ? 'ph-fill ph-star' : 'ph ph-star', toggleRFav: () => upR(x => x.fav = !x.fav),
+      dupRecipe: () => { const c = JSON.parse(JSON.stringify(r)); c.id = 'rc' + RG.uid(); c.name += ' (copy)'; RG.update(s => s.recipes.push(c)); this.setState({ rid: c.id }); },
+      delRecipe: () => { if (!confirm(`Delete "${r.name}"? Meal-prep plans using it will be removed too.`)) return; RG.update(s => { s.recipes.splice(ri, 1); s.prep = s.prep.filter(p => !(p.kind === 'recipe' && p.mealId === r.id)); }); this.setState({ rid: null }); },
+      foodOpts,
+      ingredients: r ? r.ingredients.map((i, ii) => { const m = RG.macros(i.foodId, i.g); return { foodId: i.foodId, g: i.g, macro: `${Math.round(m.kcal)} kcal · ${RG.r1(m.p)}P ${RG.r1(m.c)}C ${RG.r1(m.f)}F`, setFood: e => { const v = e.target.value; upR(x => x.ingredients[ii].foodId = v); }, setG: e => { const v = Number(e.target.value); upR(x => x.ingredients[ii].g = v); }, remove: () => upR(x => x.ingredients.splice(ii, 1)) }; }) : [],
+      addIng: () => upR(x => x.ingredients.push({ foodId: 'oil', g: 10 })),
+      cooked: r ? r.cookedWeight : '', setCooked: e => { const v = Number(e.target.value); upR(x => x.cookedWeight = v); },
+      isCount: r && !r.byWeight, isWeight: r && r.byWeight, sCount: seg(r && !r.byWeight), sWeight: seg(r && r.byWeight), byCount: () => upR(x => x.byWeight = false), byWeight: () => upR(x => { x.byWeight = true; x.servingW = x.servingW || Math.round(x.cookedWeight / x.servings); }),
+      servings: r ? r.servings : '', setServings: e => { const v = Math.max(1, Number(e.target.value)); upR(x => x.servings = v); },
+      servingW: r ? (r.servingW || Math.round(r.cookedWeight / r.servings)) : '', setServingW: e => { const v = Math.max(1, Number(e.target.value)); upR(x => { x.servingW = v; x.servings = RG.r1(x.cookedWeight / v); }); },
+      servingG: rn ? Math.round(rn.servingG) : '', perKcal: rn ? RG.num(rn.perServing.kcal) : '', perMacro: rn ? `${RG.r1(rn.perServing.p)} P · ${RG.r1(rn.perServing.c)} C · ${RG.r1(rn.perServing.f)} F` : '',
+      p100Kcal: rn ? RG.num(rn.per100.kcal) : '', p100Macro: rn ? `${RG.r1(rn.per100.p)} P · ${RG.r1(rn.per100.c)} C · ${RG.r1(rn.per100.f)} F` : '', totKcal: rn ? RG.num(rn.tot.kcal) : '', rawTotal: rn ? Math.round(rn.raw) : '',
+      slotOpts: tgs.map((t, i) => ({ v: String(i), label: `${t.name} · ${t.label}` })),
+      meals: S.savedMeals.map((m, mi) => { const t = m.estimate || RG.sumM(m.items); return { name: m.name, star: m.fav ? 'ph-fill ph-star' : 'ph ph-star', est: !!m.estimate, uses: m.uses || 0,
+        foods: m.items.length ? m.items.map(i => `${RG.food(i.foodId).name.split(',')[0]} ${i.g} g ${RG.food(i.foodId).basis}`).join(' · ') : 'Restaurant estimate — no ingredient breakdown',
+        macro: `${RG.num(t.kcal)} kcal · ${Math.round(t.p)}P ${Math.round(t.c)}C ${Math.round(t.f)}F`,
+        fav: () => RG.update(s => s.savedMeals[mi].fav = !s.savedMeals[mi].fav), dup: () => RG.update(s => s.savedMeals.push({ ...JSON.parse(JSON.stringify(m)), id: 'sm' + RG.uid(), name: m.name + ' (copy)', uses: 0 })),
+        del: () => { if (confirm(`Delete saved meal "${m.name}"?`)) RG.update(s => s.savedMeals.splice(mi, 1)); },
+        addTo: e => { const i = Number(e.target.value); if (e.target.value === '') return; RG.update(s => { const mm = s.days[RG.TODAY].meals[i]; if (m.items.length) mm.items = m.items.map(x => ({ ...x, key: RG.uid(), locked: false })); else { const id = 'est' + m.id; s.customFoods[id] = { id, name: m.name + ' — 1 portion = 100 g', basis: 'prepared', kcal: m.estimate.kcal, p: m.estimate.p, c: m.estimate.c, f: m.estimate.f, role: 'protein', cat: 'Other', tags: [], src: 'Restaurant estimate', est: true }; mm.items = [{ key: RG.uid(), foodId: id, g: 100, locked: true }]; } s.savedMeals[mi].uses = (s.savedMeals[mi].uses || 0) + 1; }); RG.toast(`Added to ${tgs[i].name}.`); } }; }),
+      est: this.state.est, setEst: setObj('est', ['name', 'kcal', 'p', 'c', 'f']),
+      saveEst: () => { const e = this.state.est; if (!e.name || !e.kcal) return RG.toast('Add a name and calories.'); RG.update(s => s.savedMeals.push({ id: 'sm' + RG.uid(), name: 'Restaurant: ' + e.name + ' (estimate)', items: [], estimate: { kcal: +e.kcal, p: +e.p || 0, c: +e.c || 0, f: +e.f || 0 }, fav: false, uses: 0 })); this.setState({ est: { name: '', kcal: '', p: '', c: '', f: '' } }); RG.toast('Estimate saved.'); },
+      cf, setCf: setObj('cf', ['name', 'basis', 'serving', 'kcal', 'p', 'c', 'f', 'role', 'cat']),
+      cfCheck: cf.kcal ? `Label check: macros add up to ${Math.round(cfK)} kcal vs ${cf.kcal} on the label${Math.abs(cfK - cf.kcal) > cf.kcal * 0.12 ? ', a large gap, so double-check the numbers (fibre or rounding can explain small gaps)' : ', consistent'}.` : 'Enter values exactly as printed per serving.',
+      scan: () => { if ('BarcodeDetector' in window) RG.toast('Point your camera at the barcode. Matches are looked up and must be confirmed before saving.'); else RG.toast('Barcode scanning isn\u2019t supported in this browser. Enter the label manually.'); },
+      saveCf: () => { const c = this.state.cf; const sv = Number(c.serving) || 100; if (!c.name || c.kcal === '') return RG.toast('Name and calories are required.'); const k = 100 / sv; const id = 'cf' + RG.uid();
+        RG.update(s => s.customFoods[id] = { id, name: c.name, basis: c.basis, kcal: RG.r1(c.kcal * k), p: RG.r1((+c.p || 0) * k), c: RG.r1((+c.c || 0) * k), f: RG.r1((+c.f || 0) * k), role: c.role, cat: c.cat, tags: [], src: 'Custom · product label', est: false, serving: { label: 'serving', g: sv } });
+        this.setState({ cf: { ...this.state.cf, name: '', kcal: '', p: '', c: '', f: '' } }); RG.toast('Custom food saved. It is available in the meal planner.'); },
+      customs: Object.values(S.customFoods).map(c => ({ name: c.name, basis: c.basis, per: `per 100 g: ${c.kcal} kcal · ${c.p}P ${c.c}C ${c.f}F`, del: () => RG.update(s => delete s.customFoods[c.id]) })), noCustoms: !Object.keys(S.customFoods).length
+    };
+  }
+}
+</script>
+</body>
+</html>

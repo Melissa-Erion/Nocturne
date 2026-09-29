@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-124ecda7-7b17-42bd-b77f-decc2e83e187/styles.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<script src="store.js"></script>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:16px">
+<header style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
+<div style="margin-right:auto"><div style="font-size:12px;color:var(--color-neutral-500)">{{ dayKind }}</div><h2 style="margin:2px 0 0;font-size:28px">Nutrition Dashboard</h2></div>
+<div style="display:flex;gap:4px;align-items:center"><button class="btn btn-icon btn-secondary" onClick="{{ prevDay }}"><i class="ph ph-caret-left"></i></button><span style="min-width:110px;text-align:center;font-size:14px">{{ dayLabel }}</span><button class="btn btn-icon btn-secondary" onClick="{{ nextDay }}"><i class="ph ph-caret-right"></i></button></div>
+<button class="btn btn-secondary" onClick="{{ goGrocery }}"><i class="ph ph-shopping-cart"></i>Grocery list</button>
+<button class="btn btn-primary" onClick="{{ goMeals }}"><i class="ph ph-fork-knife"></i>Open meal planner</button>
+</header>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:12px">
+<sc-for list="{{ cards }}" as="c" hint-placeholder-count="4">
+<section class="card elev-sm" style="padding:14px 16px;gap:8px">
+<div style="display:flex;align-items:baseline"><span style="font-size:13px;flex:1">{{ c.k }}</span><span style="font-size:11px;color:var(--color-neutral-500)">target {{ c.target }}</span></div>
+<div style="font-size:30px;letter-spacing:-0.02em;font-variant-numeric:tabular-nums">{{ c.remaining }}<span style="font-size:13px;color:var(--color-neutral-500)"> {{ c.remLabel }}</span></div>
+<div style="position:relative;height:6px;border-radius:3px;background:var(--color-neutral-900)"><div style="{{ c.plannedBar }}"></div><div style="{{ c.loggedBar }}"></div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;font-size:12px;font-variant-numeric:tabular-nums"><span style="color:var(--color-accent-300)">Logged {{ c.logged }}</span><span style="color:var(--color-neutral-400);text-align:right">Planned {{ c.planned }}</span></div>
+</section>
+</sc-for>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px">
+<section class="card elev-sm" style="padding:16px 18px;gap:6px">
+<div style="display:flex;align-items:baseline"><div class="card-title" style="flex:1">Meals planned</div><span style="font-size:12px;color:var(--color-neutral-500)">{{ prepSummary }}</span></div>
+<sc-for list="{{ meals }}" as="m" hint-placeholder-count="4">
+<div style="display:grid;grid-template-columns:44px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:10px 0;background:linear-gradient(to right,transparent,var(--color-divider) 48px,var(--color-divider) calc(100% - 48px),transparent) no-repeat top/100% 1px">
+<span style="font-size:12px;color:var(--color-neutral-500)">{{ m.time }}</span>
+<button onClick="{{ m.open }}" style="min-width:0;border:0;background:none;padding:0;font:inherit;color:inherit;text-align:left;cursor:pointer"><div style="font-size:14px">{{ m.name }} <span style="color:var(--color-neutral-500)">· {{ m.label }}</span></div><div style="font-size:12px;color:var(--color-neutral-500)">{{ m.macro }} · target {{ m.target }}</div></button>
+<span class="{{ m.prepClass }}">{{ m.prep }}</span>
+<button onClick="{{ m.toggle }}" style="{{ m.btn }}"><i class="{{ m.icon }}"></i>{{ m.status }}</button>
+</div>
+</sc-for>
+</section>
+<div style="display:flex;flex-direction:column;gap:16px">
+<sc-if value="{{ waterOn }}" hint-placeholder-val="{{ true }}">
+<section class="card elev-sm" style="padding:16px 18px;gap:10px">
+<div style="display:flex;align-items:baseline"><div class="card-title" style="flex:1">Water</div><span style="font-size:12px;color:var(--color-neutral-500)">target {{ waterTarget }}</span></div>
+<div style="font-size:28px;font-variant-numeric:tabular-nums">{{ water }}</div>
+<div style="display:grid;grid-template-columns:repeat(10,1fr);gap:3px"><sc-for list="{{ waterCells }}" as="w" hint-placeholder-count="10"><div style="{{ w }}"></div></sc-for></div>
+<div style="display:flex;gap:6px"><button class="btn btn-secondary" onClick="{{ addWater }}">+250 ml</button><button class="btn btn-secondary" onClick="{{ addWater2 }}">+500 ml</button><button class="btn btn-ghost" onClick="{{ undoWater }}">Undo</button></div>
+</section>
+</sc-if>
+<section class="card elev-sm" style="padding:16px 18px;gap:8px">
+<div class="card-title">Planned vs logged</div>
+<div style="font-size:13px;color:var(--color-neutral-300);text-wrap:pretty">Planned is what's in today's meal plan. Logged counts only meals you've marked as eaten. Remaining = target − logged.</div>
+<div style="font-size:12px;color:var(--color-neutral-500);text-wrap:pretty">{{ planNote }}</div>
+<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-ghost" onClick="{{ goPrep }}"><i class="ph ph-cooking-pot"></i>Meal-prep calculator</button><button class="btn btn-ghost" onClick="{{ goRecipes }}"><i class="ph ph-book-open"></i>Recipes &amp; saved meals</button></div>
+</section>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { date: null };
+  componentDidMount() { const h = () => { if (!window.RG) return this.t = setTimeout(h, 30); this.u = window.RG.subscribe(() => this.forceUpdate()); this.forceUpdate(); }; h(); }
+  componentWillUnmount() { this.u && this.u(); clearTimeout(this.t); }
+  renderVals() {
+    const RG = window.RG; if (!RG) return {};
+    const S = RG.s, P = S.profile; const date = this.state.date || RG.TODAY; const day = RG.getDay(date); const tot = RG.dayTotals(date); const tgs = RG.mealTargets(day.type);
+    const bar = (pct, col) => ({ position: 'absolute', left: 0, top: 0, bottom: 0, width: Math.min(100, Math.max(0, pct)) + '%', borderRadius: '3px', background: col });
+    const cards = [['Calories', P.kcal, tot.planned.kcal, tot.logged.kcal, 'kcal'], ['Protein', P.protein, tot.planned.p, tot.logged.p, 'g'], ['Carbohydrates', P.carbs, tot.planned.c, tot.logged.c, 'g'], ['Fat', P.fat, tot.planned.f, tot.logged.f, 'g']].map(([k, t, pl, lg, u]) => ({ k, target: `${RG.num(t)} ${u}`, remaining: RG.num(Math.abs(t - lg)), remLabel: (u === 'g' ? 'g ' : 'kcal ') + (t - lg >= 0 ? 'remaining' : 'over'), logged: RG.num(lg), planned: RG.num(pl), plannedBar: bar(pl / t * 100, 'var(--color-neutral-700)'), loggedBar: bar(lg / t * 100, 'var(--color-accent)') }));
+    const up = fn => RG.update(s => fn(s.days[date]));
+    const meals = day.meals.map((m, i) => { const t = tgs[i]; const sm = RG.sumM(m.items); return { name: t.name, label: t.label, time: t.time, macro: `${RG.num(sm.kcal)} kcal · ${Math.round(sm.p)}P ${Math.round(sm.c)}C ${Math.round(sm.f)}F`, target: `${t.p}/${t.c}/${t.f}`,
+      prep: m.prepped ? 'Prepped' : 'Not prepped', prepClass: m.prepped ? 'tag tag-outline' : 'tag tag-neutral', status: m.logged ? 'Logged' : 'Log', icon: m.logged ? 'ph-fill ph-check-circle' : 'ph ph-plus-circle',
+      btn: { display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 10px', minHeight: '32px', borderRadius: '6px', font: 'inherit', fontSize: '12px', cursor: 'pointer', border: '1px solid ' + (m.logged ? 'var(--color-accent-800)' : 'var(--color-accent)'), background: m.logged ? 'var(--color-accent-800)' : 'transparent', color: m.logged ? 'var(--color-accent-100)' : 'var(--color-accent)' },
+      toggle: () => up(d => d.meals[i].logged = !d.meals[i].logged), open: () => RG.go('meals', { date, meal: i }) }; });
+    const wt = P.waterMl, wv = day.water || 0;
+    const diffK = tot.planned.kcal - P.kcal;
+    return {
+      dayLabel: date === RG.TODAY ? 'Today' : RG.fmtD(date), dayKind: `${day.type === 'training' ? 'Training day' : 'Rest day'} · ${tgs.length} meals`, prevDay: () => this.setState({ date: RG.add(date, -1) }), nextDay: () => this.setState({ date: RG.add(date, 1) }),
+      cards, meals, prepSummary: `${day.meals.filter(m => m.prepped).length} of ${day.meals.length} prepped`,
+      waterOn: P.water, waterTarget: RG.imp() ? Math.round(wt / 29.57) + ' fl oz' : (wt / 1000).toFixed(1) + ' L', water: RG.imp() ? Math.round(wv / 29.57) + ' fl oz' : (wv / 1000).toFixed(2) + ' L',
+      waterCells: Array.from({ length: 10 }, (_, i) => ({ height: '18px', borderRadius: '3px', background: (i + 1) / 10 <= wv / wt ? 'var(--color-accent)' : 'var(--color-neutral-900)' })),
+      addWater: () => up(d => d.water = (d.water || 0) + 250), addWater2: () => up(d => d.water = (d.water || 0) + 500), undoWater: () => up(d => d.water = Math.max(0, (d.water || 0) - 250)),
+      planNote: `Today's plan comes to ${RG.num(tot.planned.kcal)} kcal, ${Math.abs(Math.round(diffK))} kcal ${diffK >= 0 ? 'above' : 'below'} your calorie target, because portions are rounded to 5 g and targets are calculated from macros.`,
+      goMeals: () => RG.go('meals', { date, meal: 0 }), goGrocery: () => RG.go('grocery'), goPrep: () => RG.go('prep'), goRecipes: () => RG.go('recipes')
+    };
+  }
+}
+</script>
+</body>
+</html>

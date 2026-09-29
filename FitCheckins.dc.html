@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-124ecda7-7b17-42bd-b77f-decc2e83e187/styles.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<script src="store.js"></script>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:16px">
+<header style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
+<div style="margin-right:auto"><div style="font-size:12px;color:var(--color-neutral-500)"><i class="ph ph-lock-simple"></i> Private · {{ freq }} on {{ ciDay }} · next {{ nextCi }}</div><h2 style="margin:2px 0 0;font-size:28px">Progress Check-Ins</h2></div>
+<div class="seg"><sc-for list="{{ freqs }}" as="f" hint-placeholder-count="3"><button onClick="{{ f.pick }}" style="{{ f.style }}">{{ f.label }}</button></sc-for></div>
+<button class="btn btn-primary" onClick="{{ openNew }}"><i class="ph ph-plus"></i>New check-in</button>
+</header>
+<sc-if value="{{ editing }}" hint-placeholder-val="{{ false }}">
+<section class="card elev-md" style="padding:18px 20px;gap:14px">
+<div style="display:flex;align-items:baseline;gap:10px"><div class="card-title" style="flex:1">{{ formTitle }}</div><button class="btn btn-icon btn-ghost" onClick="{{ cancel }}"><i class="ph ph-x" style="color:var(--color-text)"></i></button></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">
+<div class="field"><label>Date</label><input class="input" type="date" value="{{ f.date }}" onChange="{{ set.date }}"></div>
+<div class="field"><label>Body weight ({{ wu }})</label><input class="input" type="number" step="0.1" value="{{ f.kg }}" onChange="{{ set.kg }}"></div>
+<sc-for list="{{ measFields }}" as="m" hint-placeholder-count="5"><div class="field"><label>{{ m.label }} ({{ lu }})</label><input class="input" type="number" step="0.1" value="{{ m.value }}" onChange="{{ m.set }}"></div></sc-for>
+<sc-for list="{{ customFields }}" as="m" hint-placeholder-count="0"><div class="field"><label style="display:flex;gap:4px"><input value="{{ m.name }}" onChange="{{ m.setName }}" placeholder="Name" style="background:none;border:0;color:inherit;font:inherit;padding:0;width:100%"></label><input class="input" type="number" step="0.1" value="{{ m.value }}" onChange="{{ m.set }}"></div></sc-for>
+<div style="display:flex;align-items:flex-end"><button class="btn btn-ghost" onClick="{{ addCustom }}"><i class="ph ph-plus"></i>Custom measurement</button></div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">
+<sc-for list="{{ ratings }}" as="r" hint-placeholder-count="5">
+<div style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;font-size:12px;color:var(--color-neutral-400)"><span style="flex:1">{{ r.label }}</span><span style="color:var(--color-text)">{{ r.word }}</span></div>
+<div style="display:flex;gap:4px"><sc-for list="{{ r.opts }}" as="o" hint-placeholder-count="5"><button onClick="{{ o.pick }}" style="{{ o.style }}">{{ o.n }}</button></sc-for></div></div>
+</sc-for>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px">
+<sc-if value="{{ showCycle }}" hint-placeholder-val="{{ true }}"><div class="field"><label>Menstrual-cycle notes</label><input class="input" value="{{ f.cycle }}" onChange="{{ set.cycle }}" placeholder="Phase, symptoms, water retention"></div></sc-if>
+<div class="field"><label>Strength progress</label><input class="input" value="{{ f.strength }}" onChange="{{ set.strength }}" placeholder="What moved, what stalled"></div>
+<div class="field" style="grid-column:1 / -1"><label>Notes</label><textarea class="input" value="{{ f.notes }}" onChange="{{ set.notes }}" placeholder="Anything worth remembering this week"></textarea></div>
+</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span style="flex:1;font-size:12px;color:var(--color-neutral-500)">Photos for this check-in can be added on the Progress Photos page.</span><button class="btn btn-secondary" onClick="{{ cancel }}">Cancel</button><button class="btn btn-primary" onClick="{{ save }}">Save check-in</button></div>
+</section>
+</sc-if>
+<sc-if value="{{ hasCompare }}" hint-placeholder-val="{{ true }}">
+<section class="card elev-sm" style="padding:16px 18px;gap:10px">
+<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><div class="card-title" style="flex:1">Since your first check-in</div><span style="font-size:12px;color:var(--color-neutral-500)">{{ compareRange }}</span></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px">
+<sc-for list="{{ deltas }}" as="d" hint-placeholder-count="6"><div><div style="font-size:11px;color:var(--color-neutral-500)">{{ d.label }}</div><div style="font-size:20px;font-variant-numeric:tabular-nums">{{ d.now }} <span style="font-size:12px;color:var(--color-neutral-500)">{{ d.unit }}</span></div><div style="font-size:12px;color:var(--color-accent-300)">{{ d.delta }}</div></div></sc-for>
+</div>
+</section>
+</sc-if>
+<div style="display:flex;flex-direction:column;gap:10px">
+<sc-for list="{{ list }}" as="c" hint-placeholder-count="5">
+<section class="card elev-sm" style="padding:14px 18px;gap:8px">
+<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:16px;font-weight:500">{{ c.date }}</span><span style="font-size:13px;color:var(--color-neutral-400);font-variant-numeric:tabular-nums">{{ c.kg }} {{ wu }}</span><span style="font-size:12px;color:var(--color-accent-300)">{{ c.dkg }}</span><span style="flex:1"></span><span style="font-size:12px;color:var(--color-neutral-500)"><i class="ph ph-camera"></i> {{ c.photoCount }}</span><button class="btn btn-ghost" style="font-size:12px" onClick="{{ c.edit }}">Edit</button><button class="btn btn-ghost" style="font-size:12px;color:var(--color-neutral-500)" onClick="{{ c.del }}"><i class="ph ph-trash"></i></button></div>
+<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--color-neutral-400);font-variant-numeric:tabular-nums">{{ c.meas }}</div>
+<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--color-neutral-500)">{{ c.ratings }}</div>
+<sc-if value="{{ c.hasNotes }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--color-neutral-300)">{{ c.notes }}</div></sc-if>
+</section>
+</sc-for>
+</div>
+<sc-if value="{{ dlgDel }}" hint-placeholder-val="{{ false }}">
+<div class="dialog-backdrop" style="z-index:50" onClick="{{ closeDlg }}"><div class="dialog" onClick="{{ stop }}">
+<div class="dialog-title">Permanently delete check-in?</div>
+<div class="dialog-body">The {{ delDate }} check-in, its measurements and any attached photos will be deleted from this device. This cannot be undone.</div>
+<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" checked="{{ delOk }}" onChange="{{ toggleDelOk }}" style="accent-color:var(--color-accent)">I understand this is permanent</label>
+<div class="dialog-actions"><button class="btn btn-secondary" onClick="{{ closeDlg }}">Cancel</button><button class="btn btn-primary" disabled="{{ delDisabled }}" onClick="{{ doDelete }}">Delete</button></div>
+</div></div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { form: null, del: null, ok: false };
+  componentDidMount() { const h = () => { if (!window.RG) return this.t = setTimeout(h, 30); this.u = window.RG.subscribe(() => this.forceUpdate()); this.forceUpdate(); }; h(); }
+  componentWillUnmount() { this.u && this.u(); clearTimeout(this.t); }
+  renderVals() {
+    const RG = window.RG; if (!RG) return {};
+    const S = RG.s, P = S.profile, wu = RG.wu(), lu = RG.lu();
+    const cis = S.checkins.slice().sort((a, b) => a.date < b.date ? -1 : 1);
+    const F = this.state.form; const setF = patch => this.setState(s => ({ form: { ...s.form, ...patch } }));
+    const MEAS = [['waist', 'Waist'], ['hips', 'Hips'], ['chest', 'Chest'], ['thighs', 'Thighs'], ['arms', 'Arms']];
+    const RAT = [['energy', 'Energy', ['Very low', 'Low', 'OK', 'Good', 'High']], ['sleep', 'Sleep quality', ['Poor', 'Fair', 'OK', 'Good', 'Great']], ['hunger', 'Hunger', ['None', 'Low', 'Moderate', 'High', 'Very high']], ['stress', 'Stress', ['None', 'Low', 'Moderate', 'High', 'Very high']], ['recovery', 'Recovery', ['Poor', 'Fair', 'OK', 'Good', 'Great']]];
+    const blank = () => { const last = cis[cis.length - 1] || {}; const f = { id: null, date: RG.TODAY, kg: RG.bw(RG.avgWeight()), cycle: '', strength: '', notes: '', custom: (last.custom || []).map(c => ({ name: c.name, value: '' })) }; MEAS.forEach(([k]) => f[k] = ''); RAT.forEach(([k]) => f[k] = 3); return f; };
+    const fromCi = c => { const f = { id: c.id, date: c.date, kg: RG.bw(c.kg), cycle: c.cycle, strength: c.strength, notes: c.notes, custom: (c.custom || []).map(x => ({ name: x.name, value: RG.len(x.cm) })) }; MEAS.forEach(([k]) => f[k] = c[k] == null ? '' : RG.len(c[k])); RAT.forEach(([k]) => f[k] = c[k]); return f; };
+    const set = {}; ['date', 'kg', 'cycle', 'strength', 'notes'].forEach(k => set[k] = e => setF({ [k]: e.target.value }));
+    const first = cis[0], last = cis[cis.length - 1];
+    const d = (a, b, fmt) => { if (a == null || b == null) return ''; const x = b - a; return (x < 0 ? '−' : '+') + fmt(Math.abs(x)); };
+    const deltas = first && last && first !== last ? [['Weight', 'kg', wu, v => RG.bw(v)]].concat(MEAS.map(([k, l]) => [l, k, lu, v => RG.len(v)])).map(([label, k, unit, fmt]) => ({ label, unit, now: fmt(last[k]), delta: d(first[k], last[k], fmt) + ' ' + unit })) : [];
+    const segBtn = on => ({ font: 'inherit', fontSize: '12px', padding: '7px 12px', border: 0, cursor: 'pointer', background: on ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : 'transparent', color: on ? 'var(--color-accent)' : 'var(--color-neutral-400)' });
+    const del = this.state.del && S.checkins.find(c => c.id === this.state.del);
+    return {
+      wu, lu, freq: P.checkInFreq, ciDay: RG.DFULL[P.checkInDay], nextCi: RG.fmtD(RG.nextCheckIn()),
+      freqs: ['Weekly', 'Biweekly', 'Monthly'].map(l => ({ label: l, style: segBtn(P.checkInFreq === l), pick: () => RG.update(s => s.profile.checkInFreq = l) })),
+      openNew: () => this.setState({ form: blank() }), editing: !!F, formTitle: F && F.id ? 'Edit check-in' : 'New check-in', f: F || {}, set,
+      measFields: F ? MEAS.map(([k, l]) => ({ label: l, value: F[k], set: e => setF({ [k]: e.target.value }) })) : [],
+      customFields: F ? F.custom.map((c, i) => ({ name: c.name, value: c.value, setName: e => { const v = e.target.value; setF({ custom: F.custom.map((x, j) => j === i ? { ...x, name: v } : x) }); }, set: e => { const v = e.target.value; setF({ custom: F.custom.map((x, j) => j === i ? { ...x, value: v } : x) }); } })) : [],
+      addCustom: () => setF({ custom: F.custom.concat([{ name: 'Calf', value: '' }]) }),
+      ratings: F ? RAT.map(([k, l, words]) => ({ label: l, word: words[(F[k] || 3) - 1], opts: [1, 2, 3, 4, 5].map(n => ({ n, pick: () => setF({ [k]: n }), style: { flex: 1, height: '36px', borderRadius: '6px', font: 'inherit', fontSize: '13px', cursor: 'pointer', background: F[k] === n ? 'color-mix(in srgb, var(--color-accent) 16%, transparent)' : 'transparent', border: '1px solid ' + (F[k] === n ? 'var(--color-accent)' : 'var(--color-neutral-800)'), color: F[k] === n ? 'var(--color-accent)' : 'var(--color-neutral-400)' } })) })) : [],
+      showCycle: P.sex === 'Female' || P.cycleTracking, cancel: () => this.setState({ form: null }),
+      save: () => {
+        const f = this.state.form; const num = v => v === '' || v == null ? null : Number(v);
+        const rec = { date: f.date, kg: num(f.kg) != null ? RG.r1(RG.toKg(num(f.kg))) : null, cycle: f.cycle, strength: f.strength, notes: f.notes, custom: f.custom.filter(c => c.name && c.value !== '').map(c => ({ name: c.name, cm: RG.r1(RG.toCm(Number(c.value))) })) };
+        MEAS.forEach(([k]) => rec[k] = num(f[k]) != null ? RG.r1(RG.toCm(num(f[k]))) : null); RAT.forEach(([k]) => rec[k] = f[k]);
+        RG.update(s => { if (f.id) Object.assign(s.checkins.find(c => c.id === f.id), rec); else s.checkins.push({ id: RG.uid(), photos: { front: null, side: null, back: null, custom: [] }, ...rec }); if (rec.kg && rec.date === RG.TODAY) { const w = s.weights.find(x => x.date === RG.TODAY); if (w) w.kg = rec.kg; else s.weights.push({ date: RG.TODAY, kg: rec.kg }); } });
+        this.setState({ form: null }); RG.toast('Check-in saved.');
+      },
+      hasCompare: deltas.length > 0, deltas, compareRange: first && last ? `${RG.fmtD(first.date)} → ${RG.fmtD(last.date)} · ${cis.length} check-ins` : '',
+      list: cis.slice().reverse().map((c, i, arr) => { const prev = arr[i + 1]; const pc = ['front', 'side', 'back'].filter(p => RG.photo(c.id + ':' + p)).length + (c.photos.custom || []).length;
+        return { date: RG.fmtD(c.date), kg: RG.bw(c.kg), dkg: prev ? d(prev.kg, c.kg, v => RG.bw(v)) + ' ' + wu : 'Baseline', photoCount: pc ? pc + ' photo' + (pc > 1 ? 's' : '') : 'No photos',
+          meas: MEAS.filter(([k]) => c[k] != null).map(([k, l]) => `${l} ${RG.len(c[k])}`).concat((c.custom || []).map(x => `${x.name} ${RG.len(x.cm)}`)).join(' · ') + ' ' + lu,
+          ratings: RAT.map(([k, l, w]) => `${l}: ${w[(c[k] || 3) - 1]}`).join(' · '), hasNotes: !!(c.notes || c.strength || c.cycle), notes: [c.strength && 'Strength: ' + c.strength, c.cycle && 'Cycle: ' + c.cycle, c.notes].filter(Boolean).join(' · '),
+          edit: () => this.setState({ form: fromCi(c) }), del: () => this.setState({ del: c.id, ok: false }) }; }),
+      dlgDel: !!del, delDate: del ? RG.fmtD(del.date) : '', delOk: this.state.ok, delDisabled: !this.state.ok, toggleDelOk: () => this.setState({ ok: !this.state.ok }), closeDlg: () => this.setState({ del: null }), stop: e => e.stopPropagation(),
+      doDelete: () => { const id = del.id; ['front', 'side', 'back'].forEach(p => RG.photo(id + ':' + p) && RG.setPhoto(id + ':' + p, null)); RG.update(s => s.checkins = s.checkins.filter(c => c.id !== id)); this.setState({ del: null }); RG.toast('Check-in deleted.'); }
+    };
+  }
+}
+</script>
+</body>
+</html>
