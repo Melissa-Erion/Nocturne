@@ -72,7 +72,7 @@ export default function OnboardingScreen() {
     return { sK, sP, sC, sF, clamped: sK > raw };
   })() : null;
   const suggestNote = sugg && tdee
-    ? `Estimated maintenance ≈ ${RG.num(tdee)} kcal (Mifflin-St Jeor × activity). For ${d.goal.toLowerCase()}: ${RG.num(sugg.sK)} kcal · ${sugg.sP} g protein (1 g per lb of body weight) · ${sugg.sC} g carbs · ${sugg.sF} g fat.${sugg.clamped ? ` Raised to your estimated minimum of ${RG.num(floor)} kcal — Regimen doesn't suggest targets below it.` : ''} This is an estimate, not medical advice.`
+    ? `Estimated maintenance ≈ ${RG.num(tdee)} kcal (Mifflin-St Jeor × activity). For ${d.goal.toLowerCase()}: ${RG.num(sugg.sK)} kcal · ${sugg.sP} g protein · ${sugg.sC} g carbs · ${sugg.sF} g fat.${sugg.clamped ? ` Raised to your estimated minimum of ${RG.num(floor)} kcal — Regimen doesn't suggest targets below it.` : ''} This is an estimate, not medical advice.`
     : 'Add your weight, height and age (step 2) to get a Mifflin-St Jeor estimate, or enter your own targets below. Estimates are not medical advice.';
   const mk = (d.protein || 0) * 4 + (d.carbs || 0) * 4 + (d.fat || 0) * 9;
   const lowWarn = d.kcal && RG.lowCalorie(est)
