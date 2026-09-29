@@ -28,6 +28,10 @@ npm run typecheck
 - **Demo mode** (no sign-in, sample data, stored only in this browser): `EXPO_PUBLIC_SUPABASE_URL= EXPO_PUBLIC_DEMO=1 npm run web`
 - **Live food search**: get a free key at https://fdc.nal.usda.gov/api-key-signup and set `EXPO_PUBLIC_USDA_API_KEY` in `.env`. Barcodes use Open Food Facts (no key).
 
+## Web address
+
+The web app is published to **https://melissa-erion.github.io/Nocturne/** by `.github/workflows/deploy-web.yml` on every push to `main` that changes `regimen/` (or run it by hand from the Actions tab). The workflow typechecks, runs the tests, builds with the `/Nocturne` base path, and adds `404.html` so deep links work.
+
 ## Phones
 
 Notifications, calendar sync and the camera need a development build (not Expo Go):

@@ -15,7 +15,8 @@ export default function AuthScreen() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
 
-  const redirect = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin : Linking.createURL('/');
+  // Email links return to the app's own address (including a sub-path such as /Nocturne on GitHub Pages).
+  const redirect = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin + (process.env.EXPO_PUBLIC_BASE_URL || '') + '/' : Linking.createURL('/');
 
   async function submit() {
     if (!supabase) return;
