@@ -1,0 +1,578 @@
+{
+ "weights": [
+  {
+   "date": "2026-08-17",
+   "kg": 81.7
+  },
+  {
+   "date": "2026-08-18",
+   "kg": 81.7
+  },
+  {
+   "date": "2026-08-19",
+   "kg": 81.3
+  },
+  {
+   "date": "2026-08-20",
+   "kg": 81.2
+  },
+  {
+   "date": "2026-08-21",
+   "kg": 81.4
+  },
+  {
+   "date": "2026-09-27",
+   "kg": 78.7
+  },
+  {
+   "date": "2026-09-28",
+   "kg": 79.4
+  },
+  {
+   "date": "2026-09-29",
+   "kg": 78.7
+  }
+ ],
+ "nWeights": 44,
+ "nSessions": 25,
+ "squatLast": {
+  "date": "2026-09-28",
+  "sessionId": "vzl83ux",
+  "workoutId": "L1",
+  "sets": [
+   {
+    "exId": "squat",
+    "kg": 60,
+    "reps": 6,
+    "rir": 2,
+    "warm": false
+   },
+   {
+    "exId": "squat",
+    "kg": 60,
+    "reps": 6,
+    "rir": 2,
+    "warm": false
+   },
+   {
+    "exId": "squat",
+    "kg": 60,
+    "reps": 8,
+    "rir": 1,
+    "warm": false
+   }
+  ]
+ },
+ "recs": {
+  "squat": {
+   "type": "hold",
+   "kg": 60,
+   "reps": [
+    7,
+    7,
+    8
+   ],
+   "reason": "Within range. Keep 60 kg and add a rep where you can (target 7, 7, 8)."
+  },
+  "rdl": {
+   "type": "hold",
+   "kg": 60,
+   "reps": [
+    9,
+    9,
+    9
+   ],
+   "reason": "Within range. Keep 60 kg and add a rep where you can (target 9, 9, 9)."
+  },
+  "incdb": {
+   "type": "hold",
+   "kg": 20,
+   "reps": [
+    10,
+    10,
+    10
+   ],
+   "reason": "Within range. Keep 20 kg and add a rep where you can (target 10, 10, 10)."
+  },
+  "bench": {
+   "type": "increase",
+   "kg": 50,
+   "reps": [
+    6,
+    6,
+    6
+   ],
+   "reason": "All 3 sets hit 8 at RIR 2+. Add the smallest available increment (2.5 kg) and restart at 6."
+  },
+  "hipthrust": {
+   "type": "increase",
+   "kg": 77.5,
+   "reps": [
+    8,
+    8,
+    8
+   ],
+   "reason": "All 3 sets hit 10 at RIR 2+. Add the smallest available increment (2.5 kg) and restart at 8."
+  },
+  "calf": {
+   "type": "hold",
+   "kg": 50,
+   "reps": [
+    14,
+    13,
+    13
+   ],
+   "reason": "Within range. Keep 50 kg and add a rep where you can (target 14, 13, 13)."
+  },
+  "legcurl": {
+   "type": "increase",
+   "kg": 37.5,
+   "reps": [
+    10,
+    10,
+    10
+   ],
+   "reason": "All 3 sets hit 12 at RIR 1+. Add the smallest available increment (5 kg) and restart at 10."
+  }
+ },
+ "prsSquat": {
+  "heavy": {
+   "kg": 60,
+   "reps": 8,
+   "date": "2026-09-28"
+  },
+  "e1": {
+   "v": 76,
+   "kg": 60,
+   "reps": 8,
+   "date": "2026-09-28"
+  },
+  "vol": {
+   "v": 1380,
+   "date": "2026-09-07"
+  },
+  "best": {
+   "sc": 1380,
+   "kg": 57.5,
+   "reps": [
+    8,
+    8,
+    8
+   ],
+   "date": "2026-09-07"
+  },
+  "repsAt": {
+   "60": {
+    "reps": 8,
+    "date": "2026-09-28"
+   },
+   "57.5": {
+    "reps": 8,
+    "date": "2026-09-07"
+   }
+  }
+ },
+ "streak": 25,
+ "weekStats": {
+  "done": 1,
+  "total": 4,
+  "missed": 0,
+  "skipped": 0,
+  "pct": 25
+ },
+ "futureCodes": [
+  "2026-09-29:U1",
+  "2026-10-01:L2",
+  "2026-10-02:U2",
+  "2026-10-05:L1",
+  "2026-10-06:U1",
+  "2026-10-08:L2",
+  "2026-10-09:U2",
+  "2026-10-12:L1"
+ ],
+ "targetsTraining": [
+  {
+   "name": "Meal 1",
+   "label": "Breakfast",
+   "time": "07:30",
+   "p": 35,
+   "c": 37,
+   "f": 17,
+   "kcal": 441
+  },
+  {
+   "name": "Meal 2",
+   "label": "Lunch",
+   "time": "12:30",
+   "p": 35,
+   "c": 37,
+   "f": 16,
+   "kcal": 432
+  },
+  {
+   "name": "Meal 3",
+   "label": "Pre-workout",
+   "time": "16:00",
+   "p": 35,
+   "c": 59,
+   "f": 9,
+   "kcal": 457
+  },
+  {
+   "name": "Meal 4",
+   "label": "Post-workout dinner",
+   "time": "19:30",
+   "p": 35,
+   "c": 57,
+   "f": 13,
+   "kcal": 485
+  }
+ ],
+ "targetsRest": [
+  {
+   "name": "Meal 1",
+   "label": "Breakfast",
+   "time": "08:30",
+   "p": 35,
+   "c": 48,
+   "f": 14,
+   "kcal": 458
+  },
+  {
+   "name": "Meal 2",
+   "label": "Lunch",
+   "time": "12:30",
+   "p": 35,
+   "c": 48,
+   "f": 14,
+   "kcal": 458
+  },
+  {
+   "name": "Meal 3",
+   "label": "Snack",
+   "time": "15:30",
+   "p": 35,
+   "c": 47,
+   "f": 14,
+   "kcal": 454
+  },
+  {
+   "name": "Meal 4",
+   "label": "Dinner",
+   "time": "19:00",
+   "p": 35,
+   "c": 47,
+   "f": 13,
+   "kcal": 445
+  }
+ ],
+ "checkins": [
+  [
+   "2026-08-16",
+   null,
+   84.5,
+   3,
+   4
+  ],
+  [
+   "2026-08-23",
+   81.4,
+   84.1,
+   4,
+   3
+  ],
+  [
+   "2026-08-30",
+   81,
+   83.5,
+   4,
+   3
+  ],
+  [
+   "2026-09-06",
+   80.6,
+   83,
+   4,
+   2
+  ],
+  [
+   "2026-09-13",
+   79.9,
+   82.8,
+   4,
+   3
+  ],
+  [
+   "2026-09-20",
+   79.5,
+   82.2,
+   4,
+   4
+  ],
+  [
+   "2026-09-27",
+   79,
+   81.9,
+   3,
+   3
+  ]
+ ],
+ "nlog": [
+  {
+   "kcal": 1921,
+   "p": 131,
+   "c": 224,
+   "f": 58,
+   "prepped": null,
+   "water": 2069
+  },
+  {
+   "kcal": 1775,
+   "p": 152,
+   "c": 169,
+   "f": 60,
+   "prepped": true,
+   "water": 2797
+  },
+  {
+   "kcal": 1777,
+   "p": 128,
+   "c": 194,
+   "f": 55,
+   "prepped": null,
+   "water": 2581
+  }
+ ],
+ "alts": [
+  [
+   "cod_r",
+   255,
+   10.6
+  ],
+  [
+   "cod_c",
+   195,
+   11.09
+  ],
+  [
+   "tuna",
+   175,
+   11.81
+  ],
+  [
+   "turkey",
+   265,
+   12.6
+  ],
+  [
+   "whey",
+   55,
+   13.49
+  ]
+ ],
+ "prep1": {
+  "name": "Chicken, rice & broccoli",
+  "n": 5,
+  "lines": [
+   {
+    "foodId": "chicken_c",
+    "name": "Chicken breast, skinless",
+    "basis": "cooked",
+    "rawId": "chicken_r",
+    "rawBasis": "raw",
+    "buyG": 966.6666666666666,
+    "expected": 725,
+    "actual": null,
+    "perG": 145,
+    "perBasis": "cooked",
+    "est": true,
+    "yld": 0.75
+   },
+   {
+    "foodId": "rice_c",
+    "name": "White rice, long-grain",
+    "basis": "cooked",
+    "rawId": "rice_r",
+    "rawBasis": "raw",
+    "buyG": 300,
+    "expected": 900,
+    "actual": null,
+    "perG": 180,
+    "perBasis": "cooked",
+    "est": true,
+    "yld": 3
+   },
+   {
+    "foodId": "broccoli_c",
+    "name": "Broccoli, steamed",
+    "basis": "cooked",
+    "rawId": "broccoli_r",
+    "rawBasis": "raw",
+    "buyG": 526.3157894736843,
+    "expected": 500,
+    "actual": null,
+    "perG": 100,
+    "perBasis": "cooked",
+    "est": true,
+    "yld": 0.95
+   }
+  ],
+  "perContainer": {
+   "kcal": 508.25,
+   "p": 52.209999999999994,
+   "c": 57.96,
+   "f": 6.16
+  },
+  "estimated": true
+ },
+ "prep2": {
+  "name": "Turkey-lentil chili",
+  "n": 6,
+  "lines": [
+   {
+    "foodId": "beef_r",
+    "name": "Lean ground beef 95%",
+    "basis": "raw",
+    "buyG": 900,
+    "perG": null,
+    "est": false
+   },
+   {
+    "foodId": "lentil_r",
+    "name": "Lentils, dry",
+    "basis": "raw",
+    "buyG": 250,
+    "perG": null,
+    "est": false
+   },
+   {
+    "foodId": "peppers",
+    "name": "Bell pepper",
+    "basis": "raw",
+    "buyG": 300,
+    "perG": null,
+    "est": false
+   },
+   {
+    "foodId": "oil",
+    "name": "Olive oil",
+    "basis": "prepared",
+    "buyG": 15,
+    "perG": null,
+    "est": false
+   }
+  ],
+  "perContainer": {
+   "kcal": 387.26666666666665,
+   "p": 42.85,
+   "c": 29.416666666666668,
+   "f": 10.608333333333333
+  },
+  "batchG": 2650,
+  "perContainerG": 441.6666666666667,
+  "estimated": true
+ },
+ "grocery": [
+  [
+   "rice_r",
+   300,
+   "1 × bag (900 g)",
+   true
+  ],
+  [
+   "chicken_r",
+   967,
+   "2 × pack (500 g)",
+   true
+  ],
+  [
+   "beef_r",
+   900,
+   "2 × pack (450 g)",
+   false
+  ],
+  [
+   "lentil_r",
+   250,
+   "1 × bag (900 g)",
+   false
+  ],
+  [
+   "oil",
+   15,
+   "1 × bottle (500 g)",
+   false
+  ],
+  [
+   "peppers",
+   300,
+   "2 × each (150 g)",
+   false
+  ],
+  [
+   "broccoli_r",
+   526,
+   "2 × head (500 g)",
+   true
+  ]
+ ],
+ "nextCheckIn": "2026-10-04",
+ "todayDay": [
+  [
+   [
+    "yog",
+    280
+   ],
+   [
+    "oats",
+    45
+   ],
+   [
+    "blueb",
+    0
+   ]
+  ],
+  [
+   [
+    "chicken_c",
+    100
+   ],
+   [
+    "rice_c",
+    105
+   ],
+   [
+    "avocado",
+    85
+   ]
+  ],
+  [
+   [
+    "turkey",
+    170
+   ],
+   [
+    "tortilla",
+    65
+   ],
+   [
+    "banana",
+    85
+   ]
+  ],
+  [
+   [
+    "salmon_r",
+    110
+   ],
+   [
+    "potato_r",
+    290
+   ],
+   [
+    "broccoli_c",
+    100
+   ]
+  ]
+ ]
+}

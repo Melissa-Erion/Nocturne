@@ -1,0 +1,60 @@
+{
+  "expo": {
+    "name": "Regimen",
+    "slug": "regimen",
+    "scheme": "regimen",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#161826",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ca.mcreativestudio.regimen",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Regimen uses the camera for private progress photos and barcode scanning.",
+        "NSPhotoLibraryUsageDescription": "Regimen lets you choose progress photos from your library. Photos stay private to your account.",
+        "NSCalendarsUsageDescription": "Regimen can add your planned workouts to your calendar.",
+        "NSCalendarsFullAccessUsageDescription": "Regimen can add your planned workouts to your calendar."
+      }
+    },
+    "android": {
+      "package": "ca.mcreativestudio.regimen",
+      "adaptiveIcon": {
+        "backgroundColor": "#161826",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "output": "single",
+      "bundler": "metro",
+      "name": "Regimen — Fitness, Nutrition & Progress",
+      "themeColor": "#161826",
+      "backgroundColor": "#161826"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-sharing",
+      [
+        "expo-splash-screen",
+        { "backgroundColor": "#161826", "image": "./assets/splash-icon.png", "imageWidth": 120 }
+      ],
+      "expo-status-bar",
+      [
+        "expo-image-picker",
+        { "photosPermission": "Regimen lets you choose progress photos from your library. Photos stay private to your account.", "cameraPermission": "Regimen uses the camera for private progress photos." }
+      ],
+      [
+        "expo-calendar",
+        { "calendarPermission": "Regimen can add your planned workouts to your calendar." }
+      ],
+      "expo-notifications"
+    ],
+    "experiments": { "typedRoutes": false }
+  }
+}
