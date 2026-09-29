@@ -67,12 +67,12 @@ export default function OnboardingScreen() {
   const adj = ADJ[d.goal] || 0;
   const sugg = tdee && kg ? (() => {
     const raw = Math.round(tdee * (1 + adj) / 10) * 10; const sK = Math.max(raw, Math.ceil(floor / 10) * 10);
-    const sP = Math.round(kg * (d.goal === 'Fat loss' || d.goal === 'Recomposition' ? 1.8 : 1.6)); const sF = Math.round(Math.max(kg * 0.7, sK * 0.25 / 9));
+    const sP = Math.round(kg * 2.20462); /* 1 g of protein per lb of body weight */ const sF = Math.round(Math.max(kg * 0.7, sK * 0.25 / 9));
     const sC = Math.max(50, Math.round((sK - sP * 4 - sF * 9) / 4));
     return { sK, sP, sC, sF, clamped: sK > raw };
   })() : null;
   const suggestNote = sugg && tdee
-    ? `Estimated maintenance ≈ ${RG.num(tdee)} kcal (Mifflin-St Jeor × activity). For ${d.goal.toLowerCase()}: ${RG.num(sugg.sK)} kcal · ${sugg.sP} g protein · ${sugg.sC} g carbs · ${sugg.sF} g fat.${sugg.clamped ? ` Raised to your estimated minimum of ${RG.num(floor)} kcal — Regimen doesn't suggest targets below it.` : ''} This is an estimate, not medical advice.`
+    ? `Estimated maintenance ≈ ${RG.num(tdee)} kcal (Mifflin-St Jeor × activity). For ${d.goal.toLowerCase()}: ${RG.num(sugg.sK)} kcal · ${sugg.sP} g protein (1 g per lb of body weight) · ${sugg.sC} g carbs · ${sugg.sF} g fat.${sugg.clamped ? ` Raised to your estimated minimum of ${RG.num(floor)} kcal — Regimen doesn't suggest targets below it.` : ''} This is an estimate, not medical advice.`
     : 'Add your weight, height and age (step 2) to get a Mifflin-St Jeor estimate, or enter your own targets below. Estimates are not medical advice.';
   const mk = (d.protein || 0) * 4 + (d.carbs || 0) * 4 + (d.fat || 0) * 9;
   const lowWarn = d.kcal && RG.lowCalorie(est)
