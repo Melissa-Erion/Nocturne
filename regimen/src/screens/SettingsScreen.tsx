@@ -252,8 +252,12 @@ export default function SettingsScreen() {
               <Input value={ownQ} onChange={setOwnQ} placeholder="Add your own statement, e.g. I train for the person I am becoming" style={{ flex: 1, width: undefined, minWidth: 0 }} onSubmitEditing={addQ} />
               <Btn variant="primary" title="Add" onPress={addQ} />
             </Row>
+            {(() => {
+              const shown = quotes.filter(q => P.quoteTone === 'All' || q.tone === P.quoteTone || q.custom);
+              return <Muted size={12}>{P.quoteTone === 'All' ? `Showing all ${shown.length} lines. The dashboard rotates through them daily.` : `Showing ${shown.length} ${P.quoteTone.toLowerCase()} line${shown.length === 1 ? '' : 's'}${S.quotes.custom.length ? ' plus your own statements' : ''}. Only these appear on your dashboard.`}</Muted>;
+            })()}
             <View>
-              {quotes.map(q => {
+              {quotes.filter(q => P.quoteTone === 'All' || q.tone === P.quoteTone || q.custom).map(q => {
                 const hid = !!S.quotes.hidden[q.id];
                 return (
                   <View key={q.id} style={{ opacity: hid ? 0.45 : 1 }}>

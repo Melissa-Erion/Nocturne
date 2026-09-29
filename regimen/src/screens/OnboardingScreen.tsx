@@ -1,6 +1,6 @@
 /* 17. Onboarding (6 steps) — port of prototype/FitOnboarding.dc.html.
    Works from a blank profile (new account: name '', weight/height/age null, empty lists). */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import type { Profile } from '@/domain/types';
 import type { IconName } from '@/ui/icons';
@@ -74,6 +74,16 @@ export default function OnboardingScreen() {
     const sC = Math.max(50, Math.round((sK - sP * 4 - sF * 9) / 4));
     return { sK, sP, sC, sF, clamped: sK > raw };
   })() : null;
+  // The target boxes are calculated from the user's details and keep following them (weight, height, age, sex, activity, goal)
+  // until the user types their own target. Without height/age, protein is still set to 1 g per lb of weight.
+  const [targetsEdited, setTargetsEdited] = useState(false);
+  const calcP = kg ? Math.round(kg * 2.20462) : null;
+  useEffect(() => {
+    if (targetsEdited) return;
+    if (sugg) setD({ kcal: sugg.sK, protein: sugg.sP, carbs: sugg.sC, fat: sugg.sF });
+    else if (calcP != null) setD({ protein: calcP });
+  }, [targetsEdited, sugg?.sK, sugg?.sP, sugg?.sC, sugg?.sF, calcP]); // eslint-disable-line react-hooks/exhaustive-deps
+  const setTarget = (k: 'kcal' | 'protein' | 'carbs' | 'fat') => (v: number | null) => { setTargetsEdited(true); setD({ [k]: v } as Partial<Draft>); };
   const suggestNote = sugg && tdee
     ? `Estimated maintenance ≈ ${RG.num(tdee)} kcal (Mifflin-St Jeor × activity). For ${d.goal.toLowerCase()}: ${RG.num(sugg.sK)} kcal · ${sugg.sP} g protein · ${sugg.sC} g carbs · ${sugg.sF} g fat.${sugg.clamped ? ` Raised to your estimated minimum of ${RG.num(floor)} kcal — Regimen doesn't suggest targets below it.` : ''} This is an estimate, not medical advice.`
     : 'Add your weight, height and age (step 2) to get a Mifflin-St Jeor estimate, or enter your own targets below. Estimates are not medical advice.';
@@ -215,13 +225,13 @@ export default function OnboardingScreen() {
           <>
             <View style={{ paddingVertical: 12, paddingHorizontal: 14, borderRadius: R.md, backgroundColor: C.n900, gap: 6 }}>
               <T size={13} color={C.n300}>{suggestNote}</T>
-              {sugg && <Row><Btn variant="ghost" size="sm" title="Use suggestion" onPress={() => setD({ kcal: sugg.sK, protein: sugg.sP, carbs: sugg.sC, fat: sugg.sF })} /></Row>}
+              {sugg && <Row><Btn variant="ghost" size="sm" title="Use suggestion" onPress={() => { setTargetsEdited(false); setD({ kcal: sugg.sK, protein: sugg.sP, carbs: sugg.sC, fat: sugg.sF }); }} /></Row>}
             </View>
             <Grid min={140} gap={12}>
-              <Field label="Calories (kcal)"><NumInput value={d.kcal} onValue={set('kcal')} {...big} /></Field>
-              <Field label="Protein (g)"><NumInput value={d.protein} onValue={set('protein')} {...big} /></Field>
-              <Field label="Carbohydrates (g)"><NumInput value={d.carbs} onValue={set('carbs')} {...big} /></Field>
-              <Field label="Fat (g)"><NumInput value={d.fat} onValue={set('fat')} {...big} /></Field>
+              <Field label="Calories (kcal)"><NumInput value={d.kcal} onValue={setTarget('kcal')} {...big} /></Field>
+              <Field label="Protein (g)"><NumInput value={d.protein} onValue={setTarget('protein')} {...big} /></Field>
+              <Field label="Carbohydrates (g)"><NumInput value={d.carbs} onValue={setTarget('carbs')} {...big} /></Field>
+              <Field label="Fat (g)"><NumInput value={d.fat} onValue={setTarget('fat')} {...big} /></Field>
               <Field label="Meals per day"><NumInput value={d.meals} onValue={set('meals')} {...big} /></Field>
             </Grid>
             <T size={12} color={C.n400}>{`Macros add up to ${RG.num(mk)} kcal (${mk - (d.kcal || 0) >= 0 ? '+' : ''}${RG.num(mk - (d.kcal || 0))} vs calorie target). Small gaps are normal rounding.`}</T>
