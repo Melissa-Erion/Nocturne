@@ -50,13 +50,16 @@ export default function OnboardingScreen() {
       height: P.heightCm ? Number(RG.len(P.heightCm)) : null, age: P.age, sex: P.sex || 'Female', activity: P.activity || 'Moderately active', experience: P.experience || 'Intermediate',
       trainingDays: [...(P.trainingDays || [])], duration: P.duration || 60, workoutTime: P.workoutTime || '17:30', location: P.location || 'Gym',
       equipment: [...(P.equipment || [])], priorities: [...(P.priorities || [])],
-      kcal: P.kcal, protein: P.protein, carbs: P.carbs, fat: P.fat, meals: P.mealsPerDay, dietPrefs: [...(P.dietPrefs || [])],
+      kcal: P.kcal, protein: w != null ? Math.round(w * 2.20462) : P.protein, carbs: P.carbs, fat: P.fat, meals: P.mealsPerDay, dietPrefs: [...(P.dietPrefs || [])],
       allergies: (P.allergies || []).join(', '), exclude: (P.exclude || []).join(', '),
       checkInDay: Number(P.checkInDay) || 0, checkInFreq: P.checkInFreq || 'Weekly', remLead: 120, weighTime: '07:15', quietStart: P.quietStart || '22:00', quietEnd: P.quietEnd || '07:00',
     };
   });
   const setD = (patch: Partial<Draft>) => setDraft(x => ({ ...x, ...patch }));
   const set = <K extends keyof Draft>(k: K) => (v: Draft[K]) => setD({ [k]: v } as Partial<Draft>);
+  // Protein = 1 g per lb of body weight, recalculated whenever the weight changes.
+  const proteinFor = (w: number | null) => (w != null && w > 0 ? Math.round(RG.toKg(w) * 2.20462) : null);
+  const setWeight = (w: number | null) => { const pr = proteinFor(w); setD(pr == null ? { weight: w } : { weight: w, protein: pr }); };
   const toggleIn = <K extends 'trainingDays' | 'equipment' | 'priorities' | 'dietPrefs'>(k: K, v: Draft[K][number]) => () =>
     setDraft(x => { const a = x[k] as (string | number)[]; return { ...x, [k]: a.includes(v) ? a.filter(y => y !== v) : a.concat([v]) }; });
 
@@ -178,7 +181,7 @@ export default function OnboardingScreen() {
             </Row>
             <Grid min={170} gap={12}>
               <Field label="Name (optional)"><Input value={d.name} onChange={set('name')} {...big} placeholder="What should we call you?" autoComplete="given-name" /></Field>
-              <Field label={`Current weight (${wu})`}><NumInput value={d.weight} onValue={set('weight')} {...big} /></Field>
+              <Field label={`Current weight (${wu})`}><NumInput value={d.weight} onValue={setWeight} {...big} /></Field>
               <Field label={`Goal weight (${wu}, optional)`}><NumInput value={d.goalWeight} onValue={set('goalWeight')} {...big} /></Field>
               <Field label={`Height (${lu})`}><NumInput value={d.height} onValue={set('height')} {...big} /></Field>
               <Field label="Age"><NumInput value={d.age} onValue={v => setD({ age: v == null ? null : Math.round(v) })} {...big} /></Field>
