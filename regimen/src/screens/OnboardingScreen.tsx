@@ -67,7 +67,7 @@ export default function OnboardingScreen() {
   const adj = ADJ[d.goal] || 0;
   const sugg = tdee && kg ? (() => {
     const raw = Math.round(tdee * (1 + adj) / 10) * 10; const sK = Math.max(raw, Math.ceil(floor / 10) * 10);
-    const sP = Math.round(kg * (d.goal === 'Fat loss' || d.goal === 'Recomposition' ? 1.8 : 1.6)); const sF = Math.round(Math.max(kg * 0.7, sK * 0.25 / 9));
+    const sP = Math.round(kg * 2.20462); /* 1 g of protein per lb of body weight */ const sF = Math.round(Math.max(kg * 0.7, sK * 0.25 / 9));
     const sC = Math.max(50, Math.round((sK - sP * 4 - sF * 9) / 4));
     return { sK, sP, sC, sF, clamped: sK > raw };
   })() : null;

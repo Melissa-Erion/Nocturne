@@ -26,7 +26,7 @@ npm run typecheck
 
 - `.env` holds the Supabase URL and the **publishable** key (safe to ship; RLS protects the data). Never put the secret / service-role key in this app.
 - **Demo mode** (no sign-in, sample data, stored only in this browser): `EXPO_PUBLIC_SUPABASE_URL= EXPO_PUBLIC_DEMO=1 npm run web`
-- **Live food search**: get a free key at https://fdc.nal.usda.gov/api-key-signup and set `EXPO_PUBLIC_USDA_API_KEY` in `.env`. Barcodes use Open Food Facts (no key).
+- **Live food search**: the USDA FoodData Central key is kept **server-side** as the `USDA_API_KEY` secret in Supabase (Dashboard → Edge Functions → Secrets). The app calls the `usda-search` Edge Function (`supabase/functions/usda-search`), which adds the key — never put it in `.env` or the code, as USDA deactivates keys found in public code. Barcodes use Open Food Facts (no key).
 
 ## Web address
 
