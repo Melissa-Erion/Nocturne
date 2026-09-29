@@ -1,10 +1,13 @@
-/* Live nutrition data: USDA FoodData Central search (free key: EXPO_PUBLIC_USDA_API_KEY) and Open Food Facts barcode lookup.
+/* Live nutrition data: USDA FoodData Central search and Open Food Facts barcode lookup.
+   USDA searches go through the `usda-search` Supabase Edge Function, which holds the API key as a server secret —
+   the key is never in the app's code (USDA deactivates keys found in public code).
    Results are returned as Food objects (per 100 g) the caller can save into customFoods. Values from labels are flagged as estimated
    when a field is missing. */
 import type { Food, FoodRole } from '@/domain/types';
+import { supabase } from './supabase';
 
-const USDA = 'https://api.nal.usda.gov/fdc/v1';
-export const usdaEnabled = () => !!process.env.EXPO_PUBLIC_USDA_API_KEY;
+/** Live USDA search needs a signed-in cloud account (the proxy function only serves signed-in users). */
+export const usdaEnabled = () => !!supabase;
 
 const roleOf = (p: number, c: number, f: number): FoodRole => {
   const kp = p * 4, kc = c * 4, kf = f * 9, t = kp + kc + kf || 1;
@@ -19,12 +22,16 @@ const newId = (prefix: string) => prefix + Math.random().toString(36).slice(2, 1
 interface UsdaNutrient { nutrientNumber?: string; nutrientName?: string; value?: number; unitName?: string }
 interface UsdaFood { fdcId: number; description: string; brandName?: string; foodNutrients?: UsdaNutrient[]; servingSize?: number; servingSizeUnit?: string }
 
-/** Search USDA FoodData Central. Returns [] if no API key is configured. */
+/** Search USDA FoodData Central via the server-side proxy. */
 export async function searchUsda(query: string, limit = 15): Promise<Food[]> {
-  const key = process.env.EXPO_PUBLIC_USDA_API_KEY; if (!key || !query.trim()) return [];
-  const r = await fetch(`${USDA}/foods/search?api_key=${encodeURIComponent(key)}&query=${encodeURIComponent(query)}&pageSize=${limit}&dataType=Foundation,SR%20Legacy,Branded`);
-  if (!r.ok) throw new Error(`USDA search failed (${r.status})`);
-  const j = await r.json() as { foods?: UsdaFood[] };
+  if (!supabase || !query.trim()) return [];
+  const { data, error } = await supabase.functions.invoke('usda-search', { body: { query, limit } });
+  if (error) {
+    let msg = error.message;
+    try { const b = await (error as { context?: Response }).context?.json(); if (b?.error) msg = b.error; } catch { /* keep generic message */ }
+    throw new Error(msg);
+  }
+  const j = data as { foods?: UsdaFood[] };
   return (j.foods || []).map(f => {
     const n = (num: string, name: RegExp) => f.foodNutrients?.find(x => x.nutrientNumber === num || (x.nutrientName && name.test(x.nutrientName)))?.value;
     const p = n('203', /^Protein/) ?? 0, c = n('205', /^Carbohydrate/) ?? 0, fat = n('204', /^Total lipid/) ?? 0;
