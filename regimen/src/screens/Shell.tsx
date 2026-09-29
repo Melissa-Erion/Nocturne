@@ -1,8 +1,8 @@
 /* App shell — port of prototype/Regimen.dc.html: sticky 236 px sidebar (≥ 980 px) or a top bar with a drawer,
    the active-workout resume banner, and toasts. Screens render inside <Screen> (scrolling, max width 1320). */
 import { LinearGradient } from 'expo-linear-gradient';
-import { usePathname } from 'expo-router';
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { router, usePathname } from 'expo-router';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, View, type PressableStateCallbackType } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RG, type Route, useRG } from '@/store/rg';
@@ -36,6 +36,14 @@ export function Shell({ children }: { children: ReactNode }) {
   const wk = active && RGx.workout(active.workoutId, active.planId);
   const onboarding = route === 'onboarding';
 
+  // In-app history for the Back button. Browser back (web) is recognised and pops instead of pushing.
+  const [hist, setHist] = useState<string[]>([]);
+  useEffect(() => {
+    setHist(h => h[h.length - 1] === path ? h : h[h.length - 2] === path ? h.slice(0, -1) : [...h, path].slice(-50));
+  }, [path]);
+  const canBack = hist.length > 1 && !onboarding;
+  const goBack = () => { const prev = hist[hist.length - 2]; if (!prev) return; setHist(h => h.slice(0, -1)); router.navigate(prev as never); };
+
   return (
     <ShellCtx.Provider value={{ wide }}>
       <View style={{ flex: 1, flexDirection: 'row', backgroundColor: C.bg, paddingTop: wide ? insets.top : 0 }}>
@@ -52,6 +60,7 @@ export function Shell({ children }: { children: ReactNode }) {
           {!wide && (
             <View style={{ paddingTop: insets.top, backgroundColor: alpha(C.bg, 0.92), zIndex: 20 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 14 }}>
+                {canBack && <Btn variant="ghost" iconOnly icon="arrow-left" color={C.text} iconSize={22} label="Back" onPress={goBack} />}
                 {!onboarding && <Btn variant="ghost" iconOnly icon="list" color={C.text} iconSize={22} label="Menu" onPress={() => setMenu(true)} />}
                 <View style={{ width: 9, height: 9, borderRadius: 3, backgroundColor: C.accent, boxShadow: `0 0 10px ${C.accent}` }} />
                 <T size={16} w={500} style={{ flex: 1 }} numberOfLines={1}>{title}</T>
@@ -66,6 +75,11 @@ export function Shell({ children }: { children: ReactNode }) {
               <T size={13} color={C.a100} style={{ flex: 1 }}>{wk ? wk.name : 'Workout'} in progress · tap to resume</T>
               <Icon name="arrow-right" size={14} color={C.a100} />
             </Tap>
+          )}
+          {wide && canBack && (
+            <View style={{ paddingTop: 14, paddingHorizontal: 28, marginBottom: -12, alignItems: 'flex-start' }}>
+              <Btn variant="ghost" size="sm" icon="arrow-left" title="Back" onPress={goBack} />
+            </View>
           )}
           <View style={{ flex: 1 }}>{children}</View>
         </View>
