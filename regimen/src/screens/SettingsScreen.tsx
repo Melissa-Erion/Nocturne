@@ -176,6 +176,18 @@ export default function SettingsScreen() {
               <Field label="Meals per day"><NumInput value={P.mealsPerDay} onValue={setMeals} /></Field>
               <Field label="Water target (ml)"><NumInput value={P.waterMl} onValue={num('waterMl')} /></Field>
             </Grid>
+            {(() => {
+              const kg = RG.avgWeight() ?? P.weightKg; const lbTarget = kg ? Math.round(kg * 2.20462) : null;
+              return (
+                <Row gap={8} wrap align="center">
+                  <Icon name="info" size={14} color={C.n500} />
+                  <T size={12} color={C.n400} style={{ flex: 1, minWidth: 220 }}>
+                    {lbTarget ? `Default protein is 1 g per lb of body weight: ${lbTarget} g for you${P.protein === lbTarget ? ' (current target)' : ''}. You can set any custom macros above.` : 'Default protein is 1 g per lb of body weight. Log your weight to calculate it. You can set any custom macros above.'}
+                  </T>
+                  {lbTarget != null && P.protein !== lbTarget && <Btn variant="ghost" size="sm" title={`Set protein to ${lbTarget} g`} onPress={() => { up(p => { p.protein = lbTarget; }); RG.toast(`Protein target set to ${lbTarget} g (1 g per lb).`); }} />}
+                </Row>
+              );
+            })()}
             <T size={12} color={C.n400}>{`Macros add up to ${RG.num(mk)} kcal (${mk - P.kcal >= 0 ? '+' : ''}${mk - P.kcal} vs target).`}</T>
             {!!lowWarn && (
               <Row gap={8} align="flex-start" style={{ paddingVertical: 10, paddingHorizontal: 12, borderRadius: R.md, boxShadow: `inset 0 0 0 1px ${C.a700}` }}>
