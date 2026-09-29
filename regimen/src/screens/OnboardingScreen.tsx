@@ -134,7 +134,7 @@ export default function OnboardingScreen() {
     if (step === 3 && !d.trainingDays.length) return RG.toast('Choose at least one training day.');
     if (step < 6) setStep(step + 1); else save();
   };
-  const exploreSample = async () => { setBusy(true); try { await RG.reset(); RG.go('dashboard'); RG.toast('Sample data loaded. Run guided setup from Settings when you are ready.'); } finally { setBusy(false); } };
+  const exploreSample = async () => { setBusy(true); try { await RG.reset(); RG.go('dashboard'); RG.toast('Sample data loaded. When you’re ready, use “Remove sample data & set up my own” in the banner at the top.'); } finally { setBusy(false); } };
 
   const big = { height: 44, size: 16 } as const;
   const review: [string, string][] = [

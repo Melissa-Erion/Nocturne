@@ -13,6 +13,7 @@ import {
 import { C, R } from '@/ui/theme';
 import { Grid, Pick, Table, TimeInput } from './prep/ui';
 import { Screen } from './Shell';
+import { RemoveSampleButton } from './SampleData';
 
 type Tab = 'profile' | 'training' | 'nutrition' | 'reminders' | 'motivation' | 'data';
 const TABS: { value: Tab; label: string }[] = [
@@ -287,8 +288,11 @@ export default function SettingsScreen() {
             </Row>
             <Row gap={8} wrap>
               <Btn icon="download-simple" title="Export my data (JSON)" onPress={exportData} />
-              <Btn icon="arrow-counter-clockwise" title="Restore sample data" onPress={() => setConfirmReset(true)} />
+              {S.sample
+                ? <RemoveSampleButton />
+                : <Btn icon="arrow-counter-clockwise" title="Load sample data" onPress={() => setConfirmReset(true)} />}
             </Row>
+            {S.sample && <T size={12} color={C.n400}>You're using sample data. Remove it to start your own history. You'll go through the guided setup next.</T>}
             <View style={{ gap: 8, padding: 12, borderRadius: R.md, boxShadow: `inset 0 0 0 1px ${C.n800}` }}>
               <T size={14}>Permanently delete history</T>
               <Muted>Choose what to delete, then type DELETE to confirm. This cannot be undone.</Muted>
