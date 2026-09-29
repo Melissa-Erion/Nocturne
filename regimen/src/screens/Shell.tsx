@@ -10,6 +10,7 @@ import { retrySync, signOut, useUI } from '@/store/store';
 import type { IconName } from '@/ui/icons';
 import { Btn, Icon, Muted, T, Tap, useLayout } from '@/ui/kit';
 import { alpha, C, MAX_W, SHADOW } from '@/ui/theme';
+import { SampleBanner } from './SampleData';
 
 type PState = PressableStateCallbackType & { hovered?: boolean };
 
@@ -39,6 +40,7 @@ export function Shell({ children }: { children: ReactNode }) {
   // In-app history for the Back button. Browser back (web) is recognised and pops instead of pushing.
   const [hist, setHist] = useState<string[]>([]);
   useEffect(() => {
+    if (path === '/onboarding') { setHist([]); return; } // setup isn't a place to go "back" to
     setHist(h => h[h.length - 1] === path ? h : h[h.length - 2] === path ? h.slice(0, -1) : [...h, path].slice(-50));
   }, [path]);
   const canBack = hist.length > 1 && !onboarding;
@@ -81,6 +83,7 @@ export function Shell({ children }: { children: ReactNode }) {
               <Btn variant="ghost" size="sm" icon="arrow-left" title="Back" onPress={goBack} />
             </View>
           )}
+          {!onboarding && RGx.s.sample && <View style={{ paddingHorizontal: wide ? 28 : 14, paddingTop: 12 }}><SampleBanner /></View>}
           <View style={{ flex: 1 }}>{children}</View>
         </View>
 

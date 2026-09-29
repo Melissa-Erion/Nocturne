@@ -2,7 +2,8 @@
    Works from a blank profile (new account: name '', weight/height/age null, empty lists). */
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
-import type { Profile } from '@/domain/types';
+import { newUserState } from '@/domain/seed';
+import type { Profile, State } from '@/domain/types';
 import type { IconName } from '@/ui/icons';
 import { useRG } from '@/store/rg';
 import { Btn, Card, Field, H, Icon, Input, Muted, NotMedical, NumInput, Row, Rule, Seg, Select, T, Tap } from '@/ui/kit';
@@ -99,9 +100,16 @@ export default function OnboardingScreen() {
     RG.update(s => { s.profile.units = u; });
   };
 
+  const wasSample = !!RG.s.sample;
   const save = () => {
     const meals = Math.min(6, Math.max(2, Math.round(d.meals || 4)));
     RG.update(s => {
+      // Finishing setup on sample data replaces the demo history with a clean start (units are kept).
+      if (s.sample) {
+        const fresh = newUserState(RG.TODAY); const units = s.profile.units;
+        (Object.keys(fresh) as (keyof State)[]).forEach(k => { (s as unknown as Record<string, unknown>)[k] = fresh[k]; });
+        s.profile.units = units; s.sample = false;
+      }
       const p = s.profile;
       Object.assign(p, {
         name: d.name.trim(), goal: d.goal, goalWeightKg: d.goalWeight == null ? null : RG.r1(RG.toKg(d.goalWeight)), heightCm: cm == null ? null : Math.round(cm), age: d.age,
@@ -120,13 +128,13 @@ export default function OnboardingScreen() {
       Object.keys(s.days).forEach(k => { if (k > RG.TODAY) delete s.days[k]; });
     });
     if (kg != null && kg > 20 && Math.abs(kg - (RG.avgWeight() ?? 0)) > 0.05) RG.logWeight(kg);
-    RG.regenerate(RG.TODAY); RG.go('dashboard'); RG.toast('Setup saved. Future workouts rescheduled, history kept.');
+    RG.regenerate(RG.TODAY); RG.go('dashboard'); RG.toast(wasSample ? 'Setup saved. Sample data cleared — your history starts today.' : 'Setup saved. Future workouts rescheduled, history kept.');
   };
   const next = () => {
     if (step === 3 && !d.trainingDays.length) return RG.toast('Choose at least one training day.');
     if (step < 6) setStep(step + 1); else save();
   };
-  const exploreSample = async () => { setBusy(true); try { await RG.reset(); RG.go('dashboard'); RG.toast('Sample data loaded. Run guided setup from Settings when you are ready.'); } finally { setBusy(false); } };
+  const exploreSample = async () => { setBusy(true); try { await RG.reset(); RG.go('dashboard'); RG.toast('Sample data loaded. When you’re ready, use “Remove sample data & set up my own” in the banner at the top.'); } finally { setBusy(false); } };
 
   const big = { height: 44, size: 16 } as const;
   const review: [string, string][] = [
@@ -276,7 +284,9 @@ export default function OnboardingScreen() {
                 </View>
               ))}
             </Card>
-            <Muted>Saving updates your profile and reschedules future workouts from today in rotation order. Logged workouts, check-ins, photos and nutrition history are kept. Targets are planning estimates, not medical advice.</Muted>
+            {wasSample
+              ? <Muted>You're currently looking at sample data. Saving clears all of it (the demo weigh-ins, workouts, check-ins, meals and recipes) and starts your own history from today. Targets are planning estimates, not medical advice.</Muted>
+              : <Muted>Saving updates your profile and reschedules future workouts from today in rotation order. Logged workouts, check-ins, photos and nutrition history are kept. Targets are planning estimates, not medical advice.</Muted>}
           </>
         )}
 

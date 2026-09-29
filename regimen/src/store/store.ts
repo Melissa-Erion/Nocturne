@@ -130,6 +130,14 @@ export async function signOut() {
 export const retrySync = () => { cloud?.push(S); };
 
 /** Replace everything with the sample data set (Settings → Data & privacy). */
+/** Remove the sample data completely and start a blank account (keeps kg/lb). Used by "Remove sample data & set up my own". */
+export async function clearSampleData() {
+  const units = S.profile.units;
+  if (cloud) await cloud.wipe();
+  const fresh = newUserState(localToday()); fresh.profile.units = units;
+  replaceState(fresh, { resync: true });
+}
+
 export async function resetToSample() {
   if (cloud) await cloud.wipe();
   replaceState(sampleState(localToday()), { resync: true });

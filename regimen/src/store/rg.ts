@@ -7,7 +7,7 @@ import * as D from '@/domain';
 import type { ISODate, MealItem, PlanItem, State } from '@/domain/types';
 import { deleteLocalImage, persistLocalImage } from '@/lib/files';
 import { cachedSignedUrl, removePhoto, signedUrl, uploadPhoto } from '@/lib/photos';
-import { commit, ctx, getState, resetToSample, toast, update, useUI } from './store';
+import { clearSampleData, commit, ctx, getState, resetToSample, toast, update, useUI } from './store';
 
 export type Route =
   | 'dashboard' | 'schedule' | 'plans' | 'workout' | 'history' | 'records' | 'checkins' | 'photos' | 'analytics'
@@ -29,6 +29,7 @@ export const RG = {
   go(route: Route, param?: unknown) { useUI.setState({ routeParam: param == null ? null : param }); router.navigate(('/' + route) as never); },
   get routeParam(): unknown { return useUI.getState().routeParam; },
   reset: resetToSample,
+  clearSample: clearSampleData,
 
   /* units */
   imp: () => U().imp(), wu: () => U().wu(), lu: () => U().lu(),
