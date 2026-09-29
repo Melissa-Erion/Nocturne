@@ -39,6 +39,7 @@ export function Shell({ children }: { children: ReactNode }) {
   // In-app history for the Back button. Browser back (web) is recognised and pops instead of pushing.
   const [hist, setHist] = useState<string[]>([]);
   useEffect(() => {
+    if (path === '/onboarding') { setHist([]); return; } // setup isn't a place to go "back" to
     setHist(h => h[h.length - 1] === path ? h : h[h.length - 2] === path ? h.slice(0, -1) : [...h, path].slice(-50));
   }, [path]);
   const canBack = hist.length > 1 && !onboarding;
