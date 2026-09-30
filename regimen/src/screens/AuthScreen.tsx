@@ -38,7 +38,7 @@ export default function AuthScreen() {
     setBusy(false);
   }
 
-  // Email links return to the app's own address (including a sub-path such as /Nocturne on GitHub Pages).
+  // Email links return to the app's own address (including its sub-path, /app).
   const redirect = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin + (process.env.EXPO_PUBLIC_BASE_URL || '') + '/' : Linking.createURL('/');
 
   async function submit() {

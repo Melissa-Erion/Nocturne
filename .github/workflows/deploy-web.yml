@@ -1,5 +1,6 @@
 # Builds the Regimen web app and publishes it to GitHub Pages:
-#   https://melissa-erion.github.io/Nocturne/
+#   https://regimenfit.ca/      landing page, privacy and terms (regimen/landing)
+#   https://regimenfit.ca/app/  the Regimen web app
 name: Deploy web app
 
 on:
@@ -24,8 +25,9 @@ jobs:
       run:
         working-directory: regimen
     env:
-      EXPO_BASE_URL: /Nocturne
-      EXPO_PUBLIC_BASE_URL: /Nocturne
+      EXPO_BASE_URL: /app
+      EXPO_PUBLIC_BASE_URL: /app
+      SITE_URL: https://regimenfit.ca
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -36,9 +38,10 @@ jobs:
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npx jest
-      - run: npx expo export --platform web --output-dir dist
-      # Single-page app: GitHub Pages serves 404.html for deep links like /Nocturne/schedule.
-      - run: cp dist/index.html dist/404.html && touch dist/.nojekyll
+      - run: npx expo export --platform web --output-dir dist/app
+      # Single-page app: GitHub Pages serves 404.html for deep links like /app/schedule.
+      - run: cp dist/app/index.html dist/404.html
+      - run: node scripts/build-landing.mjs && touch dist/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:
           path: regimen/dist

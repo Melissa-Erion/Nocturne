@@ -6,7 +6,7 @@ import { supabase } from './supabase';
 
 const isWeb = Platform.OS === 'web' && typeof window !== 'undefined';
 
-/** Where email links (confirm, reset, change email) return: the app's own address, including a sub-path such as /Nocturne. */
+/** Where email links (confirm, reset, change email) return: the app's own address, including its sub-path (/app). */
 export function authRedirect() {
   return isWeb ? window.location.origin + (process.env.EXPO_PUBLIC_BASE_URL || '') + '/' : Linking.createURL('/');
 }
