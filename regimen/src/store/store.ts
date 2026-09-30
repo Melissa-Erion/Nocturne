@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { localToday } from '@/domain/dates';
 import { ensureFuture } from '@/domain/schedule';
+import { setUnits } from '@/domain/units';
 import { newUserState, sampleState } from '@/domain/seed';
 import type { Ctx, State } from '@/domain/types';
 import { syncCalendar } from '@/lib/calendar';
@@ -160,6 +161,8 @@ async function loadFor(userId: string | null, email: string | null) {
     }
   }
   if (!S.photos) S.photos = {};
+  // Pounds users still on the metric default increments get whole-pound defaults (no-op otherwise).
+  if (S.profile.units === 'imperial') setUnits(S.profile, 'imperial');
   ensureFuture(ctx());
   useUI.setState({ phase: 'ready' });
   refreshSubscription();

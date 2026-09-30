@@ -104,7 +104,7 @@ export default function OnboardingScreen() {
     const toImp = u === 'imperial'; const r1 = RG.r1;
     const cw = (v: N) => v == null ? null : r1(toImp ? v * 2.20462 : v / 2.20462);
     setD({ weight: cw(d.weight), goalWeight: cw(d.goalWeight), height: d.height == null ? null : toImp ? r1(d.height / 2.54) : Math.round(d.height * 2.54) });
-    RG.update(s => { s.profile.units = u; });
+    RG.update(s => { RG.setUnits(s.profile, u); });
   };
 
   const wasSample = !!RG.s.sample;
@@ -115,7 +115,7 @@ export default function OnboardingScreen() {
       if (s.sample) {
         const fresh = newUserState(RG.TODAY); const units = s.profile.units;
         (Object.keys(fresh) as (keyof State)[]).forEach(k => { (s as unknown as Record<string, unknown>)[k] = fresh[k]; });
-        s.profile.units = units; s.sample = false;
+        RG.setUnits(s.profile, units); s.sample = false;
       }
       const p = s.profile;
       Object.assign(p, {
