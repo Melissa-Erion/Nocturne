@@ -28,6 +28,12 @@ npm run typecheck
 - **Demo mode** (no sign-in, sample data, stored only in this browser): `EXPO_PUBLIC_SUPABASE_URL= EXPO_PUBLIC_DEMO=1 npm run web`
 - **Live food search**: the USDA FoodData Central key is kept **server-side** as the `USDA_API_KEY` secret in Supabase (Dashboard → Edge Functions → Secrets). The app calls the `usda-search` Edge Function (`supabase/functions/usda-search`), which adds the key — never put it in `.env` or the code, as USDA deactivates keys found in public code. Barcodes use Open Food Facts (no key).
 
+## Free version and Regimen Pro
+
+- Free: download, guided setup, calculated macro targets, weight logging, and a preview of the generated plan (dashboard, upgrade screen). Everything else is Pro. Rules and prices: `src/lib/plans.ts` ($179.99/year recommended, $24.99/month, 7-day trial).
+- Access comes from `public.subscriptions` (one row per user, readable only by that user, written only by the server). `comp` = permanent free access (the owner's account); `trialing` / `active` / `canceled` keep access until `period_end`; `expired` is locked. Data is never deleted when access ends.
+- The paywall is **off** until billing is connected: set `EXPO_PUBLIC_BILLING=live`. `EXPO_PUBLIC_PAYWALL_PREVIEW=1` shows the locked experience for testing.
+
 ## Web address
 
 The web app is published to **https://melissa-erion.github.io/Nocturne/** by `.github/workflows/deploy-web.yml` on every push to `main` that changes `regimen/` (or run it by hand from the Actions tab). The workflow typechecks, runs the tests, builds with the `/Nocturne` base path, and adds `404.html` so deep links work.

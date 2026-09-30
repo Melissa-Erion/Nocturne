@@ -6,6 +6,7 @@ import Svg, { Line } from 'react-native-svg';
 import { requestCalendarPermission } from '@/lib/calendar';
 import { saveTextFile } from '@/lib/files';
 import { useRG } from '@/store/rg';
+import { useUI } from '@/store/store';
 import type { EntryStatus, ScheduleEntry } from '@/domain/types';
 import type { IconName } from '@/ui/icons';
 import { Btn, Card, CardTitle, Check, Chip, Dialog, Field, Grid, H, Icon, Kicker, Muted, Row, Seg, T, Tag, Tap, useLayout } from '@/ui/kit';
@@ -41,6 +42,8 @@ function Draggable({ id, name, enabled, grab, dnd, onTap, style, children }: { i
   return <View {...pr.panHandlers} style={[Platform.OS === 'web' && enabled && ({ cursor: 'grab', userSelect: 'none' } as unknown as ViewStyle), style]}>{children}</View>;
 }
 
+const SHIFT_HINT = 'Shift later workouts: if the new day already has a workout, it moves to the next training day (and so on, only as far as needed). Off: both workouts stay on that day.';
+
 /** Faint diagonal stripes for paused days. */
 const PauseStripes = ({ gap = 16 }: { gap?: number }) => (
   <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
@@ -57,6 +60,8 @@ export default function ScheduleScreen() {
   const [moveDate, setMoveDate] = useState('');
   const [swapFrom, setSwapFrom] = useState<string | null>(null);
   const [dlgPause, setDlgPause] = useState(false);
+  const [dlgReset, setDlgReset] = useState(false);
+  const undoLabel = useUI(u => u.undoLabel);
   const [reason, setReason] = useState('Travel');
   const [pFrom, setPFrom] = useState(''); const [pTo, setPTo] = useState('');
 
@@ -154,6 +159,7 @@ export default function ScheduleScreen() {
   };
   const doMove = () => { if (!sel || !moveDate) return; const r = RG.moveEntry(sel.id, moveDate); close(); moveToast(r, moveDate); };
   const doReschedule = () => { if (!sel || !moveDate) return; if (sel.status === 'skipped') RG.restoreEntry(sel.id); RG.rescheduleMissed(sel.id, moveDate); close(); RG.toast(`Rescheduled to ${RG.fmtD(moveDate)}.`); };
+  const doReset = () => { RG.resetSchedule(); setDlgReset(false); RG.toast('Schedule reset. Upcoming workouts follow your plan again.'); };
   const doPause = () => { if (!pFrom) return; RG.pause(pFrom, pTo || null, reason); setDlgPause(false); RG.toast(`Schedule paused (${reason}). Your rotation is saved.`); };
   const swapEntry = swapFrom ? RG.entry(swapFrom) : undefined;
 
@@ -190,21 +196,25 @@ export default function ScheduleScreen() {
             ? <Btn variant="primary" icon="play" title="Resume schedule" onPress={() => { RG.resume(); RG.toast('Schedule resumed. Rotation continues in order.'); }} />
             : <Btn icon="pause" title="Pause schedule" onPress={() => { setPFrom(T0); setPTo(''); setDlgPause(true); }} />}
           <Btn icon="calendar-plus" title="Export .ics" onPress={exportIcs} />
+          {undoLabel && <Btn icon="arrow-counter-clockwise" title={`Undo ${undoLabel}`} onPress={RG.undo} />}
+          <Btn icon="arrows-clockwise" title="Reset schedule" onPress={() => setDlgReset(true)} />
         </View>
 
         <Row gap={18} wrap>
           <T size={15}>{rangeLabel}</T>
-          <Check checked={P.shiftLater} onChange={() => RG.update(s => { s.profile.shiftLater = !s.profile.shiftLater; })} label={<T size={13} color={C.n400}>Shift later workouts when one moves</T>} />
+          <Check checked={P.shiftLater} onChange={() => RG.update(s => { s.profile.shiftLater = !s.profile.shiftLater; })} label={<T size={13} color={C.n400}>Shift later workouts</T>} />
           <Check checked={P.calendarSync} onChange={toggleSync} label={<T size={13} color={C.n400}>Show in main calendar</T>} />
           <Row gap={12} wrap style={{ marginLeft: 'auto' }}>
             {legend.map(([ic, l, f, col]) => <Row key={l} gap={4}><Icon name={ic} fill={f} size={12} color={col || C.n400} /><T size={11} color={C.n400}>{l}</T></Row>)}
           </Row>
         </Row>
 
+        <T size={12} color={C.n500} style={{ marginTop: -8 }}>{SHIFT_HINT}</T>
+
         {swapEntry && (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 14, borderRadius: R.md, backgroundColor: C.a900, boxShadow: `inset 0 0 0 1px ${C.a700}` }}>
             <Icon name="arrows-left-right" size={16} color={C.accent} />
-            <T size={14} style={{ flex: 1 }}>{`Swapping ${wname(swapEntry)} — pick another planned workout to trade days with.`}</T>
+            <T size={14} style={{ flex: 1 }}>{`Swapping ${wname(swapEntry)} — tap another planned workout and the two trade days.`}</T>
             <Btn title="Cancel" onPress={() => setSwapFrom(null)} />
           </View>
         )}
@@ -295,8 +305,8 @@ export default function ScheduleScreen() {
               <H size={24}>{RG.fmtD(anchor)}</H>
               <T size={13} color={C.n500}>{RG.dayType(anchor) === 'training' ? 'Training day' : 'Rest day'}</T>
             </Row>
-            {dayItems.map(e => (
-              <View key={e.en.id} style={{ gap: 10 }}>
+            {dayItems.map((e, i) => (
+              <View key={e.en.id} style={{ gap: 10, paddingTop: i ? 14 : 0, borderTopWidth: i ? 1 : 0, borderColor: C.divider }}>
                 <Row gap={10} wrap>
                   <Icon name={e.icon.name} fill={e.icon.fill} size={20} color={C.accent} />
                   <T size={18} style={{ flex: 1 }}>{e.name}</T>
@@ -371,9 +381,10 @@ export default function ScheduleScreen() {
                   <Field label="Move to date">
                     <Row gap={6}><DateField value={moveDate} onChange={setMoveDate} label="Move to date" /><Btn variant="primary" title="Move" onPress={doMove} /></Row>
                   </Field>
+                  <T size={12} color={C.n500}>{P.shiftLater ? 'Shift later workouts is on: if that day already has a workout, it moves to the next training day (and so on, only as far as needed).' : 'Shift later workouts is off: if that day already has a workout, both stay on that day.'}</T>
                   <Grid min={150} gap={6}>
                     <Btn icon="play" title="Open workout" onPress={() => { const id = sel.id; close(); RG.startWorkout(id); }} />
-                    <Btn icon="arrows-left-right" title="Swap with…" onPress={() => { setSwapFrom(sel.id); setSel(null); }} />
+                    <Btn icon="arrows-left-right" title="Swap days with…" onPress={() => { setSwapFrom(sel.id); setSel(null); }} />
                     <Btn icon="skip-forward" title="Skip" onPress={() => { RG.skipEntry(sel.id); close(); RG.toast(`${sw?.name || 'Workout'} skipped.`); }} />
                     <Btn icon="x-circle" title="Mark missed" onPress={() => { RG.missEntry(sel.id); close(); }} />
                   </Grid>
@@ -390,6 +401,14 @@ export default function ScheduleScreen() {
               {sel.status === 'done' && <Btn icon="clock-counter-clockwise" title="View logged session" onPress={() => { const sid = sel.sessionId; close(); RG.go('history', sid); }} />}
             </>
           )}
+        </Dialog>
+
+        {/* reset */}
+        <Dialog open={dlgReset} onClose={() => setDlgReset(false)} title="Reset schedule?"
+          actions={<><Btn title="Cancel" onPress={() => setDlgReset(false)} /><Btn variant="primary" icon="arrows-clockwise" title="Reset schedule" onPress={doReset} /></>}>
+          <T size={14} color={alpha(C.text, 0.85)}>{`This rebuilds all upcoming workouts, from today on, using the rotation of your current plan (${plan.name}).`}</T>
+          <T size={14} color={alpha(C.text, 0.85)}>Any moves or skips you made to upcoming workouts are removed, so every training day gets its normal workout again.</T>
+          <T size={14} color={alpha(C.text, 0.85)}>Everything you have logged stays exactly as it is, including past missed and skipped days.</T>
         </Dialog>
 
         {/* pause */}

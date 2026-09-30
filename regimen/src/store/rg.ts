@@ -7,11 +7,11 @@ import * as D from '@/domain';
 import type { ISODate, MealItem, PlanItem, State } from '@/domain/types';
 import { deleteLocalImage, persistLocalImage } from '@/lib/files';
 import { cachedSignedUrl, removePhoto, signedUrl, uploadPhoto } from '@/lib/photos';
-import { clearSampleData, commit, ctx, getState, resetToSample, toast, update, useUI } from './store';
+import { clearSampleData, commit, ctx, dropUndo, getState, pushUndo, resetToSample, toast, undo, update, useUI } from './store';
 
 export type Route =
   | 'dashboard' | 'schedule' | 'plans' | 'workout' | 'history' | 'records' | 'checkins' | 'photos' | 'analytics'
-  | 'nutrition' | 'meals' | 'prep' | 'recipes' | 'alternatives' | 'grocery' | 'settings' | 'onboarding';
+  | 'nutrition' | 'meals' | 'prep' | 'recipes' | 'alternatives' | 'grocery' | 'settings' | 'account' | 'upgrade' | 'onboarding';
 
 const U = () => D.makeUnits(getState());
 
@@ -45,19 +45,23 @@ export const RG = {
   inPause: (d: ISODate) => D.inPause(ctx(), d),
   activePause: () => D.activePause(ctx()),
   recoveryClash: (date: ISODate, wid: string, ignoreId?: string) => D.recoveryClash(ctx(), date, wid, ignoreId),
-  regenerate(from?: ISODate) { D.regenerate(ctx(), from); commit(); },
+  regenerate(from?: ISODate) { pushUndo('rebuild schedule'); D.regenerate(ctx(), from); commit(); },
+  /** Rebuild upcoming workouts from the plan (history kept). */
+  resetSchedule() { pushUndo('reset schedule'); D.resetSchedule(ctx()); commit(); },
+  /** Reverse the last schedule change. */
+  undo,
   entriesOn: (d: ISODate) => D.entriesOn(ctx(), d),
   entry: (id: string) => D.entry(ctx(), id),
   todayEntry: () => D.todayEntry(ctx()),
   nextEntry: (after?: ISODate) => D.nextEntry(ctx(), after),
-  moveEntry(id: string, date: ISODate, shift?: boolean | null) { const r = D.moveEntry(ctx(), id, date, shift); if (!r.error) commit(); return r; },
-  swapEntries(a: string, b: string) { D.swapEntries(ctx(), a, b); commit(); },
-  skipEntry(id: string) { D.skipEntry(ctx(), id); commit(); },
-  missEntry(id: string) { D.missEntry(ctx(), id); commit(); },
-  restoreEntry(id: string) { D.restoreEntry(ctx(), id); commit(); },
-  rescheduleMissed(id: string, date: ISODate) { D.rescheduleMissed(ctx(), id, date); commit(); },
-  pause(from: ISODate, to: ISODate | null, reason: string) { D.pause(ctx(), from, to, reason); commit(); },
-  resume() { D.resume(ctx()); commit(); },
+  moveEntry(id: string, date: ISODate, shift?: boolean | null) { pushUndo('move workout'); const r = D.moveEntry(ctx(), id, date, shift); if (r.error) dropUndo(); else commit(); return r; },
+  swapEntries(a: string, b: string) { pushUndo('swap workouts'); D.swapEntries(ctx(), a, b); commit(); },
+  skipEntry(id: string) { pushUndo('skip workout'); D.skipEntry(ctx(), id); commit(); },
+  missEntry(id: string) { pushUndo('mark missed'); D.missEntry(ctx(), id); commit(); },
+  restoreEntry(id: string) { pushUndo('restore workout'); D.restoreEntry(ctx(), id); commit(); },
+  rescheduleMissed(id: string, date: ISODate) { pushUndo('reschedule workout'); D.rescheduleMissed(ctx(), id, date); commit(); },
+  pause(from: ISODate, to: ISODate | null, reason: string) { pushUndo('pause schedule'); D.pause(ctx(), from, to, reason); commit(); },
+  resume() { pushUndo('resume schedule'); D.resume(ctx()); commit(); },
   weekStats: (mon: ISODate) => D.weekStats(ctx(), mon),
   monday: (d?: ISODate) => D.monday(d || D.localToday()),
   streak: () => D.streak(ctx()),
@@ -75,6 +79,10 @@ export const RG = {
   startWorkout(entryId?: string) { const c = ctx(); D.startWorkout(c, entryId); commit(); RG.go('workout'); },
   finishWorkout() { const r = D.finishWorkout(ctx()); commit(); return r; },
   discardWorkout() { D.discardWorkout(ctx()); commit(); },
+  pauseWorkout() { D.pauseWorkout(ctx()); commit(); },
+  resumeWorkout() { D.resumeWorkout(ctx()); commit(); },
+  /** Active (unpaused) time of the running workout in ms. */
+  workoutElapsed: () => { const a = getState().active; return a ? D.elapsedMs(a) : 0; },
   replaceExercise(planId: string, workoutId: string, itemId: string, newExId: string) { D.replaceExercise(ctx(), planId, workoutId, itemId, newExId); commit(); },
 
   /* nutrition */
@@ -84,7 +92,9 @@ export const RG = {
   sumM: (items: MealItem[]) => D.sumM(getState(), items),
   reconcile: D.reconcile,
   dayType: (d: ISODate) => D.dayType(ctx(), d),
-  mealTargets: (type: D.DayType, mode?: D.DistributionMode) => D.mealTargets(ctx(), type, mode),
+  /** Daily targets for a date ('training'/'rest' decided from the schedule) or an explicit day type. */
+  dayTargets: (dateOrType: ISODate | D.DayType) => D.dayTargets(getState().profile, dateOrType === 'training' || dateOrType === 'rest' ? dateOrType : D.dayType(ctx(), dateOrType)),
+    mealTargets: (type: D.DayType, mode?: D.DistributionMode) => D.mealTargets(ctx(), type, mode),
   solve: (items: MealItem[], target: { p: number; c: number; f: number }) => D.solve(getState(), items, target),
   getDay: (d: ISODate) => D.getDay(ctx(), d),
   dayTotals: (d: ISODate) => D.dayTotals(ctx(), d),

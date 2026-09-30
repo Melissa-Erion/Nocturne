@@ -88,31 +88,51 @@ export const nextEntry = ({ s, today }: Ctx, after?: ISODate) => s.schedule.filt
 
 export interface MoveResult { error?: string; note?: string; warning?: string }
 
-/** Move a planned entry. Shift-later cascades later entries forward; otherwise an occupied day swaps. */
+/** Move a planned entry to a new day.
+    - Shift later ON: if the new day already has a planned workout, that workout moves to the next training day;
+      if that day is taken too, its workout moves on one training day, and so on until a free day. Each workout moves
+      at most one training day, and workouts between the old and new dates are untouched, so nothing jumps weeks.
+    - Shift later OFF: the moved workout simply joins the new day; nothing else moves (no swapping). */
 export function moveEntry(ctx: Ctx, id: string, newDate: ISODate, shift?: boolean | null): MoveResult {
   const { s } = ctx;
   const e = entry(ctx, id);
   if (!e || e.status === 'done') return { error: 'Completed workouts stay on the day they were logged.' };
-  const oldDate = e.date; const shiftLater = shift == null ? s.profile.shiftLater : shift;
-  const occupant = s.schedule.find(x => x.date === newDate && x.id !== id && x.status === 'planned');
+  const shiftLater = shift == null ? s.profile.shiftLater : shift;
+  const occupants = s.schedule.filter(x => x.date === newDate && x.id !== id && x.status === 'planned');
   let note = '';
-  if (occupant && !shiftLater) { occupant.date = oldDate; note = `Swapped with ${workoutOf(ctx, occupant.workoutId, occupant.planId)?.name}.`; e.date = newDate; }
-  else if (shiftLater && newDate > oldDate) {
-    const later = s.schedule.filter(x => x.status === 'planned' && x.date > oldDate && x.id !== id).sort(byDate);
-    e.date = newDate; let cursor = newDate;
-    later.forEach(x => {
-      if (x.date <= cursor) {
-        let d = add(cursor, 1); let g = 0;
-        while ((!s.profile.trainingDays.includes(dow(d)) || inPause(ctx, d)) && g++ < 14) d = add(d, 1);
-        x.date = d; cursor = d;
-      } else cursor = x.date;
-    });
-    note = later.length ? 'Later sessions shifted to keep the rotation.' : '';
-  } else { if (occupant) occupant.date = oldDate; e.date = newDate; }
+  e.date = newDate;
+  if (shiftLater && occupants.length) {
+    let bumped = occupants; let from = newDate; let count = 0;
+    while (bumped.length && count < 200) {
+      const d = nextTrainingDay(ctx, from); if (!d) break;
+      const next = s.schedule.filter(x => x.date === d && x.status === 'planned' && x.id !== id);
+      bumped.forEach(o => { o.date = d; o.origin = 'manual'; count++; });
+      bumped = next.filter(x => !bumped.includes(x)); from = d;
+    }
+    const first = workoutOf(ctx, occupants[0].workoutId, occupants[0].planId)?.name;
+    note = count === 1 ? `${first} moved to ${fmtD(occupants[0].date)}.` : `${first} and ${count - 1} later workout${count > 2 ? 's' : ''} each moved one training day later.`;
+  } else if (occupants.length) {
+    note = `${fmtD(newDate)} now has ${occupants.length + 1} workouts.`;
+  }
   e.origin = 'manual';
   const clash = recoveryClash(ctx, newDate, e.workoutId, e.id);
   const name = workoutOf(ctx, e.workoutId, e.planId)?.name;
   return { note, warning: clash ? `${name} is next to ${clash.name} (${fmtD(clash.date)}) — same muscle groups on consecutive days.` : '' };
+}
+
+/** Next training day after `after` that isn't paused. */
+export function nextTrainingDay(ctx: Ctx, after: ISODate): ISODate | null {
+  let d = add(after, 1);
+  for (let g = 0; g < 21; g++, d = add(d, 1)) if (ctx.s.profile.trainingDays.includes(dow(d)) && !inPause(ctx, d)) return d;
+  return null;
+}
+
+/** Rebuild upcoming workouts from the plan: every planned workout from today on is removed (including moved ones)
+    and the rotation is refilled from where the logged history left off. History and pauses are kept. */
+export function resetSchedule(ctx: Ctx) {
+  const { s, today } = ctx;
+  s.schedule = s.schedule.filter(e => !(e.status === 'planned' && e.date >= today));
+  fill(ctx, today, nextRotationIndex(ctx, today), add(today, HORIZON_DAYS));
 }
 
 export function swapEntries(ctx: Ctx, a: string, b: string) {

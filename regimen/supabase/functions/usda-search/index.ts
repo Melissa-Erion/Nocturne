@@ -1,7 +1,10 @@
 // USDA FoodData Central search proxy. The API key stays on the server as the USDA_API_KEY secret
 // (Supabase dashboard → Edge Functions → Secrets) and is never sent to the app.
 // Only signed-in users may call it (the platform verifies the JWT; we also require role = authenticated).
+// Results are cached in public.food_search_cache for 30 days so repeat searches don't call USDA.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
+const CACHE_DAYS = 30;
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -32,6 +35,19 @@ Deno.serve(async (req) => {
   catch { return json({ error: "Invalid request" }, 400); }
   if (!query) return json({ foods: [] });
 
+  // Shared cache (service role only; the table has RLS with no policies, so app users can't touch it).
+  const SB = Deno.env.get("SUPABASE_URL"), SR = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const cacheKey = `${query.toLowerCase().replace(/\s+/g, " ")}|${limit}`;
+  const sbHeaders = SR ? { apikey: SR, Authorization: `Bearer ${SR}`, "Content-Type": "application/json" } : null;
+  if (SB && sbHeaders) {
+    try {
+      const since = new Date(Date.now() - CACHE_DAYS * 864e5).toISOString();
+      const c = await fetch(`${SB}/rest/v1/food_search_cache?select=results&query_key=eq.${encodeURIComponent(cacheKey)}&created_at=gt.${encodeURIComponent(since)}`, { headers: sbHeaders });
+      const rows = c.ok ? await c.json() as { results: unknown }[] : [];
+      if (rows.length) return json({ foods: rows[0].results, cached: true });
+    } catch { /* cache miss on error */ }
+  }
+
   const url = `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${encodeURIComponent(key)}&query=${encodeURIComponent(query)}&pageSize=${limit}&dataType=Foundation,SR%20Legacy,Branded`;
   const r = await fetch(url);
   if (!r.ok) return json({ error: `USDA search failed (${r.status})` }, 502);
@@ -43,5 +59,13 @@ Deno.serve(async (req) => {
       .filter(n => ["203", "204", "205", "208"].includes(String(n.nutrientNumber)))
       .map(n => ({ nutrientNumber: n.nutrientNumber, nutrientName: n.nutrientName, value: n.value, unitName: n.unitName })),
   }));
-  return json({ foods });
+  if (SB && sbHeaders) {
+    try {
+      await fetch(`${SB}/rest/v1/food_search_cache?on_conflict=query_key`, {
+        method: "POST", headers: { ...sbHeaders, Prefer: "resolution=merge-duplicates,return=minimal" },
+        body: JSON.stringify({ query_key: cacheKey, results: foods, created_at: new Date().toISOString() }),
+      });
+    } catch { /* caching is best-effort */ }
+  }
+  return json({ foods, cached: false });
 });

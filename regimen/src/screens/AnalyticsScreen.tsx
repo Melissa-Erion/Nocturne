@@ -53,9 +53,9 @@ export default function AnalyticsScreen() {
   ids.forEach(id => { let b = 0; RG.history(id).forEach((s, i) => { const v = best(s.sets); if (i > 0 && v > b + 0.01) prs++; b = Math.max(b, v); }); });
 
   // nutrition adherence (last 28 days)
-  const log: { d: string; kcal: number; p: number; f: number }[] = [];
-  for (let i = 28; i >= 1; i--) { const d = RG.add(T0, -i); const l = S.nutritionLog[d]; if (l) log.push({ d, kcal: l.kcal, p: l.p, f: l.f }); }
-  const inK = log.filter(l => Math.abs(l.kcal - P.kcal) <= P.kcal * 0.1).length, inP = log.filter(l => l.p >= P.protein * 0.9).length, inF = log.filter(l => Math.abs(l.f - P.fat) <= P.fat * 0.15).length;
+  const log: { d: string; kcal: number; p: number; f: number; t: { kcal: number; protein: number; fat: number } }[] = [];
+  for (let i = 28; i >= 1; i--) { const d = RG.add(T0, -i); const l = S.nutritionLog[d]; if (l) log.push({ d, kcal: l.kcal, p: l.p, f: l.f, t: RG.dayTargets(d) }); }
+  const inK = log.filter(l => Math.abs(l.kcal - l.t.kcal) <= l.t.kcal * 0.1).length, inP = log.filter(l => l.p >= l.t.protein * 0.9).length, inF = log.filter(l => Math.abs(l.f - l.t.fat) <= l.t.fat * 0.15).length;
   const pct = (n: number) => log.length ? Math.round(n / log.length * 100) + '%' : '—';
 
   // meal prep
@@ -180,12 +180,12 @@ export default function AnalyticsScreen() {
                 <View style={{ position: 'absolute', left: 0, right: 0, top: 45, height: 1, backgroundColor: C.n700 }} />
                 {Array.from({ length: 28 }, (_, i) => {
                   const l = log[i]; if (!l) return <View key={i} style={{ flex: 1 }} />;
-                  const d = P.kcal ? (l.kcal - P.kcal) / P.kcal : 0; const ok = Math.abs(d) <= 0.1; const hgt = Math.min(45, Math.abs(d) * 150);
-                  return <View key={i} accessibilityLabel={`${RG.fmtD(l.d)} · ${RG.num(l.kcal)} kcal`}
+                  const d = l.t.kcal ? (l.kcal - l.t.kcal) / l.t.kcal : 0; const ok = Math.abs(d) <= 0.1; const hgt = Math.min(45, Math.abs(d) * 150);
+                  return <View key={i} accessibilityLabel={`${RG.fmtD(l.d)} · ${RG.num(l.kcal)} of ${RG.num(l.t.kcal)} kcal`}
                     style={{ flex: 1, height: Math.max(2, hgt), transform: [{ translateY: d > 0 ? -hgt / 2 : hgt / 2 }], borderRadius: 2, backgroundColor: ok ? C.accent : 'transparent', boxShadow: ok ? undefined : `inset 0 0 0 1px ${C.n500}` }} />;
                 })}
               </View>
-              <Muted>Line = daily target. Filled bars are within ±10% of target.</Muted>
+              <Muted>{P.restTargets ? "Line = that day's target (training or rest day). Filled bars are within ±10% of target." : 'Line = daily target. Filled bars are within ±10% of target.'}</Muted>
             </>
           ) : <Hint>No logged days in the last 28 days. Log meals on the Nutrition Dashboard to track adherence.</Hint>}
         </Card>

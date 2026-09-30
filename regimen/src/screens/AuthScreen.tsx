@@ -1,10 +1,18 @@
 /* Sign in / create account (Supabase email + password). */
 import * as Linking from 'expo-linking';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { signInWithGoogle, takeRedirectError } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { Btn, Card, Field, H, Icon, Input, Muted, Row, Seg, T } from '@/ui/kit';
 import { C } from '@/ui/theme';
+
+/** Simple "G" mark for the Google button (no brand icon in the kit). */
+const GMark = () => (
+  <View style={{ width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', boxShadow: `inset 0 0 0 1.5px ${C.text}` }}>
+    <T size={11} w={600} lh={1}>G</T>
+  </View>
+);
 
 type Mode = 'signin' | 'signup' | 'reset';
 
@@ -14,6 +22,21 @@ export default function AuthScreen() {
   const [pw, setPw] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+
+  // A failed or cancelled Google sign-in on web comes back with an error in the address bar.
+  useEffect(() => { const e = takeRedirectError(); if (e) setMsg({ kind: 'err', text: e }); }, []);
+
+  async function google() {
+    setMsg(null); setBusy(true);
+    try {
+      const r = await signInWithGoogle();
+      if (r === 'cancelled') setMsg({ kind: 'err', text: 'Google sign-in was cancelled.' });
+      if (r === 'redirecting') return; // page is leaving for Google; keep the button disabled
+    } catch (e) {
+      setMsg({ kind: 'err', text: e instanceof Error ? e.message : 'Google sign-in failed. Try again.' });
+    }
+    setBusy(false);
+  }
 
   // Email links return to the app's own address (including a sub-path such as /Nocturne on GitHub Pages).
   const redirect = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin + (process.env.EXPO_PUBLIC_BASE_URL || '') + '/' : Linking.createURL('/');
@@ -55,6 +78,17 @@ export default function AuthScreen() {
             <Muted size={13}>Your plan, sessions, meals and progress — synced across your devices.</Muted>
           </View>
           <Card gap={14}>
+            {mode !== 'reset' && (
+              <>
+                <Btn size="lg" disabled={busy} onPress={google} label="Continue with Google"
+                  title={<Row gap={10}><GMark /><T size={15} w={500} lh={1.2}>Continue with Google</T></Row>} />
+                <Row gap={10}>
+                  <View style={{ flex: 1, height: 1, backgroundColor: C.divider }} />
+                  <Muted>or use email</Muted>
+                  <View style={{ flex: 1, height: 1, backgroundColor: C.divider }} />
+                </Row>
+              </>
+            )}
             {mode !== 'reset' && <Seg value={mode} onChange={v => { setMode(v); setMsg(null); }} options={[{ value: 'signin', label: 'Sign in' }, { value: 'signup', label: 'Create account' }]} />}
             <Field label="Email">
               <Input value={email} onChange={setEmail} autoCapitalize="none" autoComplete="email" keyboardType="email-address" textContentType="emailAddress" placeholder="you@example.com" onSubmitEditing={submit} />

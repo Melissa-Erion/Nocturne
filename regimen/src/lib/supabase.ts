@@ -14,6 +14,8 @@ export const supabase: SupabaseClient | null = url && key
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: Platform.OS === 'web',
+        // PKCE: needed for Google sign-in on phones (code exchanged in the app); also works for web and email links.
+        flowType: 'pkce',
       },
     })
   : null;

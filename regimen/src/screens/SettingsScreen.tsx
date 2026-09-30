@@ -6,7 +6,7 @@ import { requestCalendarPermission } from '@/lib/calendar';
 import { saveTextFile } from '@/lib/files';
 import { requestNotificationPermission } from '@/lib/notifications';
 import { useRG } from '@/store/rg';
-import { signOut, useUI } from '@/store/store';
+import { useUI } from '@/store/store';
 import {
   Btn, Card, Check, Dialog, Field, H, Icon, Input, Muted, NotMedical, NumInput, Row, Rule, Seg, Select, T, Tag,
 } from '@/ui/kit';
@@ -46,10 +46,15 @@ export default function SettingsScreen() {
   const inList = (k: 'equipment' | 'dietPrefs', v: string) => () => up(p => { p[k] = p[k].includes(v) ? p[k].filter(x => x !== v) : p[k].concat([v]); });
 
   // nutrition safety
-  const mk = P.protein * 4 + P.carbs * 4 + P.fat * 9;
+  const RT = P.restTargets ?? null;
+  const macroNote = (t: { kcal: number; protein: number; carbs: number; fat: number }) => { const mk = t.protein * 4 + t.carbs * 4 + t.fat * 9; return `Macros add up to ${RG.num(mk)} kcal (${mk - t.kcal >= 0 ? '+' : ''}${mk - t.kcal} vs target).`; };
   const safetyP = { ...P, weightKg: RG.avgWeight() ?? P.weightKg };
   const floor = RG.calorieFloor(safetyP);
-  const lowWarn = RG.lowCalorie(safetyP) ? `${RG.num(P.kcal)} kcal is below your estimated minimum (~${RG.num(floor)} kcal: the higher of your estimated resting need and ${P.sex === 'Male' ? '1,500' : '1,200'} kcal). Regimen doesn't recommend targets this low. Consider a smaller deficit, and consult a qualified professional for anything more aggressive.` : '';
+  const lowTrain = P.kcal < floor, lowRest = !!RT && RT.kcal < floor;
+  const lowWhat = lowTrain && lowRest ? `Your training-day (${RG.num(P.kcal)} kcal) and rest-day (${RG.num(RT.kcal)} kcal) targets are` : lowRest && RT ? `Your rest-day target of ${RG.num(RT.kcal)} kcal is` : RT ? `Your training-day target of ${RG.num(P.kcal)} kcal is` : `${RG.num(P.kcal)} kcal is`;
+  const lowWarn = RG.lowCalorie(safetyP) ? `${lowWhat} below your estimated minimum (~${RG.num(floor)} kcal: the higher of your estimated resting need and ${P.sex === 'Male' ? '1,500' : '1,200'} kcal). Regimen doesn't recommend targets this low. Consider a smaller deficit, and consult a qualified professional for anything more aggressive.` : '';
+  const setRest = (k: 'kcal' | 'protein' | 'carbs' | 'fat') => (v: number | null) => { if (v != null) up(p => { if (p.restTargets) p.restTargets[k] = v; }); };
+  const toggleRest = (on: boolean) => up(p => { p.restTargets = on ? { kcal: p.kcal, protein: p.protein, carbs: p.carbs, fat: p.fat } : null; });
 
   const toggleDay = (i: number) => {
     up(p => { p.trainingDays = p.trainingDays.includes(i) ? p.trainingDays.filter(x => x !== i) : p.trainingDays.concat([i]).sort((a, b) => a - b); p.restDays = [0, 1, 2, 3, 4, 5, 6].filter(x => !p.trainingDays.includes(x)); });
@@ -169,15 +174,31 @@ export default function SettingsScreen() {
 
         {tab === 'nutrition' && (
           <Card gap={12}>
+            <T size={13}>Training days</T>
             <Grid min={140} gap={12}>
               <Field label="Calories"><NumInput value={P.kcal} onValue={num('kcal')} /></Field>
               <Field label="Protein g"><NumInput value={P.protein} onValue={num('protein')} /></Field>
               <Field label="Carbs g"><NumInput value={P.carbs} onValue={num('carbs')} /></Field>
               <Field label="Fat g"><NumInput value={P.fat} onValue={num('fat')} /></Field>
+            </Grid>
+            <T size={12} color={C.n400}>{macroNote(P)}</T>
+            <Check checked={!!RT} onChange={toggleRest} label="Use different targets on rest days" />
+            {RT ? (
+              <>
+                <T size={13}>Rest days</T>
+                <Grid min={140} gap={12}>
+                  <Field label="Calories"><NumInput value={RT.kcal} onValue={setRest('kcal')} /></Field>
+                  <Field label="Protein g"><NumInput value={RT.protein} onValue={setRest('protein')} /></Field>
+                  <Field label="Carbs g"><NumInput value={RT.carbs} onValue={setRest('carbs')} /></Field>
+                  <Field label="Fat g"><NumInput value={RT.fat} onValue={setRest('fat')} /></Field>
+                </Grid>
+                <T size={12} color={C.n400}>{macroNote(RT)}</T>
+              </>
+            ) : <Muted>Off: rest days use the same targets as training days.</Muted>}
+            <Grid min={140} gap={12}>
               <Field label="Meals per day"><NumInput value={P.mealsPerDay} onValue={setMeals} /></Field>
               <Field label="Water target (ml)"><NumInput value={P.waterMl} onValue={num('waterMl')} /></Field>
             </Grid>
-            <T size={12} color={C.n400}>{`Macros add up to ${RG.num(mk)} kcal (${mk - P.kcal >= 0 ? '+' : ''}${mk - P.kcal} vs target).`}</T>
             {!!lowWarn && (
               <Row gap={8} align="flex-start" style={{ paddingVertical: 10, paddingHorizontal: 12, borderRadius: R.md, boxShadow: `inset 0 0 0 1px ${C.a700}` }}>
                 <Icon name="warning" size={16} color={C.accent} style={{ marginTop: 2 }} />
@@ -307,8 +328,8 @@ export default function SettingsScreen() {
                 <T size={14}>Account</T>
                 <Row gap={10} wrap>
                   <Icon name="envelope" size={16} color={C.n400} />
-                  <T size={13} color={C.n300} style={{ flex: 1, minWidth: 180 }}>{email ? `Signed in as ${email}` : 'Signed in'}</T>
-                  <Btn icon="sign-out" title="Sign out" onPress={() => { signOut().catch(() => RG.toast('Sign-out failed. Try again.')); }} />
+                  <T size={13} color={C.n300} style={{ flex: 1, minWidth: 180 }}>{email ? `Signed in as ${email}. ` : ''}Email, password and billing are in My Account.</T>
+                  <Btn icon="gear" title="Open My Account" onPress={() => RG.go('account')} />
                 </Row>
                 <Muted>Your data syncs to your account and is available when you sign in on another device.</Muted>
               </View>

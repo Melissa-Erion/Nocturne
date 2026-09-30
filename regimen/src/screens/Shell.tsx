@@ -11,6 +11,8 @@ import type { IconName } from '@/ui/icons';
 import { Btn, Icon, Muted, T, Tap, useLayout } from '@/ui/kit';
 import { alpha, C, MAX_W, SHADOW } from '@/ui/theme';
 import { SampleBanner } from './SampleData';
+import { useAccess } from '@/store/access';
+import { Paywall } from './UpgradeScreen';
 
 type PState = PressableStateCallbackType & { hovered?: boolean };
 
@@ -18,7 +20,7 @@ export const NAV: [string, [Route, string, IconName][]][] = [
   ['Training', [['dashboard', 'Fitness Dashboard', 'house'], ['schedule', 'My Schedule', 'calendar-blank'], ['plans', 'Workout Plans', 'list-checks'], ['workout', 'Active Workout', 'barbell'], ['history', 'Exercise History', 'clock-counter-clockwise'], ['records', 'Personal Records', 'trophy']]],
   ['Progress', [['checkins', 'Progress Check-Ins', 'clipboard-text'], ['photos', 'Progress Photos', 'camera'], ['analytics', 'Analytics', 'chart-line-up']]],
   ['Nutrition', [['nutrition', 'Nutrition Dashboard', 'chart-donut'], ['meals', 'Meal Planner', 'fork-knife'], ['prep', 'Meal-Prep Calculator', 'cooking-pot'], ['recipes', 'Recipes & Saved Meals', 'book-open'], ['alternatives', 'Food Alternatives', 'swap'], ['grocery', 'Grocery List', 'shopping-cart']]],
-  ['Account', [['settings', 'Fitness Settings', 'gear']]],
+  ['Account', [['account', 'My Account', 'person'], ['settings', 'Fitness Settings', 'gear']]],
 ];
 
 const ShellCtx = createContext({ wide: true });
@@ -33,9 +35,10 @@ export function Shell({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets();
   const toast = useUI(u => u.toast);
   const active = RGx.s.active;
-  const title = NAV.flatMap(g => g[1]).find(p => p[0] === route)?.[1] || 'Setup';
+  const title = NAV.flatMap(g => g[1]).find(p => p[0] === route)?.[1] || (route === 'upgrade' ? 'Regimen Pro' : 'Setup');
   const wk = active && RGx.workout(active.workoutId, active.planId);
   const onboarding = route === 'onboarding';
+  const access = useAccess();
 
   // In-app history for the Back button. Browser back (web) is recognised and pops instead of pushing.
   const [hist, setHist] = useState<string[]>([]);
@@ -84,7 +87,7 @@ export function Shell({ children }: { children: ReactNode }) {
             </View>
           )}
           {!onboarding && RGx.s.sample && <View style={{ paddingHorizontal: wide ? 28 : 14, paddingTop: 12 }}><SampleBanner /></View>}
-          <View style={{ flex: 1 }}>{children}</View>
+          <View style={{ flex: 1 }}>{access.canOpen(route) ? children : <Screen><Paywall feature={route} /></Screen>}</View>
         </View>
 
         <Modal visible={menu && !wide} transparent animationType="fade" onRequestClose={() => setMenu(false)}>
@@ -103,10 +106,11 @@ export function Shell({ children }: { children: ReactNode }) {
         </Modal>
 
         {toast && (
-          <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 24 + insets.bottom, alignItems: 'center', zIndex: 60, paddingHorizontal: 16 }}>
+          <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: 24 + insets.bottom, alignItems: 'center', zIndex: 60, paddingHorizontal: 16 }}>
             <View style={{ maxWidth: 560, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, backgroundColor: C.surface, boxShadow: SHADOW.lg }}>
               <Icon name="check-circle" size={16} color={C.accent} />
               <T size={13} style={{ flexShrink: 1 }}>{toast.msg}</T>
+              {toast.undo && <Btn variant="ghost" size="sm" icon="arrow-counter-clockwise" title="Undo" onPress={() => RG.undo()} />}
             </View>
           </View>
         )}
@@ -125,6 +129,8 @@ function Brand() {
 }
 
 function NavList({ route, active, large, onGo }: { route: Route; active: boolean; large?: boolean; onGo: (r: Route) => void }) {
+  const access = useAccess();
+  const locked = (id: Route) => access.enforced && !access.canOpen(id);
   return (
     <>
       {NAV.map(([label, items]) => (
@@ -139,6 +145,7 @@ function NavList({ route, active, large, onGo }: { route: Route; active: boolean
                 <Icon name={ic} size={large ? 18 : 16} color={on ? C.text : C.n400} />
                 <T size={large ? 15 : 13} color={on ? C.text : C.n400} style={{ flex: 1 }}>{l}</T>
                 {id === 'workout' && active && <T size={10} color={C.accent}>● live</T>}
+                {locked(id) && <Icon name="lock-simple" size={12} color={C.n600} />}
               </Pressable>
             );
           })}
