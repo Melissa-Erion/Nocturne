@@ -87,6 +87,8 @@ Everything in `prototype/` is a **design reference built in HTML**: a working pr
 **Portion solver** (`solve`)
 - Non-negative weighted least squares (coordinate descent, 600 iterations) on P/C/F, with weights [1.3, 1, 4].
 - Locked items are fixed and subtracted from the target first.
+- Vegetables keep their amount (as when a day's meals are generated) unless they are the only adjustable foods, so a carb target is never met with hundreds of grams of vegetables.
+- Every food the user added keeps at least 15 g (5 g for foods with more than 50% fat); it never drops to 0.
 - Bounds 0–700 g. Rounded to 5 g (1 g for foods with more than 50% fat).
 - **Always show the remaining difference.** Never claim an exact match.
 

@@ -574,5 +574,63 @@
     100
    ]
   ]
+ ],
+ "todayDaySolverV2": [
+  [
+   [
+    "yog",
+    285
+   ],
+   [
+    "oats",
+    45
+   ],
+   [
+    "blueb",
+    15
+   ]
+  ],
+  [
+   [
+    "chicken_c",
+    100
+   ],
+   [
+    "rice_c",
+    105
+   ],
+   [
+    "avocado",
+    85
+   ]
+  ],
+  [
+   [
+    "turkey",
+    170
+   ],
+   [
+    "tortilla",
+    65
+   ],
+   [
+    "banana",
+    85
+   ]
+  ],
+  [
+   [
+    "salmon_r",
+    110
+   ],
+   [
+    "potato_r",
+    290
+   ],
+   [
+    "broccoli_c",
+    100
+   ]
+  ]
  ]
 }
