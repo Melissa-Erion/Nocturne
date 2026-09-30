@@ -1,15 +1,21 @@
-/* Plans, trial and access rules. Displayed prices are placeholders until billing is live; then the store/RevenueCat
-   prices are the real ones (they can change there without an app update). */
+/* Plans, trial and access rules. These prices are shown until RevenueCat's own prices load (those are the real ones
+   and can change in RevenueCat without an app update). All prices are in Canadian dollars. */
 
 export const TRIAL_DAYS = 7;
 
 export const PLANS = [
-  { id: 'yearly', name: 'Yearly', price: '$179.99', per: 'year', note: 'Save 40% · $15/month billed yearly', recommended: true },
-  { id: 'monthly', name: 'Monthly', price: '$24.99', per: 'month', note: 'Flexible · cancel anytime', recommended: false },
+  { id: 'yearly', name: 'Yearly', price: 'CA$179.99', per: 'year', note: 'Save 40% · CA$15/month billed yearly', recommended: true },
+  { id: 'monthly', name: 'Monthly', price: 'CA$24.99', per: 'month', note: 'Flexible · cancel anytime', recommended: false },
 ] as const;
 
-/** Billing switches on only when RevenueCat is connected (EXPO_PUBLIC_BILLING=live). Until then nobody is locked out. */
-export const billingLive = () => process.env.EXPO_PUBLIC_BILLING === 'live';
+/** EXPO_PUBLIC_BILLING: 'live' = real payments; 'sandbox' = Stripe test mode (paywall on, test cards, no real charges);
+    anything else = payments off and nobody is locked out. */
+export const billingMode = (): 'live' | 'sandbox' | 'off' => {
+  const m = process.env.EXPO_PUBLIC_BILLING;
+  return m === 'live' || m === 'sandbox' ? m : 'off';
+};
+/** Payments are switched on (real or test mode): the paywall is in force. */
+export const billingLive = () => billingMode() !== 'off';
 /** EXPO_PUBLIC_PAYWALL_PREVIEW=1 shows the locked experience without billing (for testing and demos). */
 export const paywallPreview = () => process.env.EXPO_PUBLIC_PAYWALL_PREVIEW === '1';
 

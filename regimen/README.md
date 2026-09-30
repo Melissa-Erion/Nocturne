@@ -30,9 +30,11 @@ npm run typecheck
 
 ## Free version and Regimen Pro
 
-- Free: download, guided setup, calculated macro targets, weight logging, and a preview of the generated plan (dashboard, upgrade screen). Everything else is Pro. Rules and prices: `src/lib/plans.ts` ($179.99/year recommended, $24.99/month, 7-day trial).
+- Free: download, guided setup, calculated macro targets, weight logging, and a preview of the generated plan (dashboard, upgrade screen). Everything else is Pro. Rules and fallback prices: `src/lib/plans.ts` (CA$179.99/year recommended, CA$24.99/month, 7-day trial). The prices shown at checkout come from RevenueCat.
 - Access comes from `public.subscriptions` (one row per user, readable only by that user, written only by the server). `comp` = permanent free access (the owner's account); `trialing` / `active` / `canceled` keep access until `period_end`; `expired` is locked. Data is never deleted when access ends.
-- The paywall is **off** until billing is connected: set `EXPO_PUBLIC_BILLING=live`. `EXPO_PUBLIC_PAYWALL_PREVIEW=1` shows the locked experience for testing.
+- Web payments: RevenueCat Billing (Stripe), `src/lib/billing.ts`. The RevenueCat app user id is the Supabase user id. Right after a purchase the app reads access from RevenueCat directly; the `revenuecat-webhook` Edge Function then writes `public.subscriptions` (it checks the Authorization value stored in `public.app_secrets` under `revenuecat_webhook_auth`, which only the server can read).
+- `EXPO_PUBLIC_BILLING` in `.env`: `off` (everything open, nobody charged), `sandbox` (paywall on, Stripe test cards, no real charges) or `live` (real payments). `EXPO_PUBLIC_PAYWALL_PREVIEW=1` shows the locked experience without payments.
+- Phone apps: payments through the App Store and Google Play (`react-native-purchases`) are not wired yet; the phone paywall asks people to subscribe on the website.
 
 ## Web address
 
