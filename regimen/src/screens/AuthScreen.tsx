@@ -3,6 +3,7 @@ import * as Linking from 'expo-linking';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { signInWithGoogle, takeRedirectError } from '@/lib/auth';
+import { googleButtonAvailable, GoogleWebButton } from '@/lib/googleWeb';
 import { supabase } from '@/lib/supabase';
 import { Btn, Card, Field, H, Icon, Input, Muted, Row, Seg, T } from '@/ui/kit';
 import { C } from '@/ui/theme';
@@ -37,6 +38,11 @@ export default function AuthScreen() {
     }
     setBusy(false);
   }
+
+  const googleBtn = (
+    <Btn size="lg" disabled={busy} onPress={google} label="Continue with Google"
+      title={<Row gap={10}><GMark /><T size={15} w={500} lh={1.2}>Continue with Google</T></Row>} />
+  );
 
   // Email links return to the app's own address (including its sub-path, /app).
   const redirect = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin + (process.env.EXPO_PUBLIC_BASE_URL || '') + '/' : Linking.createURL('/');
@@ -80,8 +86,9 @@ export default function AuthScreen() {
           <Card gap={14}>
             {mode !== 'reset' && (
               <>
-                <Btn size="lg" disabled={busy} onPress={google} label="Continue with Google"
-                  title={<Row gap={10}><GMark /><T size={15} w={500} lh={1.2}>Continue with Google</T></Row>} />
+                {googleButtonAvailable()
+                  ? <GoogleWebButton onBusy={setBusy} onError={text => setMsg({ kind: 'err', text })} fallback={googleBtn} />
+                  : googleBtn}
                 <Row gap={10}>
                   <View style={{ flex: 1, height: 1, backgroundColor: C.divider }} />
                   <Muted>or use email</Muted>
