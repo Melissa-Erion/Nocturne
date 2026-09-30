@@ -52,23 +52,30 @@ export function mealTargets({ s }: Ctx, type: DayType, mode?: DistributionMode):
 }
 
 /** Portion solver: non-negative weighted least squares on P/C/F (coordinate descent, 600 iterations).
-    Locked items are fixed and subtracted from the target first. Bounds 0–700 g; rounded to 5 g (1 g for >50% fat foods).
+    Locked items are fixed and subtracted from the target first. Vegetables keep their amount (as when a day's meals are
+    built) unless they are the only foods left to adjust, so the solver can't hit a carb target with 600 g of broccoli.
+    Every food the user added keeps at least a small portion (15 g, 5 g for >50% fat foods) instead of dropping to 0.
+    Bounds 0–700 g; rounded to 5 g (1 g for >50% fat foods).
     The UI must always show the remaining difference — never claim an exact match. */
 export function solve(s: State, items: MealItem[], target: { p: number; c: number; f: number }): MealItem[] {
-  const free = items.filter(i => !i.locked && !i.estimate);
-  const lk = sumM(s, items.filter(i => i.locked));
+  const adjustable = items.filter(i => !i.locked && !i.estimate);
+  const nonVeg = adjustable.filter(i => food(s, i.foodId)?.role !== 'veg');
+  const fixedVeg = new Set(nonVeg.length ? adjustable.filter(i => food(s, i.foodId)?.role === 'veg') : []);
+  const free = adjustable.filter(i => !fixedVeg.has(i));
+  const lk = sumM(s, items.filter(i => i.locked || fixedVeg.has(i)));
   const t = [target.p - lk.p, target.c - lk.c, target.f - lk.f]; const w = [1.3, 1, 4];
   const A = free.map(i => { const f = food(s, i.foodId)!; return [f.p / 100, f.c / 100, f.f / 100]; });
+  const lo = free.map(i => (food(s, i.foodId)!.f > 50 ? 5 : 15));
   const x = free.map(i => Math.max(10, i.g || 100));
   for (let it = 0; it < 600; it++) {
     for (let j = 0; j < x.length; j++) {
       const r = [0, 1, 2].map(k => sum(x.map((xi, q) => xi * A[q][k])) - t[k]);
       const g = sum([0, 1, 2].map(k => w[k] * A[j][k] * r[k])); const h = sum([0, 1, 2].map(k => w[k] * A[j][k] * A[j][k])) + 1e-6;
-      x[j] = Math.min(700, Math.max(0, x[j] - g / h));
+      x[j] = Math.min(700, Math.max(lo[j], x[j] - g / h));
     }
   }
   const out = items.map(i => ({ ...i })); let j = 0;
-  items.forEach((i, idx) => { if (i.locked || i.estimate) return; const f = food(s, i.foodId)!; const step = f.f > 50 ? 1 : 5; out[idx].g = Math.round(x[j++] / step) * step; });
+  items.forEach((i, idx) => { if (i.locked || i.estimate || fixedVeg.has(i)) return; const f = food(s, i.foodId)!; const step = f.f > 50 ? 1 : 5; out[idx].g = Math.round(x[j++] / step) * step; });
   return out;
 }
 

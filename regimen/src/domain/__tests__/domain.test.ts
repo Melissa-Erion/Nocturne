@@ -33,7 +33,9 @@ describe('sample seed reproduces the prototype', () => {
   it('nutrition: meal targets, generated day, alternatives', () => {
     expect(R.mealTargets(ctx, 'training')).toEqual(golden.targetsTraining);
     expect(R.mealTargets(ctx, 'rest')).toEqual(golden.targetsRest);
-    expect(R.getDay(ctx, TODAY).meals.map(m => m.items.map(i => [i.foodId, i.g]))).toEqual(golden.todayDay);
+    // The prototype's solver dropped blueberries to 0 g (golden.todayDay); the solver now keeps every chosen food
+    // at 15 g or more, so the expected generated day is golden.todayDaySolverV2 (only breakfast differs).
+    expect(R.getDay(ctx, TODAY).meals.map(m => m.items.map(i => [i.foodId, i.g]))).toEqual(golden.todayDaySolverV2);
     expect(R.alternatives(ctx.s, 'chicken_c', 145).slice(0, 5).map(a => [a.food.id, a.g, Math.round(a.score * 100) / 100])).toEqual(golden.alts);
   });
   it('meal prep and grocery list', () => {
@@ -230,6 +232,21 @@ describe('nutrition maths', () => {
     expect(out[0].g % 5).toBe(0); expect(out[1].g % 5).toBe(0);
     const m = R.sumM(s, out);
     expect(Math.abs(m.p - 40)).toBeLessThan(4); expect(Math.abs(m.c - 50)).toBeLessThan(5); expect(Math.abs(m.f - 12)).toBeLessThan(2);
+  });
+  it('solver keeps vegetables at their amount and never drops a chosen food to 0 g', () => {
+    const s = R.newUserState(TODAY);
+    // Lean dinner with no fat source: the fat target can't be met, which must not be "fixed" with 600 g of broccoli.
+    const out = R.solve(s, [{ foodId: 'chicken_c', g: 105 }, { foodId: 'sweet_c', g: 190 }, { foodId: 'broccoli_c', g: 100 }], { p: 35, c: 47, f: 13 });
+    expect(out[2].g).toBe(100);
+    expect(out[1].g).toBeGreaterThan(100);
+    const m = R.sumM(s, out);
+    expect(Math.abs(m.p - 35)).toBeLessThan(5); expect(Math.abs(m.c - 47)).toBeLessThan(5);
+    // Every food the user added keeps at least 15 g.
+    const b = R.solve(s, [{ foodId: 'eggs', g: 125 }, { foodId: 'bread', g: 120 }, { foodId: 'blueb', g: 80 }], { p: 35, c: 48, f: 14 });
+    b.forEach(i => expect(i.g).toBeGreaterThanOrEqual(15));
+    // Vegetables alone are still adjusted.
+    const v = R.solve(s, [{ foodId: 'broccoli_c', g: 100 }], { p: 5, c: 20, f: 1 });
+    expect(v[0].g).not.toBe(100);
   });
   it('alternatives filter excluded foods and allergens and match the primary nutrient', () => {
     const s = R.newUserState(TODAY); s.profile.allergies = ['Tuna']; s.profile.exclude = ['Cod'];
