@@ -1,3 +1,4 @@
+/// <reference types="node" />
 /* The barcode scanner's WebAssembly file is served from our own site (public/zxing_reader.wasm). It must be the exact
    build the installed zxing-wasm expects, so a package upgrade without re-copying the file fails here, not on a phone. */
 import { readFileSync } from 'fs';
