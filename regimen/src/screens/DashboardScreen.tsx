@@ -5,7 +5,7 @@ import { useRG } from '@/store/rg';
 import type { IconName } from '@/ui/icons';
 import {
   Banner, Bar, Btn, Card, CardTitle, Check, ColLabel, Dialog, Field, Grid, H, HeroCard, Icon, Kicker, LineChart, Muted, NotMedical,
-  NumInput, Row, RuledRow, Seg, Stat, T, Tag, Tap,
+  Num, NumInput, Row, RuledRow, Seg, Stat, T, Tag, Tap,
 } from '@/ui/kit';
 import { alpha, C } from '@/ui/theme';
 import { Screen } from './Shell';
@@ -211,7 +211,7 @@ export default function DashboardScreen() {
             {hasW ? (
               <>
                 <Row gap={10} wrap style={{ alignItems: 'baseline' }}>
-                  <T size={32} tab lh={1.15} style={{ letterSpacing: -0.64 }}>{RG.bw(a0)}</T>
+                  <Num size={38}>{RG.bw(a0)}</Num>
                   <T size={14} color={C.n400}>{wu}</T>
                   <T size={13} color={C.a300}>{chStr} vs last week</T>
                 </Row>

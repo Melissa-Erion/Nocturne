@@ -5,7 +5,7 @@ import { AppState, Linking, Pressable, Vibration, View, type PressableStateCallb
 import type { ActiveWorkout, PlanItem, Workout } from '@/domain/types';
 import { useRG } from '@/store/rg';
 import {
-  Bar, Btn, Card, CardTitle, Check, ColLabel, Dialog, Grid, H, Icon, Input, Kicker, Muted, NotMedical, NumInput, PageHeader, Row, RuledRow,
+  Bar, Btn, Card, CardTitle, Check, ColLabel, Dialog, Grid, H, Icon, Input, Kicker, Muted, NotMedical, Num, NumInput, PageHeader, Row, RuledRow,
   Spacer, Stripes, T, Tag, Tap, useLayout,
 } from '@/ui/kit';
 import { alpha, C, R, SHADOW } from '@/ui/theme';
@@ -156,7 +156,7 @@ function Running({ A }: { A: ActiveWorkout }) {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 14, borderRadius: R.md, backgroundColor: C.a900, boxShadow: `inset 0 0 0 1px ${C.a700}` }}>
           <Icon name="timer" size={22} color={C.accent} />
           <View style={{ flex: 1, minWidth: 0 }}>
-            <T size={26} tab lh={1}>{fmtT(restMs)}</T>
+            <Num size={30}>{fmtT(restMs)}</Num>
             <T size={11} color={C.a200} numberOfLines={2}>{`${paused ? 'Rest on hold' : 'Rest'} · next: ${A.restFor || ''}`}</T>
           </View>
           <Btn title="−15" label="Rest 15 seconds less" style={{ minWidth: 52, minHeight: 44 }} onPress={() => upd(a => { if (a.restEnd) a.restEnd -= 15000; })} />
@@ -388,7 +388,7 @@ function Running({ A }: { A: ActiveWorkout }) {
         actions={<><Btn title="Keep training" onPress={() => setDlg(null)} /><Btn variant="primary" title="Save workout" onPress={finish} /></>}>
         <View style={{ flexDirection: 'row', gap: 10 }}>
           {([[doneW, 'Working sets'], [RG.num(RG.imp() ? vol * 2.20462 : vol), `Volume (${wu})`], [prCount, 'Personal records']] as const).map(([v, l]) => (
-            <View key={l} style={{ flex: 1 }}><T size={24} tab lh={1.25}>{v}</T><Muted size={11}>{l}</Muted></View>
+            <View key={l} style={{ flex: 1 }}><Num size={28}>{v}</Num><Muted size={11}>{l}</Muted></View>
           ))}
         </View>
         <Muted size={12}>{`Workout time ${fmtT(elapsed)}${A.pausedMs || paused ? ' · paused time not counted' : ''}`}</Muted>

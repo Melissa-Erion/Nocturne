@@ -14,7 +14,11 @@ import { C } from '@/ui/theme';
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
-  const [fonts] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold });
+  const [fonts] = useFonts({
+    Inter_400Regular, Inter_500Medium, Inter_600SemiBold,
+    ArchivoCondensed_800: require('../../assets/fonts/Archivo-Condensed-ExtraBold.ttf'),
+    ArchivoNarrow_800: require('../../assets/fonts/Archivo-Narrow-ExtraBold.ttf'),
+  });
   const phase = useUI(u => u.phase);
   const error = useUI(u => u.error);
   const version = useUI(u => u.version);

@@ -2,7 +2,7 @@
 import { useState, type ReactNode } from 'react';
 import { Image, ScrollView, View } from 'react-native';
 import { usePhoto, useRG } from '@/store/rg';
-import { Btn, Card, CardTitle, Grid, H, Icon, LineChart, Muted, NotMedical, Row, Select, Seg, Stripes, T } from '@/ui/kit';
+import { Btn, Card, CardTitle, Grid, H, Icon, LineChart, Muted, NotMedical, Num, Row, Select, Seg, Stripes, T } from '@/ui/kit';
 import { C } from '@/ui/theme';
 import { Screen } from './Shell';
 
@@ -10,7 +10,7 @@ const MEAS = [['waist', 'Waist'], ['hips', 'Hips'], ['chest', 'Chest'], ['thighs
 type MeasKey = typeof MEAS[number][0];
 
 const Big = ({ children, unit, extra }: { children: ReactNode; unit?: string; extra?: string }) => (
-  <T size={26} tab lh={1.2}>{children}{unit ? <T size={13} color={C.n500}> {unit}</T> : null}{extra ? <T size={13} color={C.a300}> {extra}</T> : null}</T>
+  <Num size={30}>{children}{unit ? <T size={13} color={C.n500}> {unit}</T> : null}{extra ? <T size={13} color={C.a300}> {extra}</T> : null}</Num>
 );
 const Hint = ({ children }: { children: ReactNode }) => <T size={13} color={C.n400} style={{ paddingVertical: 18 }}>{children}</T>;
 

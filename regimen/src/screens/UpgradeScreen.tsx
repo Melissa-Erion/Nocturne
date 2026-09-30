@@ -8,7 +8,7 @@ import { billingLive, billingMode, FEATURE, PLANS, TRIAL_DAYS } from '@/lib/plan
 import { useAccess } from '@/store/access';
 import { refreshSubscription, useUI } from '@/store/store';
 import { useRG } from '@/store/rg';
-import { Btn, Card, CardTitle, Grid, H, Icon, Kicker, Muted, NotMedical, Row, RuledRow, T, Tag, Tap } from '@/ui/kit';
+import { Btn, Card, CardTitle, Grid, H, Icon, Kicker, Muted, NotMedical, Num, Row, RuledRow, T, Tag, Tap } from '@/ui/kit';
 import { alpha, C } from '@/ui/theme';
 import { Screen } from './Shell';
 
@@ -131,7 +131,7 @@ export function Paywall({ feature }: { feature?: string }) {
             <Tap key={p.id} onPress={() => setPlan(p.id)} label={`${p.name} plan`}
               style={{ padding: 16, borderRadius: 10, borderWidth: 1, borderColor: on ? C.accent : C.n800, backgroundColor: on ? alpha(C.accent, 0.1) : C.surface, gap: 4 }}>
               <Row><T size={15} w={500} style={{ flex: 1 }}>{p.name}</T>{p.recommended && <Tag variant="accent">Best value</Tag>}</Row>
-              <T size={24} tab>{priceOf(p.id)}<T size={14} color={C.n400}>{` / ${p.per}`}</T></T>
+              <Num size={28}>{priceOf(p.id)}<T size={14} color={C.n400}>{` / ${p.per}`}</T></Num>
               <Muted size={12}>{p.note}</Muted>
             </Tap>
           );

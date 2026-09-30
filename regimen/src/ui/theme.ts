@@ -28,8 +28,12 @@ export const SHADOW = {
   lg: '0 0 0 1px #9397ab, 0 16px 40px rgba(0,0,0,0.65)',
 } as const;
 
-export const FONT = { regular: 'Inter_400Regular', medium: 'Inter_500Medium', semibold: 'Inter_600SemiBold' } as const;
-/** Headings are weight 500, never bolder; letter-spacing −0.015em. */
+export const FONT = {
+  regular: 'Inter_400Regular', medium: 'Inter_500Medium', semibold: 'Inter_600SemiBold',
+  // Same typeface as the website (regimenfit.ca): Archivo ExtraBold, condensed for headings, a little wider for big numbers.
+  display: 'ArchivoCondensed_800', numeral: 'ArchivoNarrow_800',
+} as const;
+/** Headings use the condensed display face (like the website); body text stays Inter. */
 export const TYPE = { h1: 42, h2: 32, page: 28, h3: 25, h4: 20, body: 15, lineHeight: 1.55 } as const;
 
 export const WIDE = 980; // ≥ 980 px: sticky 236 px sidebar; below: top bar + drawer

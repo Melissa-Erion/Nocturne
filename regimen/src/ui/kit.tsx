@@ -31,14 +31,19 @@ export function T({ size = 15, w = 400, color = C.text, tab, center, upper, lh, 
     >{children}</Text>
   );
 }
-/** Heading: weight 500, letter-spacing −0.015em, line-height 1.12. */
+/** Heading: Archivo condensed ExtraBold, as on the website. Condensed letters run narrow, so the size is scaled up a little. */
 export function H({ size = 28, style, children, color }: { size?: number; style?: StyleProp<TextStyle>; children?: ReactNode; color?: string }) {
-  return <T size={size} w={500} color={color} lh={1.12} style={[{ letterSpacing: -0.015 * size }, style]}>{children}</T>;
+  const s = Math.round(size * 1.18);
+  return <Text style={[{ fontFamily: FONT.display, fontSize: s, lineHeight: Math.round(s * 1.04), color: color ?? C.text, letterSpacing: -0.005 * s }, style]}>{children}</Text>;
+}
+/** Big figures (weights, calories, stats) in the website's numeral style. */
+export function Num({ size = 22, color = C.text, style, children }: { size?: number; color?: string; style?: StyleProp<TextStyle>; children?: ReactNode }) {
+  return <Text style={[{ fontFamily: FONT.numeral, fontSize: size, lineHeight: Math.round(size * 1.1), color, fontVariant: ['tabular-nums'] }, style]}>{children}</Text>;
 }
 export const Kicker = ({ children, color = C.accent, style }: { children?: ReactNode; color?: string; style?: StyleProp<TextStyle> }) =>
-  <T size={10} color={color} upper style={[{ letterSpacing: 1 }, style]}>{children}</T>;
+  <T size={11} w={600} color={color} upper style={[{ letterSpacing: 1.4 }, style]}>{children}</T>;
 export const CardTitle = ({ children, size = 17, style }: { children?: ReactNode; size?: number; style?: StyleProp<TextStyle> }) =>
-  <T size={size} w={500} lh={1.2} style={style}>{children}</T>;
+  <Text style={[{ fontFamily: FONT.display, fontSize: Math.round(size * 1.2), lineHeight: Math.round(size * 1.35), color: C.text }, style]}>{children}</Text>;
 export const Muted = ({ children, size = 12, color = C.n500, style, tab, numberOfLines }: { children?: ReactNode; size?: number; color?: string; style?: StyleProp<TextStyle>; tab?: boolean; numberOfLines?: number }) =>
   <T size={size} color={color} style={style} tab={tab} numberOfLines={numberOfLines}>{children}</T>;
 /** Small uppercase column label (tables, list headers). */
@@ -367,7 +372,7 @@ export function LineChart({ series, w = 280, h = 80, height = 80, grid, bars }: 
 export function Stat({ value, label, sub, size = 22 }: { value: ReactNode; label: ReactNode; sub?: ReactNode; size?: number }) {
   return (
     <View style={{ minWidth: 0 }}>
-      <T size={size} tab lh={1.2}>{value}{sub != null && <T size={size} color={C.n500} tab>{sub}</T>}</T>
+      <Num size={Math.round(size * 1.12)}>{value}{sub != null && <Num size={Math.round(size * 1.12)} color={C.n500}>{sub}</Num>}</Num>
       <Muted size={11}>{label}</Muted>
     </View>
   );
