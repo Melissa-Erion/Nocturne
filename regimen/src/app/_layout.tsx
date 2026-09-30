@@ -3,7 +3,7 @@ import { Slot, usePathname, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AuthScreen from '@/screens/AuthScreen';
 import { Shell } from '@/screens/Shell';
@@ -21,6 +21,11 @@ export default function RootLayout() {
   const path = usePathname();
 
   useEffect(() => { boot(); }, []);
+  // Web: paint the page behind the app dark too, so no white shows when the browser's bars move or the keyboard closes.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    for (const el of [document.documentElement, document.body]) { el.style.backgroundColor = C.bg; el.style.colorScheme = 'dark'; }
+  }, []);
   useEffect(() => { if (fonts && phase !== 'booting') SplashScreen.hideAsync().catch(() => {}); }, [fonts, phase]);
   // First run: send the user through onboarding before anything else.
   useEffect(() => {

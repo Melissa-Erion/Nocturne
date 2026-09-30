@@ -16,6 +16,7 @@ import { Screen } from './Shell';
 import { RemoveSampleButton } from './SampleData';
 import { useAccess } from '@/store/access';
 import { CalendarSyncDialog } from './CalendarSync';
+import { HeightField } from './HeightField';
 import { startTour } from './Tour';
 
 type Tab = 'profile' | 'training' | 'nutrition' | 'reminders' | 'motivation' | 'data';
@@ -137,7 +138,7 @@ export default function SettingsScreen() {
               <Field label="Name"><Input value={P.name} onChange={setK('name')} /></Field>
               <Field label="Primary goal"><Select value={P.goal} options={['Fat loss', 'Muscle gain', 'Recomposition', 'Strength', 'Maintenance', 'General fitness']} onChange={setK('goal')} title="Primary goal" /></Field>
               <Field label={`Goal weight (${wu})`}><NumInput value={P.goalWeightKg ? RG.bw(P.goalWeightKg) : null} onValue={v => up(p => { p.goalWeightKg = v == null ? null : RG.r1(RG.toKg(v)); })} /></Field>
-              <Field label={`Height (${lu})`}><NumInput value={P.heightCm ? RG.len(P.heightCm) : null} onValue={v => up(p => { p.heightCm = v == null ? null : Math.round(RG.toCm(v)); })} /></Field>
+              <HeightField value={P.heightCm ? (P.units === 'imperial' ? P.heightCm / 2.54 : P.heightCm) : null} imperial={P.units === 'imperial'} onValue={v => up(p => { p.heightCm = v == null ? null : Math.round(RG.toCm(v)); })} />
               <Field label="Age"><NumInput value={P.age} onValue={num('age')} /></Field>
               <Field label="Sex"><Select value={P.sex} options={['Female', 'Male', 'Prefer not to say']} onChange={setK('sex')} title="Sex" /></Field>
               <Field label="Activity level"><Select value={P.activity} options={['Sedentary', 'Lightly active', 'Moderately active', 'Very active']} onChange={setK('activity')} title="Activity level" /></Field>
