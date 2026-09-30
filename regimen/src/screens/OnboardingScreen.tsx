@@ -6,7 +6,7 @@ import { newUserState } from '@/domain/seed';
 import type { Profile, State } from '@/domain/types';
 import type { IconName } from '@/ui/icons';
 import { useRG } from '@/store/rg';
-import { Btn, Card, Field, H, Icon, Input, Muted, NotMedical, NumInput, Row, Rule, Seg, Select, T, Tap } from '@/ui/kit';
+import { Btn, Card, Check, Field, H, Icon, Input, Muted, NotMedical, NumInput, Row, Rule, Seg, Select, T, Tap } from '@/ui/kit';
 import { alpha, C, R } from '@/ui/theme';
 import { Grid, Pick, TimeInput } from './prep/ui';
 import { Screen } from './Shell';
@@ -15,7 +15,7 @@ type N = number | null;
 interface Draft {
   name: string; goal: string; weight: N; goalWeight: N; height: N; age: N; sex: string; activity: string; experience: string;
   trainingDays: number[]; duration: N; workoutTime: string; location: string; equipment: string[]; priorities: string[];
-  kcal: N; protein: N; carbs: N; fat: N; meals: N; dietPrefs: string[]; allergies: string; exclude: string;
+  kcal: N; protein: N; carbs: N; fat: N; rest: { kcal: N; protein: N; carbs: N; fat: N } | null; meals: N; dietPrefs: string[]; allergies: string; exclude: string;
   checkInDay: number; checkInFreq: string; remLead: number; weighTime: string; quietStart: string; quietEnd: string;
 }
 
@@ -51,7 +51,7 @@ export default function OnboardingScreen() {
       height: P.heightCm ? Number(RG.len(P.heightCm)) : null, age: P.age, sex: P.sex || 'Female', activity: P.activity || 'Moderately active', experience: P.experience || 'Intermediate',
       trainingDays: [...(P.trainingDays || [])], duration: P.duration || 60, workoutTime: P.workoutTime || '17:30', location: P.location || 'Gym',
       equipment: [...(P.equipment || [])], priorities: [...(P.priorities || [])],
-      kcal: P.kcal, protein: w != null ? Math.round(w * 2.20462) : P.protein, carbs: P.carbs, fat: P.fat, meals: P.mealsPerDay, dietPrefs: [...(P.dietPrefs || [])],
+      kcal: P.kcal, protein: w != null ? Math.round(w * 2.20462) : P.protein, carbs: P.carbs, fat: P.fat, rest: P.restTargets ? { ...P.restTargets } : null, meals: P.mealsPerDay, dietPrefs: [...(P.dietPrefs || [])],
       allergies: (P.allergies || []).join(', '), exclude: (P.exclude || []).join(', '),
       checkInDay: Number(P.checkInDay) || 0, checkInFreq: P.checkInFreq || 'Weekly', remLead: 120, weighTime: '07:15', quietStart: P.quietStart || '22:00', quietEnd: P.quietEnd || '07:00',
     };
@@ -66,7 +66,7 @@ export default function OnboardingScreen() {
 
   // estimates — Mifflin-St Jeor via RG.bmr / RG.tdee, on a metric copy of the draft
   const kg = d.weight != null ? RG.toKg(d.weight) : null; const cm = d.height != null ? RG.toCm(d.height) : null;
-  const est: Profile = { ...P, weightKg: kg, heightCm: cm, age: d.age, sex: d.sex, activity: d.activity, kcal: d.kcal || 0 };
+  const est: Profile = { ...P, weightKg: kg, heightCm: cm, age: d.age, sex: d.sex, activity: d.activity, kcal: d.kcal || 0, restTargets: d.rest?.kcal ? { kcal: d.rest.kcal, protein: d.rest.protein ?? 0, carbs: d.rest.carbs ?? 0, fat: d.rest.fat ?? 0 } : null };
   const bmr = RG.bmr(est); const tdee = RG.tdee(est); const floor = RG.calorieFloor(est);
   const adj = ADJ[d.goal] || 0;
   const sugg = tdee && kg ? (() => {
@@ -89,8 +89,13 @@ export default function OnboardingScreen() {
     ? `Estimated maintenance ≈ ${RG.num(tdee)} kcal (Mifflin-St Jeor × activity). For ${d.goal.toLowerCase()}: ${RG.num(sugg.sK)} kcal · ${sugg.sP} g protein · ${sugg.sC} g carbs · ${sugg.sF} g fat.${sugg.clamped ? ` Raised to your estimated minimum of ${RG.num(floor)} kcal — Regimen doesn't suggest targets below it.` : ''} This is an estimate, not medical advice.`
     : 'Add your weight, height and age (step 2) to get a Mifflin-St Jeor estimate, or enter your own targets below. Estimates are not medical advice.';
   const mk = (d.protein || 0) * 4 + (d.carbs || 0) * 4 + (d.fat || 0) * 9;
+  const mkR = d.rest ? (d.rest.protein || 0) * 4 + (d.rest.carbs || 0) * 4 + (d.rest.fat || 0) * 9 : 0;
+  const setRest = (k: 'kcal' | 'protein' | 'carbs' | 'fat') => (v: number | null) => setDraft(x => (x.rest ? { ...x, rest: { ...x.rest, [k]: v } } : x));
+  const toggleRest = (on: boolean) => setDraft(x => ({ ...x, rest: on ? { kcal: x.kcal, protein: x.protein, carbs: x.carbs, fat: x.fat } : null }));
+  const lowT = !!d.kcal && d.kcal < floor, lowR = !!d.rest?.kcal && d.rest.kcal < floor;
+  const lowWhat = !d.rest ? `${RG.num(d.kcal || 0)} kcal is` : lowT && lowR ? `Training-day (${RG.num(d.kcal || 0)} kcal) and rest-day (${RG.num(d.rest.kcal || 0)} kcal) targets are` : lowR ? `The rest-day target of ${RG.num(d.rest.kcal || 0)} kcal is` : `The training-day target of ${RG.num(d.kcal || 0)} kcal is`;
   const lowWarn = d.kcal && RG.lowCalorie(est)
-    ? `${RG.num(d.kcal)} kcal is below ${bmr ? `the estimated resting need (${RG.num(bmr)} kcal) or ` : ''}a common minimum (${d.sex === 'Male' ? '1,500' : '1,200'} kcal). Regimen won't set targets this low by default; consider a smaller deficit or talk to a qualified professional.` : '';
+    ? `${lowWhat} below ${bmr ? `the estimated resting need (${RG.num(bmr)} kcal) or ` : ''}a common minimum (${d.sex === 'Male' ? '1,500' : '1,200'} kcal). Regimen won't set targets this low by default; consider a smaller deficit or talk to a qualified professional.` : '';
 
   const setUnits = (u: 'metric' | 'imperial') => {
     if (u === P.units) return;
@@ -116,7 +121,8 @@ export default function OnboardingScreen() {
         sex: d.sex, activity: d.activity, experience: d.experience,
         trainingDays: d.trainingDays.slice().sort((a, b) => a - b), restDays: [0, 1, 2, 3, 4, 5, 6].filter(x => !d.trainingDays.includes(x)),
         duration: d.duration || 60, workoutTime: d.workoutTime, location: d.location, equipment: d.equipment, priorities: d.priorities,
-        kcal: d.kcal || p.kcal, protein: d.protein ?? p.protein, carbs: d.carbs ?? p.carbs, fat: d.fat ?? p.fat, mealsPerDay: meals, dietPrefs: d.dietPrefs,
+        kcal: d.kcal || p.kcal, protein: d.protein ?? p.protein, carbs: d.carbs ?? p.carbs, fat: d.fat ?? p.fat, mealsPerDay: meals,
+        restTargets: d.rest ? { kcal: d.rest.kcal || d.kcal || p.kcal, protein: d.rest.protein ?? d.protein ?? p.protein, carbs: d.rest.carbs ?? d.carbs ?? p.carbs, fat: d.rest.fat ?? d.fat ?? p.fat } : null, dietPrefs: d.dietPrefs,
         allergies: csv(d.allergies), exclude: csv(d.exclude), checkInDay: d.checkInDay, checkInFreq: d.checkInFreq, quietStart: d.quietStart, quietEnd: d.quietEnd, onboarded: true,
       } satisfies Partial<Profile>);
       (['training', 'rest'] as const).forEach(t => { while (s.mealSlots[t].length < meals) s.mealSlots[t].push({ name: 'Meal ' + (s.mealSlots[t].length + 1), label: 'Snack', time: '' }); });
@@ -143,7 +149,8 @@ export default function OnboardingScreen() {
     ['Body', `${d.weight ?? '—'} ${wu} → ${d.goalWeight ?? '—'} ${wu} · ${d.height ?? '—'} ${lu} · ${d.age ?? '—'} y · ${d.sex}`],
     ['Training', `${d.trainingDays.slice().sort((a, b) => a - b).map(i => RG.DN[i]).join(', ') || '—'} · ${d.duration ?? '—'} min at ${d.workoutTime} · ${d.location}`],
     ['Equipment', d.equipment.join(', ') || '—'], ['Priorities', d.priorities.join(', ') || '—'],
-    ['Targets', `${RG.num(d.kcal || 0)} kcal · ${d.protein ?? 0} P · ${d.carbs ?? 0} C · ${d.fat ?? 0} F · ${d.meals ?? '—'} meals`],
+    ['Targets', `${d.rest ? 'Training days: ' : ''}${RG.num(d.kcal || 0)} kcal · ${d.protein ?? 0} P · ${d.carbs ?? 0} C · ${d.fat ?? 0} F · ${d.meals ?? '—'} meals`],
+    ...(d.rest ? [['Rest-day targets', `${RG.num(d.rest.kcal || d.kcal || 0)} kcal · ${d.rest.protein ?? 0} P · ${d.rest.carbs ?? 0} C · ${d.rest.fat ?? 0} F`] as [string, string]] : []),
     ['Diet', [d.dietPrefs.join(', '), d.allergies && 'allergies: ' + d.allergies, d.exclude && 'exclude: ' + d.exclude].filter(Boolean).join(' · ') || 'No restrictions'],
     ['Check-ins', `${d.checkInFreq} on ${RG.DFULL[d.checkInDay]}`],
     ['Workout reminder', d.remLead ? `${d.remLead >= 60 ? d.remLead / 60 + ' h' : d.remLead + ' min'} before (${hm(toMin(d.workoutTime) - d.remLead)})` : 'Off'],
@@ -243,6 +250,21 @@ export default function OnboardingScreen() {
               <Field label="Meals per day"><NumInput value={d.meals} onValue={set('meals')} {...big} /></Field>
             </Grid>
             <T size={12} color={C.n400}>{`Macros add up to ${RG.num(mk)} kcal (${mk - (d.kcal || 0) >= 0 ? '+' : ''}${RG.num(mk - (d.kcal || 0))} vs calorie target). Small gaps are normal rounding.`}</T>
+            <View style={{ gap: 10, paddingVertical: 10, paddingHorizontal: 12, borderRadius: R.md, boxShadow: `inset 0 0 0 1px ${C.n800}` }}>
+              <Check checked={!!d.rest} onChange={toggleRest} label="Different targets on rest days (optional)" />
+              {d.rest ? (
+                <>
+                  <Muted>The boxes above are for training days. Enter what you want to eat on rest days.</Muted>
+                  <Grid min={140} gap={12}>
+                    <Field label="Rest-day calories"><NumInput value={d.rest.kcal} onValue={setRest('kcal')} {...big} /></Field>
+                    <Field label="Protein (g)"><NumInput value={d.rest.protein} onValue={setRest('protein')} {...big} /></Field>
+                    <Field label="Carbohydrates (g)"><NumInput value={d.rest.carbs} onValue={setRest('carbs')} {...big} /></Field>
+                    <Field label="Fat (g)"><NumInput value={d.rest.fat} onValue={setRest('fat')} {...big} /></Field>
+                  </Grid>
+                  <T size={12} color={C.n400}>{`Rest-day macros add up to ${RG.num(mkR)} kcal (${mkR - (d.rest.kcal || 0) >= 0 ? '+' : ''}${RG.num(mkR - (d.rest.kcal || 0))} vs rest-day calorie target).`}</T>
+                </>
+              ) : <Muted>Off: rest days use the same targets. You can change this later in Settings → Nutrition.</Muted>}
+            </View>
             {!!lowWarn && (
               <Row gap={8} align="flex-start" style={{ paddingVertical: 10, paddingHorizontal: 12, borderRadius: R.md, boxShadow: `inset 0 0 0 1px ${C.a700}` }}>
                 <Icon name="warning" size={16} color={C.accent} style={{ marginTop: 2 }} />

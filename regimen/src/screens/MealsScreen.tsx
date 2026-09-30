@@ -59,7 +59,7 @@ export default function MealsScreen() {
   }, [qq]);
 
   const S = RG.s, P = S.profile; const date = dateSt || RG.TODAY; const day = RG.getDay(date);
-  const tgs = RG.mealTargets(day.type); const n = tgs.length;
+  const tgs = RG.mealTargets(day.type); const n = tgs.length; const DT = RG.dayTargets(day.type);
   const mi = Math.max(0, Math.min(mealSt, Math.min(day.meals.length, n) - 1)); const meal: Meal | undefined = day.meals[mi]; const tg = tgs[mi];
   const upM = (fn: (m: Meal, d: DayPlan) => void) => RG.update(s => { const d = s.days[date]; if (d && d.meals[mi]) fn(d.meals[mi], d); });
   const mode = S.distribution.mode;
@@ -68,12 +68,12 @@ export default function MealsScreen() {
   const pctSum = RG.sum(S.distribution.custom.slice(0, n));
   const ensureManual = (s: State) => { if (!s.distribution.manual || s.distribution.manual.length !== n) s.distribution.manual = tgs.map(t => ({ p: t.p, c: t.c, f: t.f })); };
   const setManual = (i: number, k: 'p' | 'c' | 'f', v: number | null) => RG.update(s => { ensureManual(s); s.distribution.manual![i][k] = v ?? 0; });
-  const off = (['p', 'c', 'f'] as const).map(k => sumOf(k) - ({ p: P.protein, c: P.carbs, f: P.fat })[k]);
-  const macroKcal = sumOf('kcal'); const dk = macroKcal - P.kcal;
+  const off = (['p', 'c', 'f'] as const).map(k => sumOf(k) - ({ p: DT.protein, c: DT.carbs, f: DT.fat })[k]);
+  const macroKcal = sumOf('kcal'); const dk = macroKcal - DT.kcal;
   const reconcileNote = mode === 'manual' ? (off.every(x => x === 0) ? 'Your per-meal targets add up exactly to the daily target.' : `Per-meal targets differ from the daily target by ${off.map((x, i) => `${['P', 'C', 'F'][i]} ${x > 0 ? '+' : ''}${x} g`).join(', ')}. Adjust a meal to reconcile.`)
     : mode === 'custom' && pctSum !== 100 ? `Shares add up to ${pctSum}%. Grams are still scaled so meals sum to the daily target; set shares to 100% to make that explicit.`
-    : `Meal grams are whole numbers. Rounding remainders go to the meals with the largest fractions, so every column adds up exactly to the daily target. kcal is calculated from macros (4/4/9), so it can differ slightly from the ${RG.num(P.kcal)} kcal target.`;
-  const kcalNote = Math.abs(dk) > 0 ? ` Your macros add up to ${RG.num(macroKcal)} kcal, ${RG.num(Math.abs(dk))} kcal ${dk > 0 ? 'above' : 'below'} the ${RG.num(P.kcal)} kcal calorie target.` : '';
+    : `Meal grams are whole numbers. Rounding remainders go to the meals with the largest fractions, so every column adds up exactly to the daily target. kcal is calculated from macros (4/4/9), so it can differ slightly from the ${RG.num(DT.kcal)} kcal target.`;
+  const kcalNote = Math.abs(dk) > 0 ? ` Your macros add up to ${RG.num(macroKcal)} kcal, ${RG.num(Math.abs(dk))} kcal ${dk > 0 ? 'above' : 'below'} the ${RG.num(DT.kcal)} kcal calorie target.` : '';
   const isCustom = mode === 'custom', isManual = mode === 'manual';
 
   // food rows
@@ -163,14 +163,14 @@ export default function MealsScreen() {
             <TRow>
               <Cell flex={2.2}><T size={14} w={500}>Sum of meals</T></Cell>
               {isCustom && <Cell><T size={14} w={500} tab color={pctSum === 100 ? C.text : C.a300}>{pctSum}%</T></Cell>}
-              {([['p', P.protein], ['c', P.carbs], ['f', P.fat]] as const).map(([k, d]) => { const c = sumCell(k, d); return <Cell key={k}><T size={14} w={500} tab color={c.color}>{c.v}</T></Cell>; })}
+              {([['p', DT.protein], ['c', DT.carbs], ['f', DT.fat]] as const).map(([k, d]) => { const c = sumCell(k, d); return <Cell key={k}><T size={14} w={500} tab color={c.color}>{c.v}</T></Cell>; })}
               <Cell><T size={14} tab color={dk ? C.a300 : C.n400}>{RG.num(macroKcal)}</T></Cell>
             </TRow>
             <TRow>
-              <Cell flex={2.2}><T size={14} color={C.n500}>Daily target</T></Cell>
+              <Cell flex={2.2}><T size={14} color={C.n500}>Daily target</T>{!!P.restTargets && <Muted size={11}>{day.type === 'rest' ? 'Rest day targets' : 'Training day targets'}</Muted>}</Cell>
               {isCustom && <Cell><T size={14} color={C.n500}>100%</T></Cell>}
-              <Cell><T size={14} tab color={C.n500}>{P.protein}</T></Cell><Cell><T size={14} tab color={C.n500}>{P.carbs}</T></Cell><Cell><T size={14} tab color={C.n500}>{P.fat}</T></Cell>
-              <Cell><T size={14} tab color={C.n500}>{RG.num(P.kcal)}</T></Cell>
+              <Cell><T size={14} tab color={C.n500}>{DT.protein}</T></Cell><Cell><T size={14} tab color={C.n500}>{DT.carbs}</T></Cell><Cell><T size={14} tab color={C.n500}>{DT.fat}</T></Cell>
+              <Cell><T size={14} tab color={C.n500}>{RG.num(DT.kcal)}</T></Cell>
             </TRow>
           </View>
         </ScrollView>

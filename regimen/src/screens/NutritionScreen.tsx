@@ -13,9 +13,10 @@ export default function NutritionScreen() {
   const [dateSt, setDate] = useState<string | null>(null);
   const S = RG.s, P = S.profile; const date = dateSt || RG.TODAY;
   const day = RG.getDay(date); const tot = RG.dayTotals(date); const tgs = RG.mealTargets(day.type);
+  const DT = RG.dayTargets(date); const tLabel = day.type === 'rest' ? (P.restTargets ? 'Rest day targets' : 'Rest day targets (same as training days)') : 'Training day targets';
   const up = (fn: (d: DayPlan) => void) => RG.update(s => fn(s.days[date]));
 
-  const cards = ([['Calories', P.kcal, tot.planned.kcal, tot.logged.kcal, 'kcal'], ['Protein', P.protein, tot.planned.p, tot.logged.p, 'g'], ['Carbohydrates', P.carbs, tot.planned.c, tot.logged.c, 'g'], ['Fat', P.fat, tot.planned.f, tot.logged.f, 'g']] as [string, number, number, number, string][])
+  const cards = ([['Calories', DT.kcal, tot.planned.kcal, tot.logged.kcal, 'kcal'], ['Protein', DT.protein, tot.planned.p, tot.logged.p, 'g'], ['Carbohydrates', DT.carbs, tot.planned.c, tot.logged.c, 'g'], ['Fat', DT.fat, tot.planned.f, tot.logged.f, 'g']] as [string, number, number, number, string][])
     .map(([k, t, pl, lg, u]) => ({ k, target: `${RG.num(t)} ${u}`, remaining: RG.num(Math.abs(t - lg)), remLabel: (u === 'g' ? 'g ' : 'kcal ') + (t - lg >= 0 ? 'remaining' : 'over'), logged: RG.num(lg), planned: RG.num(pl), pl: t ? pl / t * 100 : 0, lg: t ? lg / t * 100 : 0 }));
 
   const meals = day.meals.map((m, i) => {
@@ -23,7 +24,7 @@ export default function NutritionScreen() {
     return { key: m.key, i, name: t.name, label: t.label, time: t.time, macro: `${RG.num(sm.kcal)} kcal · ${Math.round(sm.p)}P ${Math.round(sm.c)}C ${Math.round(sm.f)}F`, target: `${t.p}/${t.c}/${t.f}`, prepped: m.prepped, logged: m.logged };
   });
   const wt = P.waterMl || 1, wv = day.water || 0;
-  const diffK = tot.planned.kcal - P.kcal;
+  const diffK = tot.planned.kcal - DT.kcal;
   const narrow = width < 520;
 
   return (
@@ -31,7 +32,7 @@ export default function NutritionScreen() {
       {/* header */}
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 12, flexWrap: 'wrap' }}>
         <View style={{ marginRight: 'auto' }}>
-          <Muted>{`${day.type === 'training' ? 'Training day' : 'Rest day'} · ${tgs.length} meals`}</Muted>
+          <Muted>{`${day.type === 'training' ? 'Training day' : 'Rest day'} · ${tgs.length} meals · ${tLabel}`}</Muted>
           <H size={28} style={{ marginTop: 2 }}>Nutrition Dashboard</H>
         </View>
         <Row gap={4}>
@@ -94,7 +95,7 @@ export default function NutritionScreen() {
           <Card gap={8}>
             <CardTitle>Planned vs logged</CardTitle>
             <T size={13} color={C.n300}>Planned is what's in today's meal plan. Logged counts only meals you've marked as eaten. Remaining = target − logged.</T>
-            <Muted>{`Today's plan comes to ${RG.num(tot.planned.kcal)} kcal, ${Math.abs(Math.round(diffK))} kcal ${diffK >= 0 ? 'above' : 'below'} your calorie target, because portions are rounded to 5 g and targets are calculated from macros.`}</Muted>
+            <Muted>{`${date === RG.TODAY ? "Today's" : 'This day\'s'} plan comes to ${RG.num(tot.planned.kcal)} kcal, ${Math.abs(Math.round(diffK))} kcal ${diffK >= 0 ? 'above' : 'below'} your calorie target, because portions are rounded to 5 g and targets are calculated from macros.`}</Muted>
             <NotMedical />
             <Row gap={6} wrap>
               <Btn variant="ghost" icon="cooking-pot" title="Meal-prep calculator" onPress={() => RG.go('prep')} />
