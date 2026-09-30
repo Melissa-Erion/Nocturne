@@ -15,6 +15,7 @@ import { BellIcon } from 'phosphor-react-native/src/icons/Bell';
 import { BookOpenIcon } from 'phosphor-react-native/src/icons/BookOpen';
 import { CalculatorIcon } from 'phosphor-react-native/src/icons/Calculator';
 import { CalendarBlankIcon } from 'phosphor-react-native/src/icons/CalendarBlank';
+import { CalendarCheckIcon } from 'phosphor-react-native/src/icons/CalendarCheck';
 import { CalendarDotsIcon } from 'phosphor-react-native/src/icons/CalendarDots';
 import { CalendarPlusIcon } from 'phosphor-react-native/src/icons/CalendarPlus';
 import { CameraIcon } from 'phosphor-react-native/src/icons/Camera';
@@ -108,6 +109,7 @@ export const ICONS = {
   'book-open': BookOpenIcon,
   'calculator': CalculatorIcon,
   'calendar-blank': CalendarBlankIcon,
+  'calendar-check': CalendarCheckIcon,
   'calendar-dots': CalendarDotsIcon,
   'calendar-plus': CalendarPlusIcon,
   'camera': CameraIcon,

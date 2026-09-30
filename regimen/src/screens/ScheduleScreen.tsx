@@ -4,13 +4,13 @@ import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Animated, PanResponder, Platform, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Line } from 'react-native-svg';
 import { requestCalendarPermission } from '@/lib/calendar';
-import { saveTextFile } from '@/lib/files';
 import { useRG } from '@/store/rg';
 import { useUI } from '@/store/store';
 import type { EntryStatus, ScheduleEntry } from '@/domain/types';
 import type { IconName } from '@/ui/icons';
 import { Btn, Card, CardTitle, Check, Chip, Dialog, Field, Grid, H, Icon, Kicker, Muted, Row, Seg, T, Tag, Tap, useLayout } from '@/ui/kit';
 import { alpha, C, R } from '@/ui/theme';
+import { CalendarSyncDialog } from './CalendarSync';
 import { DateField } from './schedule/DateField';
 import { Screen } from './Shell';
 
@@ -61,6 +61,7 @@ export default function ScheduleScreen() {
   const [swapFrom, setSwapFrom] = useState<string | null>(null);
   const [dlgPause, setDlgPause] = useState(false);
   const [dlgReset, setDlgReset] = useState(false);
+  const [dlgCal, setDlgCal] = useState(false);
   const undoLabel = useUI(u => u.undoLabel);
   const [reason, setReason] = useState('Travel');
   const [pFrom, setPFrom] = useState(''); const [pTo, setPTo] = useState('');
@@ -151,11 +152,7 @@ export default function ScheduleScreen() {
       if (!ok) return RG.toast('Calendar access was not granted. Allow it in system settings to show workouts in your main calendar.');
     }
     RG.update(s => { s.profile.calendarSync = on; });
-    RG.toast(on ? (Platform.OS === 'web' ? 'Workouts will show in your main calendar on your phone. On the web, use Export .ics.' : 'Workouts now show in your main calendar.') : 'Removed from the main calendar.');
-  };
-  const exportIcs = async () => {
-    try { await saveTextFile('regimen-schedule.ics', RG.icsExport(), 'text/calendar'); RG.toast('Calendar file downloaded — import it into any calendar app.'); }
-    catch { RG.toast('Could not export the calendar file.'); }
+    RG.toast(on ? 'Workouts now show in your phone’s calendar.' : 'Removed from your phone’s calendar.');
   };
   const doMove = () => { if (!sel || !moveDate) return; const r = RG.moveEntry(sel.id, moveDate); close(); moveToast(r, moveDate); };
   const doReschedule = () => { if (!sel || !moveDate) return; if (sel.status === 'skipped') RG.restoreEntry(sel.id); RG.rescheduleMissed(sel.id, moveDate); close(); RG.toast(`Rescheduled to ${RG.fmtD(moveDate)}.`); };
@@ -195,7 +192,7 @@ export default function ScheduleScreen() {
           {pause
             ? <Btn variant="primary" icon="play" title="Resume schedule" onPress={() => { RG.resume(); RG.toast('Schedule resumed. Rotation continues in order.'); }} />
             : <Btn icon="pause" title="Pause schedule" onPress={() => { setPFrom(T0); setPTo(''); setDlgPause(true); }} />}
-          <Btn icon="calendar-plus" title="Export .ics" onPress={exportIcs} />
+          <Btn icon="calendar-check" title="Sync to calendar" onPress={() => setDlgCal(true)} />
           {undoLabel && <Btn icon="arrow-counter-clockwise" title={`Undo ${undoLabel}`} onPress={RG.undo} />}
           <Btn icon="arrows-clockwise" title="Reset schedule" onPress={() => setDlgReset(true)} />
         </View>
@@ -203,7 +200,7 @@ export default function ScheduleScreen() {
         <Row gap={18} wrap>
           <T size={15}>{rangeLabel}</T>
           <Check checked={P.shiftLater} onChange={() => RG.update(s => { s.profile.shiftLater = !s.profile.shiftLater; })} label={<T size={13} color={C.n400}>Shift later workouts</T>} />
-          <Check checked={P.calendarSync} onChange={toggleSync} label={<T size={13} color={C.n400}>Show in main calendar</T>} />
+          {Platform.OS !== 'web' && <Check checked={P.calendarSync} onChange={toggleSync} label={<T size={13} color={C.n400}>Show in this phone's calendar</T>} />}
           <Row gap={12} wrap style={{ marginLeft: 'auto' }}>
             {legend.map(([ic, l, f, col]) => <Row key={l} gap={4}><Icon name={ic} fill={f} size={12} color={col || C.n400} /><T size={11} color={C.n400}>{l}</T></Row>)}
           </Row>
@@ -404,6 +401,7 @@ export default function ScheduleScreen() {
         </Dialog>
 
         {/* reset */}
+        <CalendarSyncDialog open={dlgCal} onClose={() => setDlgCal(false)} />
         <Dialog open={dlgReset} onClose={() => setDlgReset(false)} title="Reset schedule?"
           actions={<><Btn title="Cancel" onPress={() => setDlgReset(false)} /><Btn variant="primary" icon="arrows-clockwise" title="Reset schedule" onPress={doReset} /></>}>
           <T size={14} color={alpha(C.text, 0.85)}>{`This rebuilds all upcoming workouts, from today on, using the rotation of your current plan (${plan.name}).`}</T>

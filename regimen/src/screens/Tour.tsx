@@ -21,13 +21,13 @@ const STEPS: Step[] = [
     body: () => 'A one-minute tour of where everything is. You can skip it now and replay it anytime from Fitness Settings or the menu.' },
   { icon: 'list', title: 'Getting around',
     body: w => w
-      ? 'Every section is in the menu on the left: Training, Progress, Nutrition and your Account. A Back button appears at the top when you can go back.'
+      ? 'Every section is in the menu on the left: Training, Progress, Nutrition and your Account.'
       : 'Tap ☰ at the top left to open the menu with every section. The ← arrow next to it takes you back to the previous screen.' },
   { route: 'dashboard', icon: 'house', title: 'Fitness Dashboard: your day',
     body: () => 'Start here each day: today’s workout, your calories and macros, your meals (tap Log when you eat one), your weight trend and this week at a glance.',
     where: w => menu(w, 'Fitness Dashboard') },
   { route: 'schedule', icon: 'calendar-blank', title: 'My Schedule',
-    body: () => 'Your workouts are placed on your training days automatically. Tap a workout to move, skip or reschedule it. Undo reverses your last change, and Reset schedule rebuilds it from your plan.',
+    body: () => 'Your workouts are placed on your training days automatically. Tap a workout to move, skip or reschedule it. Undo reverses your last change, Reset schedule rebuilds it from your plan, and Sync to calendar adds your workouts to Google Calendar, Outlook or Apple Calendar.',
     where: w => menu(w, 'My Schedule') },
   { route: 'workout', icon: 'barbell', title: 'Doing a workout',
     body: () => 'Press Start workout on the dashboard or schedule. Log each set, follow the rest timer, swap an exercise if you need to, and pause if you’re interrupted. Your next session’s weights and reps are worked out for you.',

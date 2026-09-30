@@ -14,6 +14,8 @@ import { C, R } from '@/ui/theme';
 import { Grid, Pick, Table, TimeInput } from './prep/ui';
 import { Screen } from './Shell';
 import { RemoveSampleButton } from './SampleData';
+import { useAccess } from '@/store/access';
+import { CalendarSyncDialog } from './CalendarSync';
 import { startTour } from './Tour';
 
 type Tab = 'profile' | 'training' | 'nutrition' | 'reminders' | 'motivation' | 'data';
@@ -37,6 +39,8 @@ export default function SettingsScreen() {
   const [del, setDel] = useState<Partial<Record<DelKind, boolean>>>({});
   const [delText, setDelText] = useState('');
   const [confirmReset, setConfirmReset] = useState(false);
+  const [dlgCal, setDlgCal] = useState(false);
+  const access = useAccess();
   const [allergies, setAllergies] = useState<string | null>(null);
   const [exclude, setExclude] = useState<string | null>(null);
 
@@ -63,7 +67,6 @@ export default function SettingsScreen() {
   };
   const toggleCalendar = async () => {
     if (P.calendarSync) return up(p => { p.calendarSync = false; });
-    if (Platform.OS === 'web') { up(p => { p.calendarSync = true; }); return RG.toast('On the web, add workouts to your calendar with the .ics export in My Schedule. Device sync runs in the mobile app.'); }
     const ok = await requestCalendarPermission();
     if (!ok) return RG.toast('Calendar access was not granted. You can allow it in your device settings.');
     up(p => { p.calendarSync = true; }); RG.toast('Workouts will appear in a "Regimen" calendar on this device.');
@@ -170,7 +173,10 @@ export default function SettingsScreen() {
               </Grid>
             </Field>
             <Check checked={P.shiftLater} onChange={v => up(p => { p.shiftLater = v; })} label="When a workout moves, shift later workouts to keep the order" />
-            <Check checked={P.calendarSync} onChange={toggleCalendar} label="Show workouts in the main calendar" />
+            {Platform.OS !== 'web' && <Check checked={P.calendarSync} onChange={toggleCalendar} label="Show workouts in this phone's calendar" />}
+            <Row gap={10} wrap>
+              <Btn icon="calendar-check" title="Sync to Google, Outlook or Apple Calendar" onPress={() => (access.full ? setDlgCal(true) : RG.go('schedule'))} />
+            </Row>
           </Card>
         )}
 
@@ -340,6 +346,7 @@ export default function SettingsScreen() {
         )}
       </View>
 
+      <CalendarSyncDialog open={dlgCal} onClose={() => setDlgCal(false)} />
       <Dialog open={confirmReset} onClose={() => setConfirmReset(false)} title="Restore sample data?"
         body={mode === 'cloud' ? 'Replace everything with the sample data? Your current data and photos in your account will be lost.' : 'Replace everything with the sample data? Your current data and photos on this device will be lost.'}
         actions={<><Btn title="Cancel" onPress={() => setConfirmReset(false)} /><Btn variant="primary" icon="arrow-counter-clockwise" title="Replace with sample data" onPress={resetDemo} /></>} />
