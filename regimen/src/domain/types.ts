@@ -255,6 +255,8 @@ export interface Profile {
   workoutTime: string;
   quoteTone: string;
   onboarded: boolean;
+  /** The guided app tour was finished or skipped. */
+  tourDone?: boolean;
   startDate: ISODate;
 }
 

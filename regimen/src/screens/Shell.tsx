@@ -13,6 +13,7 @@ import { alpha, C, MAX_W, SHADOW } from '@/ui/theme';
 import { SampleBanner } from './SampleData';
 import { useAccess } from '@/store/access';
 import { FEATURE, TRIAL_DAYS } from '@/lib/plans';
+import { startTour, Tour, useAutoTour } from './Tour';
 import { Paywall } from './UpgradeScreen';
 
 type PState = PressableStateCallbackType & { hovered?: boolean };
@@ -43,6 +44,9 @@ export function Shell({ children }: { children: ReactNode }) {
   const wk = active && RGx.workout(active.workoutId, active.planId);
   const onboarding = route === 'onboarding';
   const access = useAccess();
+  useAutoTour(route);
+  const tourOpen = useUI(u => u.tourOpen);
+  useEffect(() => { if (tourOpen) setMenu(false); }, [tourOpen]);
 
   // In-app history for the Back button. Browser back (web) is recognised and pops instead of pushing.
   const [hist, setHist] = useState<string[]>([]);
@@ -108,6 +112,8 @@ export function Shell({ children }: { children: ReactNode }) {
             </ScrollView>
           </View>
         </Modal>
+
+        {!onboarding && <Tour />}
 
         <Dialog open={!!lockPrompt} onClose={closeLock}
           title={<>{lockedFeature?.title || 'This feature'} is part of Regimen Pro</>}
@@ -188,6 +194,7 @@ function SidebarFooter() {
           <Btn variant="ghost" size="sm" icon="sign-out" title="Sign out" onPress={() => { signOut(); }} style={{ alignSelf: 'flex-start' }} color={C.n400} />
         </View>
       )}
+      <Btn variant="ghost" size="sm" icon="compass" title="App tour" onPress={startTour} style={{ alignSelf: 'flex-start' }} color={C.n400} />
       <View style={{ flexDirection: 'row', gap: 6 }}>
         <Icon name="lock-simple" size={12} color={C.n600} style={{ marginTop: 2 }} />
         <Muted size={11} color={C.n600} style={{ flex: 1 }}>{mode === 'cloud' ? 'Check-ins, measurements and photos are private to your account.' : 'Check-ins, measurements and photos are private and stay on this device.'}</Muted>
