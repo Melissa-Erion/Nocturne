@@ -27,7 +27,8 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Use POST" }, 405);
   if (role(req) !== "authenticated") return json({ error: "Sign in to search foods" }, 401);
 
-  const key = Deno.env.get("USDA_API_KEY");
+  // Tolerate stray spaces or quotes around the pasted key.
+  const key = (Deno.env.get("USDA_API_KEY") || "").trim().replace(/^["']+|["']+$/g, "");
   if (!key) return json({ error: "Food search is not set up yet (USDA_API_KEY secret missing)." }, 503);
 
   let query = "", limit = 15;
@@ -50,7 +51,10 @@ Deno.serve(async (req) => {
 
   const url = `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${encodeURIComponent(key)}&query=${encodeURIComponent(query)}&pageSize=${limit}&dataType=Foundation,SR%20Legacy,Branded`;
   const r = await fetch(url);
-  if (!r.ok) return json({ error: `USDA search failed (${r.status})` }, 502);
+  if (!r.ok) {
+    console.error("USDA responded", r.status, (await r.text()).slice(0, 200));
+    return json({ error: r.status === 403 ? "USDA rejected the API key (403). Check the USDA_API_KEY secret." : `USDA search failed (${r.status})` }, 502);
+  }
   const j = await r.json() as { foods?: Record<string, unknown>[] };
   // Return only what the app uses.
   const foods = (j.foods || []).map(f => ({

@@ -49,7 +49,7 @@ export default function MealsScreen() {
   // live USDA search (debounced) alongside the local library
   const qq = q.trim();
   useEffect(() => {
-    if (!usdaEnabled() || qq.length < 2) { setUsda({ q: '', foods: [], loading: false, error: null }); return; }
+    if (!usdaEnabled() || qq.length < 3) { setUsda({ q: '', foods: [], loading: false, error: null }); return; }
     let live = true; setUsda(u => ({ ...u, loading: true, error: null }));
     const t = setTimeout(() => {
       searchUsda(qq, 8).then(foods => { if (live) setUsda({ q: qq, foods, loading: false, error: null }); })
@@ -98,7 +98,14 @@ export default function MealsScreen() {
     + (cooked && raw ? ' Mixed bases: weigh cooked items after cooking and raw items before.' : cooked ? ' Weigh these foods after cooking.' : raw ? ' Weigh these foods raw, before cooking.' : '');
 
   const ql = qq.toLowerCase();
-  const results = ql.length > 1 ? RG.allFoods().filter(f => f.name.toLowerCase().includes(ql) || f.cat.toLowerCase().includes(ql)).slice(0, 10) : [];
+  // Name matches first (starting with the text, then containing it); category matches only fill the rest.
+  const results = ql.length > 1 ? (() => {
+    const all = RG.allFoods(); const n = (f: Food) => f.name.toLowerCase();
+    const starts = all.filter(f => n(f).startsWith(ql) || n(f).split(/[\s,(-]+/).some(w => w.startsWith(ql)));
+    const has = all.filter(f => !starts.includes(f) && n(f).includes(ql));
+    const cat = all.filter(f => !starts.includes(f) && !has.includes(f) && f.cat.toLowerCase().includes(ql));
+    return [...starts, ...has, ...cat].slice(0, 10);
+  })() : [];
   const usdaRes = usda.q && usda.q.toLowerCase() === ql ? usda.foods : [];
   const showDrop = ql.length > 1 && (results.length > 0 || usdaEnabled());
   const addFood = (f: Food, fromUsda?: boolean) => {
@@ -263,9 +270,9 @@ export default function MealsScreen() {
                   {results.map(f => <FoodResult key={f.id} f={f} onPress={() => addFood(f)} />)}
                   {usdaEnabled() && (
                     <>
-                      <ColLabel style={{ paddingHorizontal: 10, paddingTop: 8, paddingBottom: 2 }}>{`USDA FoodData Central${usda.loading ? ' · searching…' : ''}`}</ColLabel>
-                      {usda.error ? <Muted style={{ paddingHorizontal: 10, paddingVertical: 6 }}>{usda.error}</Muted>
-                        : !usda.loading && !usdaRes.length ? <Muted style={{ paddingHorizontal: 10, paddingVertical: 6 }}>No USDA matches.</Muted> : null}
+                      <ColLabel style={{ paddingHorizontal: 10, paddingTop: 8, paddingBottom: 2 }}>{`USDA FoodData Central${usda.loading ? ' · searching…' : ql.length < 3 ? ' · type 3+ letters' : ''}`}</ColLabel>
+                      {usda.error ? <Muted style={{ paddingHorizontal: 10, paddingVertical: 6 }}>{`Online food search isn't available right now. The foods above still work. (${usda.error})`}</Muted>
+                        : !usda.loading && !usdaRes.length && ql.length >= 3 ? <Muted style={{ paddingHorizontal: 10, paddingVertical: 6 }}>No USDA matches.</Muted> : null}
                       {usdaRes.map(f => <FoodResult key={f.id} f={f} onPress={() => addFood(f, true)} />)}
                     </>
                   )}
