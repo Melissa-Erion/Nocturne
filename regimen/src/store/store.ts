@@ -8,6 +8,7 @@ import { newUserState, sampleState } from '@/domain/seed';
 import type { Ctx, State } from '@/domain/types';
 import { syncCalendar } from '@/lib/calendar';
 import { syncNotifications } from '@/lib/notifications';
+import { captureSource, saveSource } from '@/lib/attribution';
 import { currentAccess } from '@/lib/billing';
 import { hasFullAccess, type Subscription } from '@/lib/plans';
 import { supabase } from '@/lib/supabase';
@@ -162,11 +163,13 @@ async function loadFor(userId: string | null, email: string | null) {
   ensureFuture(ctx());
   useUI.setState({ phase: 'ready' });
   refreshSubscription();
+  if (userId) saveSource(userId);
   commit();
 }
 
 /** Boot: resolve the auth session and load data. Also re-loads on sign-in/sign-out. */
 export function boot() {
+  captureSource();
   if (!supabase) { loadFor(null, null); return; }
   supabase.auth.getSession().then(({ data }) => {
     const u = data.session?.user;

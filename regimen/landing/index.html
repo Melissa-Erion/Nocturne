@@ -519,6 +519,16 @@ footer a:hover { color: var(--text); }
 
 <script>
   document.getElementById('yr').textContent = new Date().getFullYear();
+  // Remember how this visitor found Regimen (e.g. ?utm_source=instagram). Saved to their account only if they sign up.
+  try {
+    if (!localStorage.getItem('regimen.src')) {
+      var q = new URLSearchParams(location.search), ref = null;
+      try { ref = document.referrer ? new URL(document.referrer).hostname : null; } catch (e) {}
+      if (ref === location.hostname) ref = null;
+      var utm = q.get('utm_source');
+      if (utm || ref) localStorage.setItem('regimen.src', JSON.stringify({ source: utm || ref, medium: q.get('utm_medium'), campaign: q.get('utm_campaign'), referrer: ref, landing: location.pathname, first_seen: new Date().toISOString() }));
+    }
+  } catch (e) {}
   // Returning users who are already signed in get "Open Regimen" instead of sign-up buttons.
   try {
     var signedIn = Object.keys(localStorage).some(function (k) { return /^sb-.*-auth-token$/.test(k); });
