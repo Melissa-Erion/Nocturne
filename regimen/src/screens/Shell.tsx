@@ -61,7 +61,7 @@ export function Shell({ children }: { children: ReactNode }) {
     <ShellCtx.Provider value={{ wide }}>
       <View style={{ flex: 1, flexDirection: 'row', backgroundColor: C.bg, paddingTop: wide ? insets.top : 0 }}>
         {wide && !onboarding && (
-          <LinearGradient colors={[C.sidebarTop, C.bg]} style={{ width: 236, paddingTop: 20, paddingBottom: 16 }}>
+          <LinearGradient colors={[C.sidebarTop, C.bg]} style={{ width: 236, paddingTop: 20, paddingBottom: 16, borderRightWidth: 1, borderRightColor: C.n800 }}>
             <ScrollView contentContainerStyle={{ gap: 18, paddingHorizontal: 14, flexGrow: 1 }}>
               <Brand />
               <NavList route={route} active={!!active} onGo={r => RG.go(r)} />
@@ -71,7 +71,7 @@ export function Shell({ children }: { children: ReactNode }) {
         )}
         <View style={{ flex: 1, minWidth: 0 }}>
           {!wide && (
-            <View style={{ paddingTop: insets.top, backgroundColor: alpha(C.bg, 0.92), zIndex: 20 }}>
+            <View style={{ paddingTop: insets.top, backgroundColor: alpha(C.bg, 0.92), zIndex: 20, borderBottomWidth: 1, borderBottomColor: C.n800 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 14 }}>
                 {canBack && <Btn variant="ghost" iconOnly icon="arrow-left" color={C.text} iconSize={22} label="Back" onPress={goBack} />}
                 {!onboarding && <Btn variant="ghost" iconOnly icon="list" color={C.text} iconSize={22} label="Menu" onPress={() => setMenu(true)} />}

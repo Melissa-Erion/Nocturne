@@ -85,7 +85,10 @@ export function Tour() {
 
   return (
     <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, top: 0, justifyContent: 'flex-end', alignItems: wide ? 'flex-end' : 'stretch', padding: wide ? 24 : 10, paddingBottom: (wide ? 24 : 10) + insets.bottom, zIndex: 70 }}>
-      <View accessibilityRole="alert" style={{ width: wide ? 420 : undefined, gap: 10, padding: 18, borderRadius: 12, backgroundColor: C.surface, borderWidth: 1, borderColor: alpha(C.accent, 0.5), boxShadow: SHADOW.lg }}>
+      {/* Dim the page a little so the tour card is clearly in front (the page stays visible behind it). */}
+      <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)' }} />
+      <View accessibilityRole="alert" style={{ width: wide ? 440 : undefined, gap: 10, padding: 18, borderRadius: 12, backgroundColor: '#2c2f45', borderWidth: 2, borderColor: C.accent, boxShadow: `0 0 0 5px ${alpha(C.accent, 0.18)}, 0 20px 50px rgba(0,0,0,0.7)` }}>
+        <Row gap={6}><Icon name="compass" size={13} color={C.a400} /><T size={11} color={C.a400} upper style={{ letterSpacing: 1 }}>App tour</T></Row>
         <Row gap={10}>
           <View style={{ width: 34, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: alpha(C.accent, 0.15) }}>
             <Icon name={step.icon} size={18} color={C.accent} />

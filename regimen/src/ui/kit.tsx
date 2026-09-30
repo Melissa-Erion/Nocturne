@@ -58,7 +58,8 @@ export interface BtnProps {
   size?: 'sm' | 'md' | 'lg'; iconOnly?: boolean; style?: StyleProp<ViewStyle>; color?: string; label?: string; iconSize?: number; block?: boolean;
 }
 export function Btn({ title, icon, iconFill, iconRight, onPress, variant = 'secondary', disabled, size = 'md', iconOnly, style, color, label, iconSize, block }: BtnProps) {
-  const fg = color || (variant === 'secondary' ? C.text : C.accent);
+  // Primary buttons are filled so the main action on each screen is easy to spot.
+  const fg = color || (variant === 'secondary' ? C.text : variant === 'primary' ? C.bg : C.accent);
   const fs = size === 'lg' ? 15 : size === 'sm' ? 12 : 14;
   return (
     <Pressable
@@ -66,7 +67,7 @@ export function Btn({ title, icon, iconFill, iconRight, onPress, variant = 'seco
       hitSlop={iconOnly ? 4 : { top: 7, bottom: 7, left: 2, right: 2 }}
       style={(st: PState) => [
         s.btn,
-        variant === 'primary' && { borderColor: C.accent },
+        variant === 'primary' && { borderColor: C.accent, backgroundColor: C.accent },
         variant === 'secondary' && { borderColor: C.divider },
         variant === 'ghost' && { paddingHorizontal: 2.8 + (title ? 3 : 0) },
         size === 'lg' && { paddingVertical: 10, paddingHorizontal: 18 },
@@ -74,7 +75,7 @@ export function Btn({ title, icon, iconFill, iconRight, onPress, variant = 'seco
         iconOnly && { width: 36, height: 36, paddingHorizontal: 0, paddingVertical: 0 },
         block && { alignSelf: 'stretch' },
         (st.hovered || st.pressed) && {
-          backgroundColor: variant === 'secondary' ? alpha(C.text, st.pressed ? 0.14 : 0.07) : alpha(C.accent, variant === 'primary' ? (st.pressed ? 0.22 : 0.12) : (st.pressed ? 0.18 : 0.1)),
+          backgroundColor: variant === 'primary' ? (st.pressed ? C.a600 : C.a400) : variant === 'secondary' ? alpha(C.text, st.pressed ? 0.14 : 0.07) : alpha(C.accent, st.pressed ? 0.18 : 0.1),
         },
         disabled && { opacity: 0.45 },
         focusRing(st), style,
