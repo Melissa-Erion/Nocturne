@@ -2,6 +2,7 @@
 import * as Linking from 'expo-linking';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { takeDeletedNotice } from '@/lib/account';
 import { signInWithGoogle, takeRedirectError } from '@/lib/auth';
 import { googleButtonAvailable, GoogleWebButton } from '@/lib/googleWeb';
 import { supabase } from '@/lib/supabase';
@@ -26,6 +27,7 @@ export default function AuthScreen() {
 
   // A failed or cancelled Google sign-in on web comes back with an error in the address bar.
   useEffect(() => { const e = takeRedirectError(); if (e) setMsg({ kind: 'err', text: e }); }, []);
+  useEffect(() => { takeDeletedNotice().then(d => { if (d) setMsg({ kind: 'ok', text: 'Your account and all of its data have been deleted.' }); }); }, []);
 
   async function google() {
     setMsg(null); setBusy(true);

@@ -9,6 +9,7 @@ import { useRG } from '@/store/rg';
 import { Btn, Card, Check, Field, H, Icon, Input, Muted, NotMedical, NumInput, Row, Rule, Seg, Select, T, Tap } from '@/ui/kit';
 import { alpha, C, R } from '@/ui/theme';
 import { Grid, Pick, TimeInput } from './prep/ui';
+import { HeightField } from './HeightField';
 import { Screen } from './Shell';
 import { useAccess } from '@/store/access';
 
@@ -139,6 +140,14 @@ export default function OnboardingScreen() {
     RG.regenerate(RG.TODAY); RG.go(full ? 'dashboard' : 'upgrade'); RG.toast(wasSample ? 'Setup saved. Sample data cleared — your history starts today.' : 'Setup saved. Future workouts rescheduled, history kept.', false);
   };
   const next = () => {
+    if (step === 2) {
+      if (d.age != null && d.age < 16) return RG.toast('Regimen is for people 16 and older.', false);
+      const wKg = d.weight == null ? null : RG.toKg(d.weight), hCm = d.height == null ? null : RG.toCm(d.height);
+      if (wKg == null || hCm == null || d.age == null) return RG.toast('Add your weight, height and age so your targets can be calculated.', false);
+      if (wKg < 30 || wKg > 300) return RG.toast('Check your weight: that number looks off.', false);
+      if (hCm < 120 || hCm > 230) return RG.toast('Check your height: that number looks off.', false);
+      if (d.age > 100) return RG.toast('Check your age: that number looks off.', false);
+    }
     if (step === 3 && !d.trainingDays.length) return RG.toast('Choose at least one training day.');
     if (step < 6) setStep(step + 1); else save();
   };
@@ -210,7 +219,7 @@ export default function OnboardingScreen() {
               <Field label="Name (optional)"><Input value={d.name} onChange={set('name')} {...big} placeholder="What should we call you?" autoComplete="given-name" /></Field>
               <Field label={`Current weight (${wu})`}><NumInput value={d.weight} onValue={setWeight} {...big} /></Field>
               <Field label={`Goal weight (${wu}, optional)`}><NumInput value={d.goalWeight} onValue={set('goalWeight')} {...big} /></Field>
-              <Field label={`Height (${lu})`}><NumInput value={d.height} onValue={set('height')} {...big} /></Field>
+              <HeightField value={d.height} onValue={set('height')} imperial={P.units === 'imperial'} {...big} />
               <Field label="Age"><NumInput value={d.age} onValue={v => setD({ age: v == null ? null : Math.round(v) })} {...big} /></Field>
               <Field label="Sex (for energy estimates)"><Select value={d.sex} options={['Female', 'Male', 'Prefer not to say']} onChange={set('sex')} height={44} title="Sex" /></Field>
               <Field label="Activity outside training"><Select value={d.activity} options={['Sedentary', 'Lightly active', 'Moderately active', 'Very active']} onChange={set('activity')} height={44} title="Activity outside training" /></Field>

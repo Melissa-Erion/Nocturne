@@ -14,18 +14,22 @@ const CORS = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
-function role(req: Request): string | null {
+const HOURLY_LIMIT = 120; // live USDA searches per user per hour (cached results don't count)
+
+/** Claims from the caller's JWT (already verified by the platform, verify_jwt = true). */
+function claims(req: Request): { role: string | null; sub: string | null } {
   const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
   try {
-    const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
-    return typeof payload.role === "string" ? payload.role : null;
-  } catch { return null; }
+    const p = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return { role: typeof p.role === "string" ? p.role : null, sub: typeof p.sub === "string" ? p.sub : null };
+  } catch { return { role: null, sub: null }; }
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "Use POST" }, 405);
-  if (role(req) !== "authenticated") return json({ error: "Sign in to search foods" }, 401);
+  const who = claims(req);
+  if (who.role !== "authenticated" || !who.sub) return json({ error: "Sign in to search foods" }, 401);
 
   // Tolerate stray spaces or quotes around the pasted key.
   const key = (Deno.env.get("USDA_API_KEY") || "").trim().replace(/^["']+|["']+$/g, "");
@@ -47,6 +51,15 @@ Deno.serve(async (req) => {
       const rows = c.ok ? await c.json() as { results: unknown }[] : [];
       if (rows.length) return json({ foods: rows[0].results, cached: true });
     } catch { /* cache miss on error */ }
+  }
+
+  // Fair use: count live USDA calls per user per hour.
+  if (SB && sbHeaders) {
+    try {
+      const u = await fetch(`${SB}/rest/v1/rpc/bump_usda_usage`, { method: "POST", headers: sbHeaders, body: JSON.stringify({ uid: who.sub }) });
+      const n = u.ok ? Number(await u.json()) : 0;
+      if (n > HOURLY_LIMIT) return json({ error: "You've searched a lot this hour. Try again in a little while." }, 429);
+    } catch { /* never block search because counting failed */ }
   }
 
   const url = `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${encodeURIComponent(key)}&query=${encodeURIComponent(query)}&pageSize=${limit}&dataType=Foundation,SR%20Legacy,Branded`;

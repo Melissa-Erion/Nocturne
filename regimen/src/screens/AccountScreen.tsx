@@ -2,6 +2,7 @@
 import type { User } from '@supabase/supabase-js';
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
 import { Linking, View } from 'react-native';
+import { deleteAccount } from '@/lib/account';
 import { authRedirect, friendlyAuthError } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { useRG } from '@/store/rg';
@@ -84,6 +85,11 @@ export default function AccountScreen() {
   const [resetBusy, setResetBusy] = useState(false);
 
   const [confirmOut, setConfirmOut] = useState(false);
+  const [delOpen, setDelOpen] = useState(false);
+  const [delText, setDelText] = useState('');
+  const [delBusy, setDelBusy] = useState(false);
+  const [delMsg, setDelMsg] = useState<Msg>(null);
+  const userId = useUI(u => u.userId);
   const [outBusy, setOutBusy] = useState(false);
 
   if (!cloud) {
@@ -268,12 +274,43 @@ export default function AccountScreen() {
               <Btn icon="credit-card" title="Manage or cancel subscription" onPress={() => Linking.openURL(manageUrl)} style={{ alignSelf: 'flex-start' }} />
             )}
           </Card>
+          <Card gap={12}>
+            <CardTitle>Help &amp; feedback</CardTitle>
+            <T size={14} color={C.n300}>Found a bug, have an idea, or need a hand? Email us and a real person will reply.</T>
+            <Row gap={8} wrap>
+              <Btn icon="envelope" title="Email support" onPress={() => Linking.openURL(`mailto:support@regimenfit.ca?subject=${encodeURIComponent('Regimen help')}&body=${encodeURIComponent(`\n\n—\nAccount: ${user?.email || ''}`)}`)} />
+              <Btn variant="ghost" title="Privacy policy" onPress={() => Linking.openURL('https://regimenfit.ca/privacy/')} />
+              <Btn variant="ghost" title="Terms" onPress={() => Linking.openURL('https://regimenfit.ca/terms/')} />
+            </Row>
+          </Card>
+
+          <Card gap={12}>
+            <CardTitle>Delete account</CardTitle>
+            <T size={14} color={C.n300}>Permanently deletes your account and everything in it: workouts, meals, check-ins, measurements and progress photos. This can't be undone. You can export your data first in Fitness Settings → Data &amp; privacy.</T>
+            {sub && (sub.status === 'active' || sub.status === 'trialing') && (
+              <Muted size={12}>You have an active subscription. Cancel it first with "Manage or cancel subscription" above so you're not charged again.</Muted>
+            )}
+            <Note msg={delMsg} />
+            <Row><Btn icon="trash" title="Delete my account" onPress={() => { setDelText(''); setDelMsg(null); setDelOpen(true); }} /></Row>
+          </Card>
         </Grid>
       )}
 
       <Dialog open={confirmEmail} onClose={() => setConfirmEmail(false)} title="Change your email?"
         body={`We'll send a confirmation link to ${newEmail.trim()}. Your sign-in email stays ${user?.email || 'the same'} until you tap it.`}
         actions={<><Btn title="Cancel" onPress={() => setConfirmEmail(false)} /><Btn variant="primary" icon="envelope" title="Send link" onPress={changeEmail} /></>} />
+
+      <Dialog open={delOpen} onClose={() => !delBusy && setDelOpen(false)} title="Delete your account?"
+        body="This permanently deletes your Regimen account and all of your data, including progress photos. It can't be undone."
+        actions={<><Btn title="Cancel" disabled={delBusy} onPress={() => setDelOpen(false)} /><Btn variant="primary" icon="trash" title={delBusy ? 'Deleting…' : 'Delete forever'} disabled={delBusy || delText.trim().toUpperCase() !== 'DELETE' || !userId} onPress={async () => {
+          if (!userId) return;
+          setDelBusy(true);
+          const r = await deleteAccount(userId);
+          setDelBusy(false); setDelOpen(false);
+          if (!r.ok) setDelMsg({ kind: 'err', text: r.message });
+        }} /></>}>
+        <Field label="Type DELETE to confirm"><Input value={delText} onChange={setDelText} autoCapitalize="characters" placeholder="DELETE" /></Field>
+      </Dialog>
 
       <Dialog open={confirmOut} onClose={() => setConfirmOut(false)} title="Sign out?"
         body="Your data is saved to your account. Sign in again to pick up where you left off."
