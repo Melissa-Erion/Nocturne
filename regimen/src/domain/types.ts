@@ -211,6 +211,8 @@ export interface Reminder {
 export interface CustomQuote { id: string; text: string; tone: string }
 export interface Quotes { fav: Record<string, boolean>; hidden: Record<string, boolean>; custom: CustomQuote[] }
 
+export interface MacroTargets { kcal: number; protein: number; carbs: number; fat: number }
+
 export interface Profile {
   name: string;
   goal: string;
@@ -227,10 +229,13 @@ export interface Profile {
   location: string;
   equipment: string[];
   priorities: string[];
+  /** Training-day targets (also used on rest days unless restTargets is set). */
   kcal: number;
   protein: number;
   carbs: number;
   fat: number;
+  /** Optional separate rest-day targets; null = same as training days. */
+  restTargets?: MacroTargets | null;
   mealsPerDay: number;
   dietPrefs: string[];
   allergies: string[];
@@ -293,6 +298,10 @@ export interface ActiveWorkout {
   startedAt: number;
   restEnd: number | null;
   restFor: string | null;
+  /** When the workout was paused (ms since epoch), or null while running. */
+  pausedAt?: number | null;
+  /** Total paused time so far (ms); excluded from the workout's duration. */
+  pausedMs?: number;
   ex: ActiveExercise[];
   [extra: string]: unknown;
 }

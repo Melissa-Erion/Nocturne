@@ -20,7 +20,9 @@ interface UI {
   userId: string | null;
   email: string | null;
   version: number;
-  toast: { msg: string; id: number } | null;
+  toast: { msg: string; id: number; undo?: boolean } | null;
+  /** Label of the schedule change Undo would reverse, or null. */
+  undoLabel: string | null;
   routeParam: unknown;
   sync: 'idle' | 'saving' | 'saved' | 'error';
   syncError: string | null;
@@ -29,7 +31,7 @@ interface UI {
 
 export const useUI = create<UI>(() => ({
   phase: 'booting', mode: supabase ? 'cloud' : 'device', userId: null, email: null, version: 0,
-  toast: null, routeParam: null, sync: 'idle', syncError: null, error: null,
+  toast: null, undoLabel: null, routeParam: null, sync: 'idle', syncError: null, error: null,
 }));
 
 let S: State = newUserState(localToday());
@@ -64,17 +66,40 @@ export function update(fn: (s: State) => void) { fn(S); commit(); }
 
 /** Swap in a whole new state (sign-in, restore sample data). */
 export function replaceState(next: State, opts: { resync?: boolean } = {}) {
-  S = next;
+  S = next; clearUndo();
   ensureFuture(ctx());
   if (opts.resync) cloud?.reset();
   commit();
 }
 
+/* ── Undo for schedule changes: snapshots of schedule + pauses, newest last (max 20, this session only). ── */
+interface UndoSnap { label: string; schedule: string; pauses: string }
+let undoStack: UndoSnap[] = [];
+let lastUndoAt = 0;
+export function pushUndo(label: string) {
+  undoStack.push({ label, schedule: JSON.stringify(S.schedule), pauses: JSON.stringify(S.pauses) });
+  if (undoStack.length > 20) undoStack.shift();
+  lastUndoAt = Date.now();
+  useUI.setState({ undoLabel: label });
+}
+/** Forget the newest snapshot (the change it was taken for didn't happen). */
+export function dropUndo() { undoStack.pop(); useUI.setState({ undoLabel: undoStack[undoStack.length - 1]?.label ?? null }); }
+export function undo() {
+  const u = undoStack.pop(); if (!u) return;
+  S.schedule = JSON.parse(u.schedule); S.pauses = JSON.parse(u.pauses);
+  useUI.setState({ undoLabel: undoStack[undoStack.length - 1]?.label ?? null, toast: null });
+  commit();
+  toast(`Undone: ${u.label}.`, false);
+}
+function clearUndo() { undoStack = []; useUI.setState({ undoLabel: null }); }
+
 let toastId = 0;
-export function toast(msg: string) {
+/** Show a message. Right after a schedule change it carries an Undo button (pass false to suppress). */
+export function toast(msg: string, allowUndo = true) {
   const id = ++toastId;
-  useUI.setState({ toast: { msg, id } });
-  setTimeout(() => { if (useUI.getState().toast?.id === id) useUI.setState({ toast: null }); }, 3400);
+  const undoable = allowUndo && undoStack.length > 0 && Date.now() - lastUndoAt < 2000;
+  useUI.setState({ toast: { msg, id, undo: undoable } });
+  setTimeout(() => { if (useUI.getState().toast?.id === id) useUI.setState({ toast: null }); }, undoable ? 6000 : 3400);
 }
 
 async function readCache(): Promise<State | null> {

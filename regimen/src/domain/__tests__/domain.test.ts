@@ -54,26 +54,51 @@ describe('scheduler rules', () => {
     }
   });
 
-  it('shift-later: moved entry lands on target and later entries cascade in order', () => {
+  const at = (s: State, d: string) => s.schedule.filter(e => e.status === 'planned' && e.date === d).map(e => e.workoutId).sort();
+
+  it('shift-later ON, free day: only the moved workout changes (nothing jumps to later weeks)', () => {
     const ctx = make();
-    const before = planned(ctx.s).slice(0, 4).map(e => e.workoutId);
-    const first = planned(ctx.s)[0]; // Tue 29 U1
-    const r = R.moveEntry(ctx, first.id, '2026-10-01', true);
+    const before = planned(ctx.s).filter(e => e.date !== '2026-09-29').map(e => e.date + ':' + e.workoutId);
+    const tue = planned(ctx.s)[0]; // Tue 29 Sep U1
+    const r = R.moveEntry(ctx, tue.id, '2026-10-03', true); // Saturday (rest day, free)
     expect(r.error).toBeUndefined();
-    const after = planned(ctx.s);
-    expect(after[0].date).toBe('2026-10-01');
-    expect(after.slice(0, 4).map(e => e.workoutId)).toEqual(before);
-    expect(new Set(after.map(e => e.date)).size).toBe(after.length); // no two on one day
+    expect(at(ctx.s, '2026-10-03')).toEqual(['U1']);
+    expect(at(ctx.s, '2026-10-01')).toEqual(['L2']); // Thursday untouched
+    expect(at(ctx.s, '2026-10-02')).toEqual(['U2']); // Friday untouched
+    expect(planned(ctx.s).filter(e => e.id !== tue.id).map(e => e.date + ':' + e.workoutId)).toEqual(before);
   });
 
-  it('shift-later off onto an occupied day swaps the two entries', () => {
+  it('shift-later ON, taken day: the workout in the way moves one training day, and so on only as needed', () => {
+    const ctx = make();
+    const tue = planned(ctx.s)[0];
+    ctx.s.schedule = ctx.s.schedule.filter(e => !(e.status === 'planned' && e.date === '2026-10-05')); // free Mon 5 Oct
+    R.moveEntry(ctx, tue.id, '2026-10-01', true); // onto Thu (L2)
+    expect(at(ctx.s, '2026-10-01')).toEqual(['U1']);
+    expect(at(ctx.s, '2026-10-02')).toEqual(['L2']); // Thu's L2 → Fri
+    expect(at(ctx.s, '2026-10-05')).toEqual(['U2']); // Fri's U2 → next training day (Mon), which was free: chain stops
+    expect(at(ctx.s, '2026-10-06')).toEqual(['U1']); // Tue 6 Oct untouched
+  });
+
+  it('shift-later OFF onto a taken day: both workouts stay on that day, nothing swaps', () => {
     const ctx = make();
     const [a, b] = planned(ctx.s);
     const [aDate, bDate] = [a.date, b.date];
     const r = R.moveEntry(ctx, a.id, bDate, false);
     expect(R.entry(ctx, a.id)!.date).toBe(bDate);
-    expect(R.entry(ctx, b.id)!.date).toBe(aDate);
-    expect(r.note).toMatch(/Swapped/);
+    expect(R.entry(ctx, b.id)!.date).toBe(bDate);
+    expect(at(ctx.s, aDate)).toEqual([]);
+    expect(r.note).toMatch(/2 workouts/);
+  });
+
+  it('reset schedule rebuilds upcoming workouts from the plan and keeps history', () => {
+    const ctx = make();
+    const done = ctx.s.schedule.filter(e => e.status === 'done').length;
+    const original = planned(ctx.s).slice(0, 6).map(e => e.date + ':' + e.workoutId);
+    R.moveEntry(ctx, planned(ctx.s)[0].id, '2026-10-03', true);
+    R.skipEntry(ctx, planned(ctx.s)[1].id);
+    R.resetSchedule(ctx);
+    expect(ctx.s.schedule.filter(e => e.status === 'done').length).toBe(done);
+    expect(planned(ctx.s).slice(0, 6).map(e => e.date + ':' + e.workoutId)).toEqual(original);
   });
 
   it('warns about back-to-back same-region moves', () => {
@@ -123,6 +148,23 @@ describe('scheduler rules', () => {
   });
 });
 
+describe('workout pause', () => {
+  it('paused time is excluded from the duration and the rest timer is pushed back', () => {
+    const ctx = make();
+    R.startWorkout(ctx, R.todayEntry(ctx)!.id);
+    const a = ctx.s.active!; const t0 = a.startedAt;
+    a.restEnd = t0 + 20 * 60000 + 90000;
+    R.pauseWorkout(ctx, t0 + 20 * 60000);             // 20 min in
+    expect(R.elapsedMs(a, t0 + 50 * 60000)).toBe(20 * 60000); // still 20 min while paused
+    R.resumeWorkout(ctx, t0 + 50 * 60000);            // paused 30 min
+    expect(a.restEnd).toBe(t0 + 50 * 60000 + 90000);  // 90 s of rest still left
+    expect(R.elapsedMs(a, t0 + 60 * 60000)).toBe(30 * 60000);
+    a.pausedMs = 30 * 60000; a.startedAt = Date.now() - 60 * 60000; // 60 min wall-clock, 30 paused
+    a.ex[0].sets.filter(st => !st.warm).forEach(st => { st.done = true; st.reps = 8; });
+    expect(R.finishWorkout(ctx)!.durationMin).toBe(30);
+  });
+});
+
 describe('progressive overload rules', () => {
   const item = (o: Partial<PlanItem> = {}): PlanItem => ({ id: 'i', exId: 'squat', sets: 3, repMin: 6, repMax: 8, rir: 2, rest: 120, tempo: '', warmups: 0, superset: '', notes: '', replaced: [], ...o });
   const withSessions = (sets: [number, number, number][][]) => {
@@ -169,6 +211,15 @@ describe('nutrition maths', () => {
       t.forEach(m => expect(m.kcal).toBe(m.p * 4 + m.c * 4 + m.f * 9));
     }
     const P = ctx.s.profile; expect(P.protein * 4 + P.carbs * 4 + P.fat * 9).toBe(1815); // the documented 1,815 vs 1,800
+  });
+  it('rest days use their own targets when set, otherwise the training-day targets', () => {
+    const ctx = make();
+    const sum = (t: R.MealTarget[]) => ['p', 'c', 'f'].map(k => t.reduce((a, m) => a + (m as unknown as Record<string, number>)[k], 0));
+    expect(sum(R.mealTargets(ctx, 'rest'))).toEqual([140, 190, 55]);
+    ctx.s.profile.restTargets = { kcal: 1600, protein: 140, carbs: 140, fat: 60 };
+    expect(sum(R.mealTargets(ctx, 'rest'))).toEqual([140, 140, 60]);
+    expect(sum(R.mealTargets(ctx, 'training'))).toEqual([140, 190, 55]);
+    expect(R.dayTargets(ctx.s.profile, 'rest').kcal).toBe(1600);
   });
   it('solver respects locks, bounds and rounding, and gets close', () => {
     const s = R.newUserState(TODAY);

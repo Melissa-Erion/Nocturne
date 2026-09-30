@@ -31,7 +31,7 @@ export function newUserState(today: ISODate): State {
     profile: {
       name: '', goal: 'Fat loss', weightKg: null, goalWeightKg: null, heightCm: null, age: null, sex: 'Female', activity: 'Moderately active', experience: 'Intermediate',
       trainingDays: [0, 1, 3, 4], restDays: [2, 5, 6], duration: 60, location: 'Gym', equipment: ['Barbell', 'Dumbbell', 'Cable', 'Machine', 'Bodyweight'], priorities: [],
-      kcal: 1800, protein: 140, carbs: 190, fat: 55, mealsPerDay: 4, dietPrefs: [], allergies: [], exclude: [],
+      kcal: 1800, protein: 140, carbs: 190, fat: 55, restTargets: null, mealsPerDay: 4, dietPrefs: [], allergies: [], exclude: [],
       checkInDay: 6, checkInFreq: 'Weekly', units: 'metric', water: true, waterMl: 2500, supplements: false,
       increments: { Barbell: 2.5, Dumbbell: 2, Cable: 2.5, Machine: 5, Bodyweight: 0 },
       progression: 'double', quietStart: '22:00', quietEnd: '07:00', calendarSync: false, shiftLater: true, workoutTime: '17:30',

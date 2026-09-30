@@ -2,7 +2,7 @@
 import { START_KG } from './data/plans';
 import { lastPerf, recommend } from './progression';
 import { entry, todayEntry, workoutOf } from './schedule';
-import type { ActiveSet, Ctx, Recommendation, Session, SetLog } from './types';
+import type { ActiveSet, ActiveWorkout, Ctx, Recommendation, Session, SetLog } from './types';
 import { r1, uid } from './util';
 
 /** Returns true when a new active workout was created (false when resuming the same one). */
@@ -12,7 +12,7 @@ export function startWorkout(ctx: Ctx, entryId?: string): boolean {
   if (s.active && s.active.entryId === e.id) return false;
   const w = workoutOf(ctx, e.workoutId, e.planId); if (!w) return false;
   s.active = {
-    entryId: e.id, workoutId: w.id, planId: e.planId, date: e.date, startedAt: Date.now(), restEnd: null, restFor: null,
+    entryId: e.id, workoutId: w.id, planId: e.planId, date: e.date, startedAt: Date.now(), restEnd: null, restFor: null, pausedAt: null, pausedMs: 0,
     ex: w.items.map(item => {
       const rec: Partial<Recommendation> = recommend(ctx, item.exId, item) || {};
       const kg = rec.kg ?? item.targetKg ?? (lastPerf(ctx, item.exId) || { sets: [{ kg: START_KG[item.exId] || 10 }] }).sets[0].kg;
@@ -33,7 +33,7 @@ export function finishWorkout(ctx: Ctx): Session | undefined {
     exId: x.exId, kg: Number(st.kg) || 0, reps: Number(st.reps), rir: st.rir === '' || st.rir == null ? null : Number(st.rir), warm: st.warm, note: st.note, feel: st.feel || x.feel,
     ...(x.exId !== x.originalExId ? { sub: x.originalExId } : {}),
   })));
-  const ses: Session = { id: uid(), date: a.date, workoutId: a.workoutId, planId: a.planId, entryId: a.entryId, sets, durationMin: Math.max(1, Math.round((Date.now() - a.startedAt) / 60000)), notes: a.ex.map(x => x.note).filter(Boolean).join(' · ') };
+  const ses: Session = { id: uid(), date: a.date, workoutId: a.workoutId, planId: a.planId, entryId: a.entryId, sets, durationMin: Math.max(1, Math.round(elapsedMs(a) / 60000)), notes: a.ex.map(x => x.note).filter(Boolean).join(' · ') };
   const e = entry(ctx, a.entryId);
   if (sets.length) { s.sessions.push(ses); if (e) { e.status = 'done'; e.sessionId = ses.id; } }
   s.active = null;
@@ -41,6 +41,26 @@ export function finishWorkout(ctx: Ctx): Session | undefined {
 }
 
 export function discardWorkout(ctx: Ctx) { ctx.s.active = null; }
+
+/** Active time so far: wall-clock time since start minus paused time (including a pause in progress). */
+export function elapsedMs(a: ActiveWorkout, now = Date.now()) {
+  return Math.max(0, now - a.startedAt - (a.pausedMs || 0) - (a.pausedAt ? now - a.pausedAt : 0));
+}
+
+/** Pause the active workout. The rest timer freezes too. */
+export function pauseWorkout(ctx: Ctx, now = Date.now()) {
+  const a = ctx.s.active; if (!a || a.pausedAt) return;
+  a.pausedAt = now;
+}
+
+/** Resume: the paused time is added to pausedMs and a running rest timer is pushed back by the same amount. */
+export function resumeWorkout(ctx: Ctx, now = Date.now()) {
+  const a = ctx.s.active; if (!a || !a.pausedAt) return;
+  const paused = now - a.pausedAt;
+  a.pausedMs = (a.pausedMs || 0) + paused;
+  if (a.restEnd) a.restEnd += paused;
+  a.pausedAt = null;
+}
 
 /** Replacing records the old exercise in replaced[]; history stays with the original exercise. */
 export function replaceExercise(ctx: Ctx, planId: string, workoutId: string, itemId: string, newExId: string) {

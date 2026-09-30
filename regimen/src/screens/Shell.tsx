@@ -103,10 +103,11 @@ export function Shell({ children }: { children: ReactNode }) {
         </Modal>
 
         {toast && (
-          <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 24 + insets.bottom, alignItems: 'center', zIndex: 60, paddingHorizontal: 16 }}>
+          <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: 24 + insets.bottom, alignItems: 'center', zIndex: 60, paddingHorizontal: 16 }}>
             <View style={{ maxWidth: 560, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, backgroundColor: C.surface, boxShadow: SHADOW.lg }}>
               <Icon name="check-circle" size={16} color={C.accent} />
               <T size={13} style={{ flexShrink: 1 }}>{toast.msg}</T>
+              {toast.undo && <Btn variant="ghost" size="sm" icon="arrow-counter-clockwise" title="Undo" onPress={() => RG.undo()} />}
             </View>
           </View>
         )}

@@ -1,6 +1,6 @@
 /* Nutrition engine — port of prototype/store.js (macros, reconcile, mealTargets, solve, getDay, alternatives). */
 import { FOODS } from './data/foods';
-import type { Ctx, DayPlan, DayType, DistributionMode, Food, ISODate, Macros, MealItem, State } from './types';
+import type { Ctx, DayPlan, DayType, DistributionMode, Food, ISODate, MacroTargets, Macros, MealItem, Profile, State } from './types';
 import { sum, uid } from './util';
 
 export const food = (s: State, id: string): Food | undefined => FOODS[id] || s.customFoods[id];
@@ -25,6 +25,10 @@ export function reconcile(total: number, weights: number[]): number[] {
   return fl;
 }
 
+/** Daily targets for a day type: rest days use restTargets when set, otherwise the training-day targets. */
+export const dayTargets = (P: Profile, type: DayType): MacroTargets =>
+  type === 'rest' && P.restTargets ? P.restTargets : { kcal: P.kcal, protein: P.protein, carbs: P.carbs, fat: P.fat };
+
 export const dayType = ({ s }: Ctx, d: ISODate): DayType =>
   s.days[d] && s.days[d].type ? s.days[d].type : (s.schedule.some(e => e.date === d && (e.status === 'planned' || e.status === 'done')) ? 'training' : 'rest');
 
@@ -41,7 +45,8 @@ export function mealTargets({ s }: Ctx, type: DayType, mode?: DistributionMode):
     wf = wf.map((_, i) => i === dist.preIdx ? 0.6 : i === dist.postIdx ? 0.9 : 1.15);
   }
   if (mode === 'protein') wp = wp.map((_, i) => dist.proteinIdx.includes(i) ? 1.4 : 0.8);
-  let p = reconcile(P.protein, wp), c = reconcile(P.carbs, wc), f = reconcile(P.fat, wf);
+  const T = dayTargets(P, type);
+  let p = reconcile(T.protein, wp), c = reconcile(T.carbs, wc), f = reconcile(T.fat, wf);
   if (mode === 'manual' && dist.manual && dist.manual.length === n) { p = dist.manual.map(m => m.p); c = dist.manual.map(m => m.c); f = dist.manual.map(m => m.f); }
   return slots.map((sl, i) => ({ ...sl, p: p[i], c: c[i], f: f[i], kcal: p[i] * 4 + c[i] * 4 + f[i] * 9 }));
 }

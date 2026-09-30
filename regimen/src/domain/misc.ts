@@ -62,5 +62,6 @@ export const ACTIVITY: Record<string, number> = { Sedentary: 1.2, 'Lightly activ
 export const tdee = (p: Profile) => { const b = bmr(p); return b ? Math.round(b * (ACTIVITY[p.activity] || 1.55)) : null; };
 /** Calories must not fall below max(estimated BMR, 1200 kcal female / 1500 kcal male). */
 export function calorieFloor(p: Profile) { return Math.max(bmr(p) || 0, p.sex === 'Male' ? 1500 : 1200); }
-export const lowCalorie = (p: Profile) => p.kcal < calorieFloor(p);
+/** True if the training-day or rest-day calorie target is below the floor. */
+export const lowCalorie = (p: Profile) => Math.min(p.kcal, p.restTargets?.kcal ?? p.kcal) < calorieFloor(p);
 export const NOT_MEDICAL = 'Not medical advice. Estimates only — check with a qualified professional before large changes to diet or training.';

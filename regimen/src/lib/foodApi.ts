@@ -4,6 +4,7 @@
    Results are returned as Food objects (per 100 g) the caller can save into customFoods. Values from labels are flagged as estimated
    when a field is missing. */
 import type { Food, FoodRole } from '@/domain/types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
 
 /** Live USDA search needs a signed-in cloud account (the proxy function only serves signed-in users). */
@@ -25,14 +26,32 @@ interface UsdaFood { fdcId: number; description: string; brandName?: string; foo
 /** Search USDA FoodData Central via the server-side proxy. */
 export async function searchUsda(query: string, limit = 15): Promise<Food[]> {
   if (!supabase || !query.trim()) return [];
-  const { data, error } = await supabase.functions.invoke('usda-search', { body: { query, limit } });
+  // Device cache (memory + storage, 7 days) in front of the server's shared 30-day cache, so repeat searches make no request.
+  const key = `usda:${query.trim().toLowerCase().replace(/\s+/g, ' ')}|${limit}`;
+  let raw: UsdaFood[] | null = memo.get(key) || null;
+  if (!raw) {
+    try { const c = JSON.parse((await AsyncStorage.getItem(key)) || 'null'); if (c && Date.now() - c.t < DEVICE_TTL) raw = c.foods; } catch { /* no cache */ }
+  }
+  if (!raw) raw = await fetchUsda(query, limit);
+  if (!memo.has(key)) { memo.set(key, raw); AsyncStorage.setItem(key, JSON.stringify({ t: Date.now(), foods: raw })).catch(() => {}); }
+  return toFoods(raw);
+}
+
+const memo = new Map<string, UsdaFood[]>();
+const DEVICE_TTL = 7 * 864e5;
+
+async function fetchUsda(query: string, limit: number): Promise<UsdaFood[]> {
+  const { data, error } = await supabase!.functions.invoke('usda-search', { body: { query, limit } });
   if (error) {
     let msg = error.message;
     try { const b = await (error as { context?: Response }).context?.json(); if (b?.error) msg = b.error; } catch { /* keep generic message */ }
     throw new Error(msg);
   }
-  const j = data as { foods?: UsdaFood[] };
-  return (j.foods || []).map(f => {
+  return ((data as { foods?: UsdaFood[] }).foods) || [];
+}
+
+function toFoods(list: UsdaFood[]): Food[] {
+  return list.map(f => {
     const n = (num: string, name: RegExp) => f.foodNutrients?.find(x => x.nutrientNumber === num || (x.nutrientName && name.test(x.nutrientName)))?.value;
     const p = n('203', /^Protein/) ?? 0, c = n('205', /^Carbohydrate/) ?? 0, fat = n('204', /^Total lipid/) ?? 0;
     const kcal = n('208', /^Energy/) ?? Math.round(p * 4 + c * 4 + fat * 9);
