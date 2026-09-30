@@ -2,7 +2,7 @@
    regimenfit.ca" instead of the Supabase project address, and the ID token is handed to Supabase
    (signInWithIdToken) — no redirect through supabase.co. Needs EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (public) and the
    site's address in the Google client's "Authorized JavaScript origins". */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Platform, View } from 'react-native';
 import { friendlyAuthError } from './auth';
 import { supabase } from './supabase';
@@ -36,8 +36,9 @@ async function sha256Hex(s: string) {
   return [...new Uint8Array(d)].map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-/** Renders Google's button. onError gets a friendly message; success is picked up by the auth listener. */
-export function GoogleWebButton({ onError, onBusy }: { onError: (msg: string) => void; onBusy?: (b: boolean) => void }) {
+/** Renders Google's button. onError gets a friendly message; success is picked up by the auth listener.
+    If Google's script can't load (blocked, offline), `fallback` is shown instead (the redirect button). */
+export function GoogleWebButton({ onError, onBusy, fallback }: { onError: (msg: string) => void; onBusy?: (b: boolean) => void; fallback?: ReactNode }) {
   const ref = useRef<View>(null);
   const [failed, setFailed] = useState(false);
 
@@ -67,12 +68,12 @@ export function GoogleWebButton({ onError, onBusy }: { onError: (msg: string) =>
         const width = Math.max(220, Math.min(400, Math.floor(el.getBoundingClientRect().width || 320)));
         g.accounts.id.renderButton(el, { type: 'standard', theme: 'filled_black', size: 'large', text: 'continue_with', shape: 'rectangular', logo_alignment: 'center', width });
       } catch (e) {
-        if (alive) { setFailed(true); onError(e instanceof Error ? e.message : 'Google sign-in is unavailable right now.'); }
+        if (alive) setFailed(true);
       }
     })();
     return () => { alive = false; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (failed) return null;
+  if (failed) return <>{fallback ?? null}</>;
   return <View ref={ref} style={{ minHeight: 44, alignItems: 'center', justifyContent: 'center' }} />;
 }

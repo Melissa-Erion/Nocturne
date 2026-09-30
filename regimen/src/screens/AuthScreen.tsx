@@ -39,6 +39,11 @@ export default function AuthScreen() {
     setBusy(false);
   }
 
+  const googleBtn = (
+    <Btn size="lg" disabled={busy} onPress={google} label="Continue with Google"
+      title={<Row gap={10}><GMark /><T size={15} w={500} lh={1.2}>Continue with Google</T></Row>} />
+  );
+
   // Email links return to the app's own address (including its sub-path, /app).
   const redirect = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin + (process.env.EXPO_PUBLIC_BASE_URL || '') + '/' : Linking.createURL('/');
 
@@ -82,9 +87,8 @@ export default function AuthScreen() {
             {mode !== 'reset' && (
               <>
                 {googleButtonAvailable()
-                  ? <GoogleWebButton onBusy={setBusy} onError={text => setMsg({ kind: 'err', text })} />
-                  : <Btn size="lg" disabled={busy} onPress={google} label="Continue with Google"
-                      title={<Row gap={10}><GMark /><T size={15} w={500} lh={1.2}>Continue with Google</T></Row>} />}
+                  ? <GoogleWebButton onBusy={setBusy} onError={text => setMsg({ kind: 'err', text })} fallback={googleBtn} />
+                  : googleBtn}
                 <Row gap={10}>
                   <View style={{ flex: 1, height: 1, backgroundColor: C.divider }} />
                   <Muted>or use email</Muted>
