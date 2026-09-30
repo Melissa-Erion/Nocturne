@@ -8,10 +8,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RG, type Route, useRG } from '@/store/rg';
 import { retrySync, signOut, useUI } from '@/store/store';
 import type { IconName } from '@/ui/icons';
-import { Btn, Icon, Muted, T, Tap, useLayout } from '@/ui/kit';
+import { Btn, Dialog, Icon, Muted, T, Tap, useLayout } from '@/ui/kit';
 import { alpha, C, MAX_W, SHADOW } from '@/ui/theme';
 import { SampleBanner } from './SampleData';
 import { useAccess } from '@/store/access';
+import { FEATURE, TRIAL_DAYS } from '@/lib/plans';
 import { Paywall } from './UpgradeScreen';
 
 type PState = PressableStateCallbackType & { hovered?: boolean };
@@ -34,6 +35,9 @@ export function Shell({ children }: { children: ReactNode }) {
   const [menu, setMenu] = useState(false);
   const insets = useSafeAreaInsets();
   const toast = useUI(u => u.toast);
+  const lockPrompt = useUI(u => u.lockPrompt);
+  const lockedFeature = lockPrompt ? FEATURE[lockPrompt] : null;
+  const closeLock = () => useUI.setState({ lockPrompt: null });
   const active = RGx.s.active;
   const title = NAV.flatMap(g => g[1]).find(p => p[0] === route)?.[1] || (route === 'upgrade' ? 'Regimen Pro' : 'Setup');
   const wk = active && RGx.workout(active.workoutId, active.planId);
@@ -104,6 +108,14 @@ export function Shell({ children }: { children: ReactNode }) {
             </ScrollView>
           </View>
         </Modal>
+
+        <Dialog open={!!lockPrompt} onClose={closeLock}
+          title={<>{lockedFeature?.title || 'This feature'} is part of Regimen Pro</>}
+          body={`${lockedFeature ? lockedFeature.body + ' ' : ''}Try everything free for ${TRIAL_DAYS} days. Cancel anytime before the trial ends and you won't be charged.`}
+          actions={<>
+            <Btn title="Not now" onPress={closeLock} />
+            <Btn variant="primary" icon="lock-simple-open" title={`Start ${TRIAL_DAYS}-day free trial`} onPress={() => { closeLock(); RG.go('upgrade'); }} />
+          </>} />
 
         {toast && (
           <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: 24 + insets.bottom, alignItems: 'center', zIndex: 60, paddingHorizontal: 16 }}>

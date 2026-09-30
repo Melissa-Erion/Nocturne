@@ -7,6 +7,7 @@ import * as D from '@/domain';
 import type { ISODate, MealItem, PlanItem, State } from '@/domain/types';
 import { deleteLocalImage, persistLocalImage } from '@/lib/files';
 import { cachedSignedUrl, removePhoto, signedUrl, uploadPhoto } from '@/lib/photos';
+import { canOpenRoute } from './access';
 import { clearSampleData, commit, ctx, dropUndo, getState, pushUndo, resetToSample, toast, undo, update, useUI } from './store';
 
 export type Route =
@@ -26,7 +27,10 @@ export const RG = {
   /* state */
   get s(): State { return getState(); },
   update, commit, toast,
-  go(route: Route, param?: unknown) { useUI.setState({ routeParam: param == null ? null : param }); router.navigate(('/' + route) as never); },
+  go(route: Route, param?: unknown) {
+    if (!canOpenRoute(route)) { useUI.setState({ lockPrompt: route }); return; }
+    useUI.setState({ routeParam: param == null ? null : param }); router.navigate(('/' + route) as never);
+  },
   get routeParam(): unknown { return useUI.getState().routeParam; },
   reset: resetToSample,
   clearSample: clearSampleData,
