@@ -18,7 +18,7 @@ export const NAV: [string, [Route, string, IconName][]][] = [
   ['Training', [['dashboard', 'Fitness Dashboard', 'house'], ['schedule', 'My Schedule', 'calendar-blank'], ['plans', 'Workout Plans', 'list-checks'], ['workout', 'Active Workout', 'barbell'], ['history', 'Exercise History', 'clock-counter-clockwise'], ['records', 'Personal Records', 'trophy']]],
   ['Progress', [['checkins', 'Progress Check-Ins', 'clipboard-text'], ['photos', 'Progress Photos', 'camera'], ['analytics', 'Analytics', 'chart-line-up']]],
   ['Nutrition', [['nutrition', 'Nutrition Dashboard', 'chart-donut'], ['meals', 'Meal Planner', 'fork-knife'], ['prep', 'Meal-Prep Calculator', 'cooking-pot'], ['recipes', 'Recipes & Saved Meals', 'book-open'], ['alternatives', 'Food Alternatives', 'swap'], ['grocery', 'Grocery List', 'shopping-cart']]],
-  ['Account', [['settings', 'Fitness Settings', 'gear']]],
+  ['Account', [['account', 'My Account', 'person'], ['settings', 'Fitness Settings', 'gear']]],
 ];
 
 const ShellCtx = createContext({ wide: true });
