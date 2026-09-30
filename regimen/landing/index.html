@@ -65,11 +65,14 @@
         "Automatic workout schedule with move, skip, pause and undo",
         "Guided workouts with set logging, rest timer and pause",
         "Progressive overload: exact weight and rep targets every session",
-        "Calorie and macro calculator (Mifflin-St Jeor, 1 g protein per lb)",
+        "Calorie and macro calculator (Mifflin-St Jeor, 1 g protein per lb) or custom macros",
         "Separate training-day and rest-day macros",
-        "Meal planner with exact gram portions",
+        "Meal planner with exact gram portions and food locking",
+        "Macro split across meals: even, around workouts, protein-focused or custom",
+        "Recipes by weight, favourite meals, nutrition-label foods and restaurant estimates",
         "Food swaps matched on protein, carbs or fat",
-        "Meal prep calculator and automatic grocery list",
+        "Meal prep calculator with raw amounts, cooked yields and grams per container",
+        "Automatic grocery list grouped by aisle",
         "USDA FoodData Central food search and barcode lookup",
         "Check-ins, private progress photos, personal records and analytics",
         "Live sync to Google Calendar, Outlook and Apple Calendar"
@@ -88,14 +91,14 @@
       "@id": "{{SITE}}/#faq",
       "mainEntity": [
         { "@type": "Question", "name": "What is Regimen?", "acceptedAnswer": { "@type": "Answer", "text": "Regimen is an all-in-one fitness planning app. It schedules your workouts, calculates your calorie and macro targets, plans your meals with exact gram portions, and tells you exactly what weight and reps to aim for in every session." } },
-        { "@type": "Question", "name": "How does Regimen calculate my calories and macros?", "acceptedAnswer": { "@type": "Answer", "text": "Regimen estimates your daily energy needs with the Mifflin-St Jeor equation and your activity level, then adjusts for your goal. Protein is set to 1 gram per pound of body weight, and fat and carbs fill the rest. You can edit every target, and set different targets for training days and rest days." } },
+        { "@type": "Question", "name": "How does Regimen calculate my calories and macros?", "acceptedAnswer": { "@type": "Answer", "text": "Regimen estimates your daily energy needs with the Mifflin-St Jeor equation and your activity level, then adjusts for your goal. Protein is set automatically to 1 gram per pound of body weight, and fat and carbs fill the rest. Prefer your own numbers? Enter custom macros at any time, and set different targets for training days and rest days." } },
         { "@type": "Question", "name": "Is Regimen free?", "acceptedAnswer": { "@type": "Answer", "text": "Yes, you can start free. The free version includes the guided setup, your calculated calorie and macro targets, a preview of your training week and weight logging. Regimen Pro unlocks everything else and costs CA$179.99 per year or CA$24.99 per month, with a 7-day free trial." } },
         { "@type": "Question", "name": "Does Regimen tell me what weight to lift?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Regimen uses progressive overload (double progression or linear progression) to give an exact weight and rep target for every exercise in your next session, based on what you logged last time." } },
-        { "@type": "Question", "name": "Can Regimen plan meals with exact portions?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Pick the foods you like and Regimen calculates the grams of each food so every meal hits its share of your daily protein, carbs and fat. It also shows cooked versus raw weights, meal prep amounts and a grocery list." } },
+        { "@type": "Question", "name": "Can Regimen plan meals with exact portions?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Pick the foods you like and Regimen calculates the grams of each food so every meal matches its share of your daily protein, carbs and fat. You can lock a food at a set amount, swap foods for macro-matched alternatives, and get meal-prep amounts per container plus a grocery list." } },
         { "@type": "Question", "name": "Does Regimen sync with Google Calendar?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Regimen gives you a private calendar link for Google Calendar, Outlook or Apple Calendar. Your workouts, including the exercise list, stay in sync when you move or skip a session." } },
         { "@type": "Question", "name": "Is there an iPhone or Android app?", "acceptedAnswer": { "@type": "Answer", "text": "Regimen works today in any web browser on your phone, tablet or computer, and your data syncs across devices. Native iPhone and Android apps are coming soon." } },
         { "@type": "Question", "name": "Can I cancel anytime?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Cancel before the 7-day trial ends and you are not charged. If you cancel later, you keep Pro until the end of the period you paid for, and your data is kept." } },
-        { "@type": "Question", "name": "Where is my data stored?", "acceptedAnswer": { "@type": "Answer", "text": "Your account data is stored in Canada. Progress photos are kept in private storage that only you can access, and Regimen does not sell your data or show ads." } },
+        { "@type": "Question", "name": "Where is my data stored?", "acceptedAnswer": { "@type": "Answer", "text": "Your data is stored securely in your private Regimen account and syncs across your devices. Progress photos are kept in private storage that only you can access, and Regimen does not sell your data or show ads." } },
         { "@type": "Question", "name": "Is Regimen medical advice?", "acceptedAnswer": { "@type": "Answer", "text": "No. Regimen's numbers are planning estimates for healthy adults. Check with a qualified professional if you have a medical condition, are pregnant, or plan large changes to your diet or training." } }
       ]
     }
@@ -254,6 +257,7 @@ footer a:hover { color: var(--text); }
     <a class="brand" href="/" aria-label="Regimen home"><i></i>Regimen</a>
     <nav class="nav" aria-label="Main">
       <a href="#features">Features</a>
+      <a href="#meals">Meal planning</a>
       <a href="#how">How it works</a>
       <a href="#pricing">Pricing</a>
       <a href="#faq">FAQ</a>
@@ -320,20 +324,6 @@ footer a:hover { color: var(--text); }
 
       <div class="feature flip">
         <div>
-          <h3>Meals with exact portions, not guesswork</h3>
-          <p>Pick foods you actually like. Regimen calculates the grams of each one so every meal hits its share of your protein, carbs and fat.</p>
-          <ul>
-            <li>Protein set to 1 gram per pound of body weight</li>
-            <li>Different targets for training days and rest days</li>
-            <li>Cooked and raw weights, so the numbers match your kitchen</li>
-            <li>Swap any food for one with matching macros</li>
-          </ul>
-        </div>
-        <img class="frame" src="/img/app-meal-planner.webp" width="1200" height="624" alt="Regimen meal planner splitting daily macro targets across four meals with exact gram amounts" loading="lazy">
-      </div>
-
-      <div class="feature">
-        <div>
           <h3>Know exactly what to lift next time</h3>
           <p>Log your sets with a built-in rest timer. Regimen uses progressive overload to give you a specific weight and rep target for every exercise in your next session.</p>
           <ul>
@@ -347,14 +337,59 @@ footer a:hover { color: var(--text); }
       </div>
 
       <div class="grid3">
-        <div class="card"><div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h2l2.2 10.2a1 1 0 001 .8h8.6a1 1 0 001-.8L20 8H6.2"/><circle cx="9" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/></svg></div><h3>Meal prep &amp; grocery list</h3><p>Batch-cook amounts, portions per container and a shopping list grouped by aisle.</p></div>
-        <div class="card"><div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></div><h3>Real food data</h3><p>Search USDA FoodData Central or scan a barcode. Custom foods and recipes are labelled.</p></div>
-        <div class="card"><div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg></div><h3>Private by design</h3><p>Your data is stored in Canada. Photos stay in private storage. No ads, and your data is never sold.</p></div>
+        <div class="card"><div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4M9 15l2 2 4-4"/></svg></div><h3>Calendar sync</h3><p>Your workouts appear in Google Calendar, Outlook or Apple Calendar and update when you move or skip one.</p></div>
+        <div class="card"><div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg></div><h3>Phone, tablet or computer</h3><p>Works in any browser and syncs across your devices. A guided tour shows you around on day one.</p></div>
+        <div class="card"><div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg></div><h3>Private by design</h3><p>Progress photos stay in private storage only you can see. No ads, and your data is never sold.</p></div>
       </div>
     </div>
   </section>
 
-  <section id="how" class="alt" aria-labelledby="how-title">
+  <section id="meals" class="alt" aria-labelledby="meals-title">
+    <div class="wrap">
+      <p class="kicker">Meal planning</p>
+      <h2 class="h2" id="meals-title">The meal planner that does the math, down to the gram.</h2>
+      <p class="sub">Most apps make you log food after you eat it. Regimen plans it before you do: it knows your targets for today, splits them across your meals and works out exactly how much of each food to eat.</p>
+
+      <div class="feature">
+        <div>
+          <h3>Exact portions for every meal</h3>
+          <p>Tell Regimen how many meals you eat and when. It splits your calories, protein, carbs and fat across them, then solves the grams of each food you choose so every meal lands on target. If a meal can't match perfectly, it shows you the difference instead of hiding it.</p>
+          <ul>
+            <li>Protein set automatically to 1 gram per pound of body weight, or enter your own custom macros</li>
+            <li>Separate targets and meal times for training days and rest days, applied automatically from your schedule</li>
+            <li>Lock a food at the amount you want and Regimen rebalances the rest of the meal</li>
+            <li>Cooked or raw weights, labelled on every food, so the numbers match your kitchen scale</li>
+          </ul>
+        </div>
+        <img class="frame" src="/img/app-meal-planner.webp" width="1200" height="624" alt="Regimen meal planner splitting daily protein, carbs, fat and calories across four meals, with gram amounts for each food" loading="lazy">
+      </div>
+
+      <div class="feature flip">
+        <div>
+          <h3>Meal prep without the spreadsheet</h3>
+          <p>Choose a recipe or meal and how many containers you need. Regimen tells you how much raw food to buy and cook, using typical cooking yields. Weigh the cooked batch and it gives you the exact amount for each container.</p>
+          <ul>
+            <li>Raw amounts to buy and weigh, plus the expected cooked weight</li>
+            <li>Portions per container for training-day or rest-day targets</li>
+            <li>Cooking for two? Set the number of people</li>
+            <li>A grocery list built from your prep, grouped by aisle, with check-offs</li>
+          </ul>
+        </div>
+        <img class="frame" src="/img/app-meal-prep.webp" width="1200" height="516" alt="Regimen meal-prep calculator showing raw amounts to buy, expected cooked yield and grams per container" loading="lazy">
+      </div>
+
+      <div class="grid3">
+        <div class="card"><div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16M4 6h10M4 18h7"/><circle cx="18" cy="6" r="2"/><circle cx="15" cy="18" r="2"/></svg></div><h3>Smart macro split</h3><p>Spread macros evenly, put more carbs before and after your workout, add extra protein to the meals you choose, or set your own split.</p></div>
+        <div class="card"><div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg></div><h3>Food swaps that match</h3><p>Out of chicken? Swap any food for one that matches its protein, carbs or fat, with the new amount calculated and every difference shown. Your food preferences, allergies and exclusions are respected.</p></div>
+        <div class="card"><div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3V4z"/><path d="M5 17a3 3 0 013-3h11M9 8h6"/></svg></div><h3>Recipes and favourite meals</h3><p>Build recipes by weight, enter the cooked weight and get nutrition per serving. Save favourite meals and load them in one tap.</p></div>
+        <div class="card"><div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5a1 1 0 011-1h2M17 4h2a1 1 0 011 1v2M20 17v2a1 1 0 01-1 1h-2M7 20H5a1 1 0 01-1-1v-2M8 8v8M11 8v8M14 8v8M17 8v8"/></svg></div><h3>Any food, from any source</h3><p>Search USDA FoodData Central, scan a barcode, add a food from its nutrition label, or save a restaurant meal as a clearly labelled estimate.</p></div>
+        <div class="card"><div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 4v8l5 3"/></svg></div><h3>Planned vs logged</h3><p>Tap to log a meal as you eat it. Your nutrition dashboard shows what's left for the day, planned versus logged, and your water.</p></div>
+        <div class="card"><div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="9"/></svg></div><h3>Your meals, your way</h3><p>From 2 to 6 meals a day, named and timed the way you eat. Vegan, vegetarian, dairy-free or gluten-free: you choose what goes in, Regimen handles the numbers.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how" aria-labelledby="how-title">
     <div class="wrap center">
       <p class="kicker">How it works</p>
       <h2 class="h2" id="how-title">From sign-up to your first planned day in about two minutes.</h2>
@@ -366,7 +401,7 @@ footer a:hover { color: var(--text); }
     </div>
   </section>
 
-  <section aria-labelledby="who-title">
+  <section class="alt" aria-labelledby="who-title">
     <div class="wrap">
       <p class="kicker">Who it's for</p>
       <h2 class="h2" id="who-title">Built for people who lift and want the numbers done for them.</h2>
@@ -391,7 +426,7 @@ footer a:hover { color: var(--text); }
     </div>
   </section>
 
-  <section id="pricing" class="alt" aria-labelledby="pricing-title">
+  <section id="pricing" aria-labelledby="pricing-title">
     <div class="wrap center">
       <p class="kicker">Pricing</p>
       <h2 class="h2" id="pricing-title">Start free. Upgrade when you're ready.</h2>
@@ -436,26 +471,26 @@ footer a:hover { color: var(--text); }
     </div>
   </section>
 
-  <section id="faq" aria-labelledby="faq-title">
+  <section id="faq" class="alt" aria-labelledby="faq-title">
     <div class="wrap">
       <p class="kicker center">FAQ</p>
       <h2 class="h2 center" id="faq-title" style="margin:0 auto">Questions, answered.</h2>
       <div class="faq">
         <details open><summary>What is Regimen?</summary><p>Regimen is an all-in-one fitness planning app. It schedules your workouts, calculates your calorie and macro targets, plans your meals with exact gram portions, and tells you exactly what weight and reps to aim for in every session.</p></details>
-        <details><summary>How does Regimen calculate my calories and macros?</summary><p>Regimen estimates your daily energy needs with the Mifflin-St Jeor equation and your activity level, then adjusts for your goal. Protein is set to 1 gram per pound of body weight, and fat and carbs fill the rest. You can edit every target, and set different targets for training days and rest days.</p></details>
+        <details><summary>How does Regimen calculate my calories and macros?</summary><p>Regimen estimates your daily energy needs with the Mifflin-St Jeor equation and your activity level, then adjusts for your goal. Protein is set automatically to 1 gram per pound of body weight, and fat and carbs fill the rest. Prefer your own numbers? Enter custom macros at any time, and set different targets for training days and rest days.</p></details>
         <details><summary>Is Regimen free?</summary><p>Yes, you can start free. The free version includes the guided setup, your calculated calorie and macro targets, a preview of your training week and weight logging. Regimen Pro unlocks everything else and costs CA$179.99 per year or CA$24.99 per month, with a 7-day free trial.</p></details>
         <details><summary>Does Regimen tell me what weight to lift?</summary><p>Yes. Regimen uses progressive overload (double progression or linear progression) to give an exact weight and rep target for every exercise in your next session, based on what you logged last time.</p></details>
-        <details><summary>Can Regimen plan meals with exact portions?</summary><p>Yes. Pick the foods you like and Regimen calculates the grams of each food so every meal hits its share of your daily protein, carbs and fat. It also shows cooked versus raw weights, meal prep amounts and a grocery list.</p></details>
+        <details><summary>Can Regimen plan meals with exact portions?</summary><p>Yes. Pick the foods you like and Regimen calculates the grams of each food so every meal matches its share of your daily protein, carbs and fat. You can lock a food at a set amount, swap foods for macro-matched alternatives, and get meal-prep amounts per container plus a grocery list.</p></details>
         <details><summary>Does Regimen sync with Google Calendar?</summary><p>Yes. Regimen gives you a private calendar link for Google Calendar, Outlook or Apple Calendar. Your workouts, including the exercise list, stay in sync when you move or skip a session.</p></details>
         <details><summary>Is there an iPhone or Android app?</summary><p>Regimen works today in any web browser on your phone, tablet or computer, and your data syncs across devices. Native iPhone and Android apps are coming soon.</p></details>
         <details><summary>Can I cancel anytime?</summary><p>Yes. Cancel before the 7-day trial ends and you are not charged. If you cancel later, you keep Pro until the end of the period you paid for, and your data is kept.</p></details>
-        <details><summary>Where is my data stored?</summary><p>Your account data is stored in Canada. Progress photos are kept in private storage that only you can access, and Regimen does not sell your data or show ads. See the <a href="/privacy/">privacy policy</a>.</p></details>
+        <details><summary>Where is my data stored?</summary><p>Your data is stored securely in your private Regimen account and syncs across your devices. Progress photos are kept in private storage that only you can access, and Regimen does not sell your data or show ads. See the <a href="/privacy/">privacy policy</a>.</p></details>
         <details><summary>Is Regimen medical advice?</summary><p>No. Regimen's numbers are planning estimates for healthy adults. Check with a qualified professional if you have a medical condition, are pregnant, or plan large changes to your diet or training.</p></details>
       </div>
     </div>
   </section>
 
-  <section class="final alt" aria-labelledby="final-title">
+  <section class="final" aria-labelledby="final-title">
     <div class="wrap center">
       <h2 class="h2" id="final-title" style="margin:0 auto">Know exactly what to do today.</h2>
       <p class="sub">Your plan is about two minutes away. Start free, no card needed to see your targets.</p>

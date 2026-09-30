@@ -6,9 +6,11 @@
 - Workout schedule: places workouts on the user's chosen training days in rotation order. Users can move, skip, pause, undo, or reset. Moving a workout shifts later ones only as far as needed. Ready-made upper/lower plans for 4 or 5 days, or custom plans.
 - Guided workouts: set logging, rest timer, pause/resume, exercise substitution.
 - Progression: double progression or linear progression gives an exact next-session weight and rep target per exercise, using the user's available weight increments.
-- Calories and macros: Mifflin-St Jeor equation × activity level, adjusted for goal (fat loss, muscle gain, recomposition, strength, maintenance). Protein = 1 g per lb of body weight. Optional separate training-day and rest-day targets. All targets editable.
-- Meal planner: splits daily macros across meals and calculates grams of each chosen food to hit them; cooked and raw weights; food substitutions matched on protein, carbs or fat.
-- Meal prep calculator and automatic grocery list grouped by aisle.
+- Calories and macros: Mifflin-St Jeor equation × activity level, adjusted for goal (fat loss, muscle gain, recomposition, strength, maintenance). Protein is set automatically to 1 g per lb of body weight, or users can enter custom macros. Optional separate training-day and rest-day targets.
+- Meal planner: 2–6 named, timed meals per day. Splits daily macros across meals (evenly, more carbs around workouts, extra protein at chosen meals, or a custom split) and solves the grams of each chosen food to match; foods can be locked at a set amount and the rest rebalances; cooked vs raw weights labelled; any remaining difference is shown.
+- Food swaps: substitutes matched on protein, carbs or fat with the new amount calculated; respects dietary preferences, allergies and exclusions.
+- Recipes by weight with cooked weight and per-serving nutrition; favourite meals; custom foods from nutrition labels; restaurant meals as labelled estimates.
+- Meal prep calculator: raw amounts to buy and cook from typical cooking yields, expected cooked weight, grams per container after weighing the cooked batch, training or rest version, multiple people. Automatic grocery list grouped by aisle.
 - Food data: USDA FoodData Central search and barcode lookup (Open Food Facts); custom foods and recipes.
 - Progress: weekly check-ins, body measurements, private progress photos, personal records, analytics (weight trend, training volume, strength, macro adherence).
 - Calendar sync: private live subscription link for Google Calendar, Outlook and Apple Calendar.
@@ -19,7 +21,7 @@
 - Regimen Pro: CA$179.99 per year (about CA$15/month, recommended) or CA$24.99 per month. 7-day free trial. Cancel anytime; access continues to the end of the paid period and data is kept.
 
 ## Privacy
-- Account data and photos are stored in Canada (Supabase, Canada Central region). Photos are private to the user.
+- Data is stored in the user's private account and syncs across devices. Progress photos are private to the user.
 - No ads, data is not sold, not used to train AI models.
 
 ## Important
