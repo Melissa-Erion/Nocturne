@@ -9,7 +9,7 @@ import { RG, type Route, useRG } from '@/store/rg';
 import { retrySync, signOut, useUI } from '@/store/store';
 import type { IconName } from '@/ui/icons';
 import { Btn, Dialog, Icon, Muted, T, Tap, useLayout } from '@/ui/kit';
-import { alpha, C, MAX_W, SHADOW } from '@/ui/theme';
+import { alpha, C, FONT, MAX_W, SHADOW } from '@/ui/theme';
 import { SampleBanner } from './SampleData';
 import { useAccess } from '@/store/access';
 import { FEATURE, TRIAL_DAYS } from '@/lib/plans';
@@ -104,7 +104,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <ScrollView contentContainerStyle={{ gap: 16, paddingHorizontal: 14, paddingBottom: insets.bottom + 18, flexGrow: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8 }}>
                 <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: C.accent }} />
-                <T size={17} w={500} style={{ flex: 1 }}>Regimen</T>
+                <T size={19} style={{ flex: 1, fontFamily: FONT.display }}>Regimen</T>
                 <Btn variant="ghost" iconOnly icon="x" color={C.text} label="Close menu" onPress={() => setMenu(false)} />
               </View>
               <NavList route={route} active={!!active} large onGo={r => { setMenu(false); RG.go(r); }} />
@@ -141,7 +141,7 @@ function Brand() {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8 }}>
       <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: C.accent, boxShadow: `0 0 12px ${C.accent}` }} />
-      <T size={17} w={500} style={{ letterSpacing: -0.17 }}>Regimen</T>
+      <T size={19} style={{ fontFamily: FONT.display }}>Regimen</T>
     </View>
   );
 }

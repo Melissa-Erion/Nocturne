@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import type { DayPlan } from '@/domain/types';
 import { useRG } from '@/store/rg';
-import { Bar, Btn, Card, CardTitle, Grid, H, Icon, Muted, NotMedical, Row, RuledRow, T, Tag, Tap, useLayout } from '@/ui/kit';
+import { Bar, Btn, Card, CardTitle, Grid, H, Icon, Muted, NotMedical, Num, Row, RuledRow, T, Tag, Tap, useLayout } from '@/ui/kit';
 import { C } from '@/ui/theme';
 import { Screen } from './Shell';
 
@@ -48,7 +48,7 @@ export default function NutritionScreen() {
         {cards.map(c => (
           <Card key={c.k} gap={8} pad={[14, 16]}>
             <Row style={{ alignItems: 'baseline' }}><T size={13} style={{ flex: 1 }}>{c.k}</T><Muted size={11}>target {c.target}</Muted></Row>
-            <T size={30} tab lh={1.2} style={{ letterSpacing: -0.6 }}>{c.remaining}<T size={13} color={C.n500}> {c.remLabel}</T></T>
+            <Num size={36}>{c.remaining}<T size={13} color={C.n500}> {c.remLabel}</T></Num>
             <Bar fills={[{ pct: c.pl, color: C.n700 }, { pct: c.lg, color: C.accent }]} />
             <Row><T size={12} tab color={C.a300} style={{ flex: 1 }}>Logged {c.logged}</T><T size={12} tab color={C.n400}>Planned {c.planned}</T></Row>
           </Card>
@@ -81,7 +81,7 @@ export default function NutritionScreen() {
           {P.water && (
             <Card gap={10}>
               <Row style={{ alignItems: 'baseline' }}><CardTitle style={{ flex: 1 }}>Water</CardTitle><Muted>target {RG.imp() ? Math.round(wt / 29.57) + ' fl oz' : (wt / 1000).toFixed(1) + ' L'}</Muted></Row>
-              <T size={28} tab lh={1.2}>{RG.imp() ? Math.round(wv / 29.57) + ' fl oz' : (wv / 1000).toFixed(2) + ' L'}</T>
+              <Num size={32}>{RG.imp() ? Math.round(wv / 29.57) + ' fl oz' : (wv / 1000).toFixed(2) + ' L'}</Num>
               <View style={{ flexDirection: 'row', gap: 3 }}>
                 {Array.from({ length: 10 }, (_, i) => <View key={i} style={{ flex: 1, height: 18, borderRadius: 3, backgroundColor: (i + 1) / 10 <= wv / wt ? C.accent : C.n900 }} />)}
               </View>

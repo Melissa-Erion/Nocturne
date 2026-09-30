@@ -7,7 +7,7 @@ import { signInWithGoogle, takeRedirectError } from '@/lib/auth';
 import { googleButtonAvailable, GoogleWebButton } from '@/lib/googleWeb';
 import { supabase } from '@/lib/supabase';
 import { Btn, Card, Field, H, Icon, Input, Muted, Row, Seg, T } from '@/ui/kit';
-import { C } from '@/ui/theme';
+import { C, FONT } from '@/ui/theme';
 
 /** Simple "G" mark for the Google button (no brand icon in the kit). */
 const GMark = () => (
@@ -79,7 +79,7 @@ export default function AuthScreen() {
         <View style={{ width: '100%', maxWidth: 400, gap: 18 }}>
           <Row gap={8}>
             <View style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: C.accent, boxShadow: `0 0 12px ${C.accent}` }} />
-            <T size={19} w={500}>Regimen</T>
+            <T size={21} style={{ fontFamily: FONT.display, letterSpacing: -0.2 }}>Regimen</T>
           </Row>
           <View style={{ gap: 4 }}>
             <H size={28}>{mode === 'signup' ? 'Create your account' : mode === 'reset' ? 'Reset your password' : 'Welcome back'}</H>

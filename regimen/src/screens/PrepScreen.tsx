@@ -2,7 +2,7 @@
 import { View } from 'react-native';
 import type { DayType, PrepPlan, Recipe, SavedMeal } from '@/domain/types';
 import { useRG } from '@/store/rg';
-import { Btn, Card, Field, H, Icon, Muted, NotMedical, NumInput, Row, Select, Seg, T } from '@/ui/kit';
+import { Btn, Card, Field, H, Icon, Muted, NotMedical, Num, NumInput, Row, Select, Seg, T } from '@/ui/kit';
 import { alpha, C, R } from '@/ui/theme';
 import { Grid, Table } from './prep/ui';
 import { Screen } from './Shell';
@@ -102,17 +102,17 @@ function PrepCard({ p, pi, srcOpts }: { p: PrepPlan; pi: number; srcOpts: { valu
         <Grid min={140} gap={10}>
           <View>
             <Muted size={11}>Containers</Muted>
-            <T size={24} tab lh={1.3}>{c.n}</T>
+            <Num size={28}>{c.n}</Num>
           </View>
           <View>
             <Muted size={11}>Per container</Muted>
-            <T size={24} tab lh={1.3}>{RG.num(c.perContainer.kcal)}<T size={12} color={C.n500}> kcal</T></T>
+            <Num size={28}>{RG.num(c.perContainer.kcal)}<T size={12} color={C.n500}> kcal</T></Num>
             <T size={12} color={C.n400}>{`${RG.r1(c.perContainer.p)} P · ${RG.r1(c.perContainer.c)} C · ${RG.r1(c.perContainer.f)} F`}</T>
           </View>
           {isR && (
             <View>
               <Muted size={11}>Cooked per container</Muted>
-              <T size={24} tab lh={1.3}>{perContainerG}<T size={12} color={C.n500}> g</T></T>
+              <Num size={28}>{perContainerG}<T size={12} color={C.n500}> g</T></Num>
             </View>
           )}
         </Grid>
