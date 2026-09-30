@@ -9,6 +9,8 @@ import { signOut, useUI } from '@/store/store';
 import { Btn, Card, CardTitle, Dialog, Field, Grid, Icon, Input, Muted, PageHeader, Row, RuledRow, T, Tag } from '@/ui/kit';
 import { C, R } from '@/ui/theme';
 import { Screen } from './Shell';
+import { billingLive, PLANS, TRIAL_DAYS } from '@/lib/plans';
+import { useAccess } from '@/store/access';
 
 type Msg = { kind: 'ok' | 'err'; text: string } | null;
 const PROVIDER: Record<string, string> = { email: 'Email', google: 'Google' };
@@ -35,6 +37,16 @@ function InfoRow({ label, children }: { label: string; children: ReactNode }) {
 
 export default function AccountScreen() {
   const RG = useRG();
+  const access = useAccess();
+  const sub = access.sub;
+  const endStr = sub?.periodEnd ? new Date(sub.periodEnd).toLocaleDateString('en-CA', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+  const subStatus: { tag: string; tone: 'accent' | 'neutral' | 'outline'; line: string } =
+    sub?.status === 'comp' ? { tag: 'Full access', tone: 'accent', line: 'Complimentary full access. No payment needed.' }
+    : sub?.status === 'trialing' ? { tag: 'Free trial', tone: 'accent', line: `Free trial of the ${sub.plan} plan until ${endStr}.` }
+    : sub?.status === 'active' ? { tag: 'Active', tone: 'accent', line: `${sub.plan === 'yearly' ? 'Yearly' : 'Monthly'} plan. Renews ${endStr}.` }
+    : sub?.status === 'canceled' ? { tag: 'Canceled', tone: 'neutral', line: `Canceled. Full access until ${endStr}, then paid features lock (your data is kept).` }
+    : sub?.status === 'expired' ? { tag: 'Ended', tone: 'neutral', line: 'Your subscription has ended. Paid features are locked; your data is kept.' }
+    : { tag: billingLive() ? 'Free version' : 'Coming soon', tone: 'outline', line: billingLive() ? 'You\'re on the free version.' : 'No subscription yet.' };
   const mode = useUI(u => u.mode);
   const cloud = !!supabase && mode === 'cloud';
 
@@ -237,16 +249,20 @@ export default function AccountScreen() {
           <Card gap={12}>
             <Row gap={8}>
               <CardTitle style={{ flex: 1 }}>Subscription &amp; payments</CardTitle>
-              <Tag variant="outline">Coming soon</Tag>
+              <Tag variant={subStatus.tone}>{subStatus.tag}</Tag>
             </Row>
-            <View style={{ gap: 8, padding: 12, borderRadius: R.md, boxShadow: `inset 0 0 0 1px ${C.n800}` }}>
-              <Row gap={8}><Icon name="info" size={16} color={C.accent} /><T size={13} style={{ flex: 1 }}>Billing isn't set up yet — you won't be charged.</T></Row>
-            </View>
-            <Muted size={13}>Planned plans (for information only):</Muted>
-            <InfoRow label="Monthly"><T size={14}>$49.99/month</T></InfoRow>
-            <InfoRow label="Yearly"><Row gap={8} wrap><T size={14}>$399/year</T><Tag variant="accent">Save 33%</Tag></Row></InfoRow>
-            <InfoRow label="Free trial"><T size={14}>7 days</T></InfoRow>
-            <Btn title="Choose a plan — coming soon" disabled style={{ alignSelf: 'flex-start' }} />
+            <T size={14}>{subStatus.line}</T>
+            {!billingLive() && (
+              <View style={{ gap: 8, padding: 12, borderRadius: R.md, boxShadow: `inset 0 0 0 1px ${C.n800}` }}>
+                <Row gap={8}><Icon name="info" size={16} color={C.accent} /><T size={13} style={{ flex: 1 }}>Payments aren't switched on yet. Nobody is charged, and every feature is open.</T></Row>
+              </View>
+            )}
+            {PLANS.map(p => (
+              <InfoRow key={p.id} label={p.name}><Row gap={8} wrap><T size={14}>{`${p.price}/${p.per}`}</T>{p.recommended && <Tag variant="accent">Save 40%</Tag>}</Row></InfoRow>
+            ))}
+            <InfoRow label="Free trial"><T size={14}>{`${TRIAL_DAYS} days`}</T></InfoRow>
+            <Muted size={12}>If you cancel, you keep full access until the end of the period you've paid for. After that, paid features lock, but your data is kept, so everything comes back if you subscribe again.</Muted>
+            {!access.full && <Btn variant="primary" title="See plans" onPress={() => RG.go('upgrade')} style={{ alignSelf: 'flex-start' }} />}
           </Card>
         </Grid>
       )}

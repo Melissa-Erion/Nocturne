@@ -9,6 +9,7 @@ import {
 } from '@/ui/kit';
 import { alpha, C } from '@/ui/theme';
 import { Screen } from './Shell';
+import { useAccess } from '@/store/access';
 
 const REMINDER_ICONS: Record<string, IconName> = {
   'Upcoming workout': 'barbell', 'Start workout': 'play', 'Progress check-in': 'clipboard-text', 'Progress photos': 'camera', 'Meal prep': 'cooking-pot',
@@ -18,6 +19,7 @@ const REMINDER_ICONS: Record<string, IconName> = {
 
 export default function DashboardScreen() {
   const RG = useRG();
+  const { full } = useAccess();
   const [q, setQ] = useState(0);
   const [dlg, setDlg] = useState<null | 'weight' | 'move'>(null);
   const [wInput, setWInput] = useState<number | null>(null);
@@ -89,7 +91,7 @@ export default function DashboardScreen() {
     return { d, label: RG.fmtD(d), occ: os.length > 1 ? `${os.length} workouts` : os.length ? (RG.workout(os[0].workoutId, os[0].planId)?.name || '').replace(' Body ', ' ') : RG.inPause(d) ? 'Paused' : 'Free' };
   }) : [];
 
-  const openMove = (id?: string) => { if (!id && !(entry && entry.status === 'planned') && !RG.nextEntry(T0)) return RG.toast('No upcoming workout to move.'); setMoveId(id || null); setMoveTo(null); setShift(null); setDlg('move'); };
+  const openMove = (id?: string) => { if (!full) return RG.go('schedule'); if (!id && !(entry && entry.status === 'planned') && !RG.nextEntry(T0)) return RG.toast('No upcoming workout to move.'); setMoveId(id || null); setMoveTo(null); setShift(null); setDlg('move'); };
   const saveWeight = () => { const v = wInput; if (!(v != null && v > 20)) return; RG.logWeight(RG.toKg(v)); setDlg(null); RG.toast(`Weight logged: ${v} ${wu}. The 7-day average is updated.`); };
   const confirmMove = () => {
     if (!moveTo || !mv) return;
@@ -137,7 +139,7 @@ export default function DashboardScreen() {
                         <T size={13} color={C.n400} style={{ marginTop: 4 }}>{`${tw.focus} · ${tw.items.reduce((a, i) => a + i.sets, 0)} working sets · ${incr ? incr + ' weight increase' + (incr > 1 ? 's' : '') + ' suggested' : 'hold weights, add reps'}`}</T>
                       </View>
                       {en.status === 'planned' && !pause && (
-                        <Btn variant="primary" size="lg" icon="play" iconFill title={S.active && S.active.entryId === en.id ? 'Resume workout' : 'Start workout'} onPress={() => RG.startWorkout(en.id)} />
+                        <Btn variant="primary" size="lg" icon="play" iconFill title={S.active && S.active.entryId === en.id ? 'Resume workout' : 'Start workout'} onPress={() => full ? RG.startWorkout(en.id) : RG.go('workout')} />
                       )}
                       {en.status === 'done' && <Tag variant="accent" icon="check-circle">Logged</Tag>}
                     </Row>
@@ -154,7 +156,7 @@ export default function DashboardScreen() {
                           <T size={13} color={C.n300} tab style={{ flexShrink: 0 }}>{ex.last}</T>
                           <Row gap={6} style={{ flexShrink: 0 }}>
                             <Icon name={ex.icon} size={14} color={ex.color} />
-                            <T size={13} tab>{ex.next}</T>
+                            {full ? <T size={13} tab>{ex.next}</T> : <Row gap={4}><Icon name="lock-simple" size={12} color={C.n500} /><T size={12} color={C.n500}>Pro</T></Row>}
                           </Row>
                         </RuledRow>
                       ))}
@@ -254,7 +256,7 @@ export default function DashboardScreen() {
           <Row style={{ alignItems: 'baseline' }}><CardTitle style={{ marginRight: 'auto' }}>Meals today</CardTitle><Btn variant="ghost" icon="shopping-cart" title="Grocery list" onPress={() => RG.go('grocery')} /></Row>
           {day.meals.map((m, i) => {
             const t = tgs[i]; const sm = RG.sumM(m.items);
-            const foods = m.items.map(x => { const f = RG.food(x.foodId); return f ? `${f.name.split(',')[0]} ${Math.round(x.g)} g${f.basis === 'cooked' ? ' cooked' : f.basis === 'raw' ? ' raw' : ''}` : ''; }).filter(Boolean).join(' · ');
+            const foods = m.items.map(x => { const f = RG.food(x.foodId); return f ? (full ? `${f.name.split(',')[0]} ${Math.round(x.g)} g${f.basis === 'cooked' ? ' cooked' : f.basis === 'raw' ? ' raw' : ''}` : f.name.split(',')[0]) : ''; }).filter(Boolean).join(' · ');
             return (
               <RuledRow key={m.key} style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
                 <Muted tab style={{ width: 44 }}>{t?.time || ''}</Muted>
@@ -263,7 +265,7 @@ export default function DashboardScreen() {
                   <Muted numberOfLines={1}>{foods || 'Nothing planned yet'}</Muted>
                   <T size={11} color={C.n400} tab>{`${RG.num(sm.kcal)} kcal · ${Math.round(sm.p)}P ${Math.round(sm.c)}C ${Math.round(sm.f)}F · ${m.prepped ? 'Prepped' : 'Not prepped'}`}</T>
                 </View>
-                <Tap onPress={() => RG.update(s => { const mm = s.days[T0].meals[i]; mm.logged = !mm.logged; })} label={m.logged ? 'Mark not logged' : 'Log meal'}
+                <Tap onPress={() => full ? RG.update(s => { const mm = s.days[T0].meals[i]; mm.logged = !mm.logged; }) : RG.go('meals')} label={m.logged ? 'Mark not logged' : 'Log meal'}
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 5, paddingHorizontal: 10, borderRadius: 6, borderWidth: 1, borderColor: m.logged ? C.a800 : C.accent, backgroundColor: m.logged ? C.a800 : 'transparent' }}>
                   <Icon name={m.logged ? 'check-circle' : 'plus-circle'} fill={m.logged} size={13} color={m.logged ? C.a100 : C.accent} />
                   <T size={12} color={m.logged ? C.a100 : C.accent}>{m.logged ? 'Logged' : 'Log'}</T>

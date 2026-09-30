@@ -8,6 +8,7 @@ import { newUserState, sampleState } from '@/domain/seed';
 import type { Ctx, State } from '@/domain/types';
 import { syncCalendar } from '@/lib/calendar';
 import { syncNotifications } from '@/lib/notifications';
+import type { Subscription } from '@/lib/plans';
 import { supabase } from '@/lib/supabase';
 import { CloudSync } from './sync';
 
@@ -26,12 +27,14 @@ interface UI {
   routeParam: unknown;
   sync: 'idle' | 'saving' | 'saved' | 'error';
   syncError: string | null;
+  /** The signed-in user's subscription row (null = none / not loaded / device mode). */
+  subscription: Subscription | null;
   error: string | null;
 }
 
 export const useUI = create<UI>(() => ({
   phase: 'booting', mode: supabase ? 'cloud' : 'device', userId: null, email: null, version: 0,
-  toast: null, undoLabel: null, routeParam: null, sync: 'idle', syncError: null, error: null,
+  toast: null, undoLabel: null, routeParam: null, sync: 'idle', syncError: null, subscription: null, error: null,
 }));
 
 let S: State = newUserState(localToday());
@@ -107,6 +110,16 @@ async function readCache(): Promise<State | null> {
 }
 
 /** Load data for the signed-in user (cloud) or this device. */
+/** Read the user's access row (written only by the server). Failures leave access unknown → treated as no subscription. */
+export async function refreshSubscription() {
+  const uid = useUI.getState().userId;
+  if (!supabase || !uid) { useUI.setState({ subscription: null }); return; }
+  try {
+    const { data } = await supabase.from('subscriptions').select('status, plan, period_end').eq('user_id', uid).maybeSingle();
+    useUI.setState({ subscription: data ? { status: data.status, plan: data.plan, periodEnd: data.period_end } : null });
+  } catch { /* keep previous value */ }
+}
+
 async function loadFor(userId: string | null, email: string | null) {
   useUI.setState({ phase: 'loading', userId, email, error: null });
   const today = localToday();
@@ -130,6 +143,7 @@ async function loadFor(userId: string | null, email: string | null) {
   if (!S.photos) S.photos = {};
   ensureFuture(ctx());
   useUI.setState({ phase: 'ready' });
+  refreshSubscription();
   commit();
 }
 

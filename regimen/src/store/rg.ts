@@ -11,7 +11,7 @@ import { clearSampleData, commit, ctx, dropUndo, getState, pushUndo, resetToSamp
 
 export type Route =
   | 'dashboard' | 'schedule' | 'plans' | 'workout' | 'history' | 'records' | 'checkins' | 'photos' | 'analytics'
-  | 'nutrition' | 'meals' | 'prep' | 'recipes' | 'alternatives' | 'grocery' | 'settings' | 'account' | 'onboarding';
+  | 'nutrition' | 'meals' | 'prep' | 'recipes' | 'alternatives' | 'grocery' | 'settings' | 'account' | 'upgrade' | 'onboarding';
 
 const U = () => D.makeUnits(getState());
 

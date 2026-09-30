@@ -10,6 +10,7 @@ import { Btn, Card, Check, Field, H, Icon, Input, Muted, NotMedical, NumInput, R
 import { alpha, C, R } from '@/ui/theme';
 import { Grid, Pick, TimeInput } from './prep/ui';
 import { Screen } from './Shell';
+import { useAccess } from '@/store/access';
 
 type N = number | null;
 interface Draft {
@@ -40,6 +41,7 @@ const hm = (t: number) => { const x = ((t % 1440) + 1440) % 1440; return `${Stri
 
 export default function OnboardingScreen() {
   const RG = useRG();
+  const { full } = useAccess();
   const P = RG.s.profile; const imp = RG.imp(); const wu = RG.wu(), lu = RG.lu();
   const [step, setStep] = useState(1);
   const [busy, setBusy] = useState(false);
@@ -134,7 +136,7 @@ export default function OnboardingScreen() {
       Object.keys(s.days).forEach(k => { if (k > RG.TODAY) delete s.days[k]; });
     });
     if (kg != null && kg > 20 && Math.abs(kg - (RG.avgWeight() ?? 0)) > 0.05) RG.logWeight(kg);
-    RG.regenerate(RG.TODAY); RG.go('dashboard'); RG.toast(wasSample ? 'Setup saved. Sample data cleared — your history starts today.' : 'Setup saved. Future workouts rescheduled, history kept.');
+    RG.regenerate(RG.TODAY); RG.go(full ? 'dashboard' : 'upgrade'); RG.toast(wasSample ? 'Setup saved. Sample data cleared — your history starts today.' : 'Setup saved. Future workouts rescheduled, history kept.', false);
   };
   const next = () => {
     if (step === 3 && !d.trainingDays.length) return RG.toast('Choose at least one training day.');
