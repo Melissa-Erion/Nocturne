@@ -23,7 +23,7 @@ export const TABLES: TableDef[] = [
         meals_per_day: Math.min(6, Math.max(1, Number(P.mealsPerDay) || 4)), diet_prefs: P.dietPrefs, allergies: P.allergies, exclude: P.exclude,
         check_in_day: Number(P.checkInDay) || 0, check_in_freq: P.checkInFreq, units: P.units, water_enabled: P.water, water_ml: Number(P.waterMl) || 0,
         supplements: P.supplements, increments: P.increments, progression: P.progression, shift_later: P.shiftLater, calendar_sync: P.calendarSync,
-        quiet_start: P.quietStart, quiet_end: P.quietEnd, quote_tone: P.quoteTone, onboarded: P.onboarded, start_date: P.startDate || null,
+        quiet_start: P.quietStart, quiet_end: P.quietEnd, quote_tone: P.quoteTone, onboarded: P.onboarded, tour_done: !!P.tourDone, start_date: P.startDate || null,
         active_plan_id: s.activePlanId, active_workout: s.active, is_sample: !!s.sample,
       }];
     },
@@ -163,6 +163,7 @@ export function fromTables(t: Record<string, Row[]>, today: string): State | nul
     increments: (pr.increments as Record<string, number>) || s.profile.increments, progression: pr.progression === 'linear' ? 'linear' : 'double',
     shiftLater: !!pr.shift_later, calendarSync: !!pr.calendar_sync, quietStart: str(pr.quiet_start), quietEnd: str(pr.quiet_end), quoteTone: str(pr.quote_tone),
     onboarded: !!pr.onboarded, startDate: str(pr.start_date) || today,
+    ...(pr.tour_done ? { tourDone: true } : {}),
   };
   s.active = (pr.active_workout as State['active']) || null;
 

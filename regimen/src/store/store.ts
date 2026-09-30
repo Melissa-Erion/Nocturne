@@ -32,12 +32,16 @@ interface UI {
   subscription: Subscription | null;
   /** RevenueCat's page for changing or cancelling the subscription (web purchases), when there is one. */
   manageUrl: string | null;
+  /** A locked screen the user tried to open: Shell shows the Regimen Pro pop-up for it. */
+  lockPrompt: string | null;
+  /** The guided app tour is showing (opened automatically once, or from Settings / the menu). */
+  tourOpen: boolean;
   error: string | null;
 }
 
 export const useUI = create<UI>(() => ({
   phase: 'booting', mode: supabase ? 'cloud' : 'device', userId: null, email: null, version: 0,
-  toast: null, undoLabel: null, routeParam: null, sync: 'idle', syncError: null, subscription: null, manageUrl: null, error: null,
+  toast: null, undoLabel: null, routeParam: null, sync: 'idle', syncError: null, subscription: null, manageUrl: null, lockPrompt: null, tourOpen: false, error: null,
 }));
 
 let S: State = newUserState(localToday());

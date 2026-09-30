@@ -14,6 +14,7 @@ import { C, R } from '@/ui/theme';
 import { Grid, Pick, Table, TimeInput } from './prep/ui';
 import { Screen } from './Shell';
 import { RemoveSampleButton } from './SampleData';
+import { startTour } from './Tour';
 
 type Tab = 'profile' | 'training' | 'nutrition' | 'reminders' | 'motivation' | 'data';
 const TABS: { value: Tab; label: string }[] = [
@@ -122,6 +123,7 @@ export default function SettingsScreen() {
             <Muted>Changes save instantly. History is never overwritten.</Muted>
             <H size={28} style={{ marginTop: 2 }}>Fitness Settings</H>
           </View>
+          <Btn icon="compass" title="Replay app tour" onPress={startTour} />
           <Btn variant="primary" icon="magic-wand" title="Run guided setup" onPress={() => RG.go('onboarding')} />
         </Row>
         <Seg<Tab> value={tab} onChange={setTab} options={TABS} style={{ flexWrap: 'wrap' }} />

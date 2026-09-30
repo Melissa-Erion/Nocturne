@@ -13,3 +13,6 @@ export function useAccess() {
     canOpen: (route: string) => full || FREE_ROUTES.has(route),
   };
 }
+
+/** Same rule outside React (used by RG.go to show the "Included with Regimen Pro" pop-up instead of navigating). */
+export const canOpenRoute = (route: string) => FREE_ROUTES.has(route) || hasFullAccess(useUI.getState().subscription);
