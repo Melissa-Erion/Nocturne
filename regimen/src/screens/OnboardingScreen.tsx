@@ -12,6 +12,7 @@ import { Grid, Pick, TimeInput } from './prep/ui';
 import { HeightField } from './HeightField';
 import { Screen } from './Shell';
 import { useAccess } from '@/store/access';
+import { takePrefill } from '@/lib/prefill';
 
 type N = number | null;
 interface Draft {
@@ -60,6 +61,13 @@ export default function OnboardingScreen() {
     };
   });
   const setD = (patch: Partial<Draft>) => setDraft(x => ({ ...x, ...patch }));
+  // Details typed into the landing-page calculator fill in the body step (once).
+  useEffect(() => {
+    const p = takePrefill(); if (!p) return;
+    if (p.units !== RG.s.profile.units) RG.update(s => { RG.setUnits(s.profile, p.units); });
+    const imp = p.units === 'imperial';
+    setD({ goal: p.goal, weight: RG.r1(p.weight), height: imp ? RG.r1(p.heightCm / 2.54) : p.heightCm, age: p.age, sex: p.sex, activity: p.activity, protein: Math.round((imp ? p.weight / 2.20462 : p.weight) * 2.20462) });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const set = <K extends keyof Draft>(k: K) => (v: Draft[K]) => setD({ [k]: v } as Partial<Draft>);
   // Protein = 1 g per lb of body weight, recalculated whenever the weight changes.
   const proteinFor = (w: number | null) => (w != null && w > 0 ? Math.round(RG.toKg(w) * 2.20462) : null);

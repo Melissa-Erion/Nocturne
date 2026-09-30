@@ -1,6 +1,7 @@
+@font-face { font-family: "Archivo"; src: url(/fonts/archivo.woff2) format("woff2-variations"); font-weight: 100 900; font-stretch: 62% 125%; font-display: swap; }
 :root { --bg: #12131d; --surface: #272a3b; --line: #3f424d; --line2: #50546a; --text: #e9e9ed; --muted: #b2b6ca; --dim: #9397ab; --accent: #9184d9; --a400: #b5abfc; }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text); font: 400 16px/1.7 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 400 16px/1.7 Archivo, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
 a { color: var(--a400); }
 .top { border-bottom: 1px solid var(--line); }
 .top .wrap { display: flex; align-items: center; height: 64px; gap: 16px; }
