@@ -1,5 +1,8 @@
 /* Barcode scanner dialog for the custom-food form.
-   Web: BarcodeDetector (where supported) on a getUserMedia camera stream, or on a picked image file.
+   Web: the browser's BarcodeDetector where it reads retail barcodes (Chrome on Android, macOS), otherwise the
+   zxing-wasm ponyfill (Safari on iPhone/iPad, Firefox, desktop Chrome on Windows/Linux), on a getUserMedia camera
+   stream or a picked/taken photo. The ponyfill and its WebAssembly file (public/zxing_reader.wasm, served from our
+   own site) load only when the scanner opens.
    Native: expo-camera CameraView with barcode scanning (permission via useCameraPermissions).
    A typed barcode number is always accepted as a fallback. */
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -14,10 +17,23 @@ interface BarcodeDetectorLike { detect(src: CanvasImageSource | ImageBitmap | Bl
 type BarcodeDetectorCtor = new (opts?: { formats?: string[] }) => BarcodeDetectorLike;
 
 const FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'];
-const detectorCtor = (): BarcodeDetectorCtor | null =>
-  Platform.OS === 'web' && typeof window !== 'undefined' && 'BarcodeDetector' in window ? (window as unknown as { BarcodeDetector: BarcodeDetectorCtor }).BarcodeDetector : null;
-/** True when this platform can scan (native camera, or a browser with BarcodeDetector). */
-export const canScan = () => Platform.OS !== 'web' || !!detectorCtor();
+type NativeCtor = BarcodeDetectorCtor & { getSupportedFormats?: () => Promise<string[]> };
+
+let loading: Promise<BarcodeDetectorCtor> | null = null;
+/** A BarcodeDetector for this browser: the built-in one if it handles grocery barcodes, else the zxing-wasm ponyfill. */
+function loadDetector(): Promise<BarcodeDetectorCtor> {
+  if (!loading) loading = (async () => {
+    const B = typeof window !== 'undefined' ? (window as unknown as { BarcodeDetector?: NativeCtor }).BarcodeDetector : undefined;
+    if (B) { try { const f = await B.getSupportedFormats?.(); if (f && f.includes('ean_13')) return B; } catch { /* use the ponyfill */ } }
+    const m = await import('barcode-detector/ponyfill');
+    const base = process.env.EXPO_PUBLIC_BASE_URL || '';
+    m.setZXingModuleOverrides({ locateFile: (path: string, prefix: string) => (path.endsWith('.wasm') ? `${base}/${path}` : prefix + path) });
+    return m.BarcodeDetector as unknown as BarcodeDetectorCtor;
+  })().catch(e => { loading = null; throw e; });
+  return loading;
+}
+/** True when this platform can scan (native camera, or any browser with a camera or photo picker). */
+export const canScan = () => true;
 
 export function BarcodeScanner({ open, onClose, onCode }: { open: boolean; onClose: () => void; onCode: (code: string) => void }) {
   const [manual, setManual] = useState('');
@@ -55,25 +71,31 @@ function NativeScanner({ onCode }: { onCode: (c: string) => void }) {
 }
 
 function WebScanner({ onCode }: { onCode: (c: string) => void }) {
-  const Ctor = detectorCtor();
+  const [Ctor, setCtor] = useState<BarcodeDetectorCtor | null>(null);
+  const [failed, setFailed] = useState(false);
   const video = useRef<HTMLVideoElement | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const cb = useRef(onCode); cb.current = onCode;
 
+  useEffect(() => { let alive = true; loadDetector().then(c => alive && setCtor(() => c), () => alive && setFailed(true)); return () => { alive = false; }; }, []);
+
   useEffect(() => {
-    if (!Ctor || typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) { if (Ctor) setErr('No camera available in this browser. Choose a photo of the barcode instead.'); return; }
-    let stream: MediaStream | null = null; let timer: ReturnType<typeof setInterval> | null = null; let alive = true;
+    if (!Ctor) return;
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) { setErr('No camera available in this browser. Take or choose a photo of the barcode instead.'); return; }
+    let stream: MediaStream | null = null; let timer: ReturnType<typeof setInterval> | null = null; let alive = true; let reading = false;
     const det = new Ctor({ formats: FORMATS });
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(st => {
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } }).then(st => {
       if (!alive) { st.getTracks().forEach(t => t.stop()); return; }
       stream = st; const v = video.current; if (!v) return;
-      v.srcObject = st; v.play().catch(() => {});
+      v.muted = true; v.setAttribute('playsinline', ''); v.srcObject = st; v.play().catch(() => {});
       timer = setInterval(async () => {
-        if (!v.videoWidth) return;
-        try { const r = await det.detect(v); if (r[0]?.rawValue) cb.current(r[0].rawValue); } catch { /* frame not ready */ }
-      }, 350);
-    }).catch(() => alive && setErr('Camera permission was denied. Choose a photo of the barcode instead, or type the number.'));
+        if (!v.videoWidth || reading) return;
+        reading = true;
+        try { const r = await det.detect(v); if (alive && r[0]?.rawValue) cb.current(r[0].rawValue); } catch { /* frame not ready */ }
+        reading = false;
+      }, 300);
+    }).catch(() => alive && setErr('Camera permission was denied. Take or choose a photo of the barcode instead, or type the number.'));
     return () => { alive = false; if (timer) clearInterval(timer); stream?.getTracks().forEach(t => t.stop()); };
   }, [Ctor]);
 
@@ -90,19 +112,20 @@ function WebScanner({ onCode }: { onCode: (c: string) => void }) {
     setBusy(false);
   };
 
-  if (!Ctor) return (
+  if (failed) return (
     <Frame>
       <Icon name="barcode" size={26} color={C.n500} />
-      <T size={13} center color={C.n300}>Barcode scanning isn’t supported in this browser. Enter the label manually, or type the barcode number below.</T>
+      <T size={13} center color={C.n300}>The scanner couldn’t load. Check your connection, or type the barcode number below.</T>
     </Frame>
   );
+  if (!Ctor) return <Frame><Muted>Starting the scanner…</Muted></Frame>;
   return (
     <View style={{ gap: 8 }}>
       <View style={{ height: 280, borderRadius: R.md, overflow: 'hidden', backgroundColor: C.n900 }}>
         {createElement('video', { ref: video, muted: true, playsInline: true, autoPlay: true, style: { width: '100%', height: '100%', objectFit: 'cover' } })}
       </View>
       {err && <Muted size={12} color={C.a300}>{err}</Muted>}
-      <Row><Btn icon="image" title={busy ? 'Reading…' : 'Choose a photo of the barcode'} disabled={busy} onPress={fromImage} /></Row>
+      <Row><Btn icon="image" title={busy ? 'Reading…' : 'Take or choose a photo of the barcode'} disabled={busy} onPress={fromImage} /></Row>
     </View>
   );
 }
