@@ -33,12 +33,12 @@ export default function WorkoutScreen() {
   const RG = useRG();
   const S = RG.s, A = S.active;
   useClock(!!A);
-  const restMs = A?.restEnd ? A.restEnd - Date.now() : 0;
-  // rest finished: clear it and buzz (once — the guard re-checks the live state)
+  const restMs = A?.restEnd ? A.restEnd - (A.pausedAt ?? Date.now()) : 0;
+  // rest finished: clear it and buzz (once — the guard re-checks the live state). Never while paused: the rest timer is frozen.
   useEffect(() => {
-    if (A?.restEnd && restMs <= 0) {
+    if (A?.restEnd && !A.pausedAt && restMs <= 0) {
       const a = RG.s.active;
-      if (a && a.restEnd && a.restEnd <= Date.now()) { RG.update(s => { if (s.active) s.active.restEnd = null; }); try { Vibration.vibrate(200); } catch { /* not supported */ } }
+      if (a && a.restEnd && !a.pausedAt && a.restEnd <= Date.now()) { RG.update(s => { if (s.active) s.active.restEnd = null; }); try { Vibration.vibrate(200); } catch { /* not supported */ } }
     }
   });
   return A ? <Running A={A} /> : <Idle />;
@@ -87,7 +87,8 @@ function Running({ A }: { A: ActiveWorkout }) {
   const S = RG.s, wu = RG.wu(), T0 = RG.TODAY;
   const w: Workout = RG.workout(A.workoutId, A.planId) || { id: A.workoutId, name: 'Workout', focus: '', muscles: [], region: 'full', items: [] };
   const upd = (fn: (a: ActiveWorkout) => void) => RG.update(s => { if (s.active) fn(s.active); });
-  const elapsed = Date.now() - A.startedAt; const restMs = A.restEnd ? A.restEnd - Date.now() : 0;
+  // active time only — paused time is excluded, and both timers stand still while paused
+  const paused = !!A.pausedAt, elapsed = RG.workoutElapsed(); const restMs = A.restEnd ? A.restEnd - (A.pausedAt ?? Date.now()) : 0;
   const curIdx = A.ex.findIndex(q => q.sets.some(s => !s.done));
 
   let totalW = 0, doneW = 0, prCount = 0, vol = 0;
@@ -131,20 +132,35 @@ function Running({ A }: { A: ActiveWorkout }) {
           <H size={wide ? 26 : 21} style={{ marginTop: 2 }}>{w.name}</H>
         </View>
         <View style={{ alignItems: 'flex-end' }}>
-          <T size={22} tab lh={1.2} selectable={false}>{fmtT(elapsed)}</T>
+          <Row gap={6}>
+            {paused && <Tag icon="pause">Paused</Tag>}
+            <T size={22} tab lh={1.2} selectable={false} color={paused ? C.n400 : C.text}>{fmtT(elapsed)}</T>
+          </Row>
           <Muted size={11}>{`${doneW} of ${totalW} working sets`}</Muted>
         </View>
+        <Btn icon={paused ? 'play' : 'pause'} iconFill={paused} title={paused ? 'Resume' : 'Pause'} label={paused ? 'Resume workout' : 'Pause workout'}
+          style={{ paddingVertical: 10, paddingHorizontal: 14 }} onPress={() => (paused ? RG.resumeWorkout() : RG.pauseWorkout())} />
         <Btn variant="primary" icon="flag-checkered" title="Finish" style={{ paddingVertical: 10, paddingHorizontal: 16 }} onPress={() => setDlg('finish')} />
       </Row>
+      {paused && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap', paddingVertical: 10, paddingHorizontal: 14, borderRadius: R.md, backgroundColor: C.n900, boxShadow: `inset 0 0 0 1px ${C.n700}` }}>
+          <Icon name="pause" size={20} color={C.n300} />
+          <View style={{ flex: 1, minWidth: 180 }}>
+            <T size={14}>Workout paused</T>
+            <T size={12} color={C.n400}>Paused time doesn't count toward your workout's duration. The rest timer is on hold too.</T>
+          </View>
+          <Btn variant="primary" icon="play" iconFill title="Resume" style={{ minHeight: 44 }} onPress={() => RG.resumeWorkout()} />
+        </View>
+      )}
       {!!A.restEnd && restMs > 0 && (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 14, borderRadius: R.md, backgroundColor: C.a900, boxShadow: `inset 0 0 0 1px ${C.a700}` }}>
           <Icon name="timer" size={22} color={C.accent} />
           <View style={{ flex: 1, minWidth: 0 }}>
             <T size={26} tab lh={1}>{fmtT(restMs)}</T>
-            <T size={11} color={C.a200} numberOfLines={2}>{`Rest · next: ${A.restFor || ''}`}</T>
+            <T size={11} color={C.a200} numberOfLines={2}>{`${paused ? 'Rest on hold' : 'Rest'} · next: ${A.restFor || ''}`}</T>
           </View>
           <Btn title="−15" label="Rest 15 seconds less" style={{ minWidth: 52, minHeight: 44 }} onPress={() => upd(a => { if (a.restEnd) a.restEnd -= 15000; })} />
-          <Btn title="+15" label="Rest 15 seconds more" style={{ minWidth: 52, minHeight: 44 }} onPress={() => upd(a => { a.restEnd = (a.restEnd || Date.now()) + 15000; })} />
+          <Btn title="+15" label="Rest 15 seconds more" style={{ minWidth: 52, minHeight: 44 }} onPress={() => upd(a => { a.restEnd = (a.restEnd || a.pausedAt || Date.now()) + 15000; })} />
           <Btn title="Skip rest" style={{ minHeight: 44 }} onPress={() => upd(a => { a.restEnd = null; })} />
         </View>
       )}
@@ -194,7 +210,7 @@ function Running({ A }: { A: ActiveWorkout }) {
                 </View>
                 <Row gap={2}>
                   <Btn variant="ghost" iconOnly icon="info" label="Instructions" onPress={() => setInfo(v => ({ ...v, [x.key]: !v[x.key] }))} />
-                  <Btn variant="ghost" iconOnly icon="swap" label="Substitute exercise" onPress={() => setSub(v => ({ ...v, [x.key]: !v[x.key] }))} />
+                  <Btn variant="ghost" iconOnly icon="swap" label={sub[x.key] ? 'Close substitute options' : 'Substitute exercise'} onPress={() => { if (sub[x.key]) setSubPerm(p => ({ ...p, [x.key]: false })); setSub(v => ({ ...v, [x.key]: !v[x.key] })); }} />
                   <Btn variant="ghost" iconOnly icon="arrow-counter-clockwise" label="Repeat previous numbers" onPress={() => {
                     if (!last) return RG.toast('No previous session for this exercise yet.');
                     upd(a => { let j = 0; a.ex[ei].sets.forEach(s => { if (!s.warm && !s.done) { const ls = last.sets[Math.min(j, last.sets.length - 1)]; s.kg = ls.kg; s.reps = ls.reps; s.rir = ls.rir; } if (!s.warm) j++; }); });
@@ -264,6 +280,11 @@ function Running({ A }: { A: ActiveWorkout }) {
                     {!alts.length && <Muted>No alternatives for your equipment.</Muted>}
                   </Row>
                   <Check checked={!!subPerm[x.key]} onChange={v => setSubPerm(p => ({ ...p, [x.key]: v }))} label="Also replace in the plan going forward" size={12} />
+                  <Row gap={6} wrap>
+                    <Muted size={11} style={{ flex: 1, minWidth: 160 }}>Tap an exercise to swap. Nothing changes until you do.</Muted>
+                    <Btn size="sm" icon="x" title="Cancel" label="Cancel — keep this exercise" style={{ minHeight: 36 }}
+                      onPress={() => { setSub(v => ({ ...v, [x.key]: false })); setSubPerm(p => ({ ...p, [x.key]: false })); }} />
+                  </Row>
                 </View>
               )}
 
@@ -308,7 +329,7 @@ function Running({ A }: { A: ActiveWorkout }) {
                           if (s2.done) {
                             const nxt = a.ex[ei].sets.find(q => !q.done);
                             const ssPartner = item.superset ? w.items.find(q => q.superset === item.superset && q.id !== item.id) : undefined;
-                            a.restEnd = ssPartner && w.items.indexOf(ssPartner) > w.items.indexOf(item) ? null : Date.now() + item.rest * 1000;
+                            a.restEnd = ssPartner && w.items.indexOf(ssPartner) > w.items.indexOf(item) ? null : (a.pausedAt ?? Date.now()) + item.rest * 1000;
                             a.restFor = nxt ? `${e.name} · set ${a.ex[ei].sets.indexOf(nxt) + 1}` : (a.ex[ei + 1] ? RG.ex(a.ex[ei + 1].exId)?.name || 'next exercise' : 'finish');
                           }
                         })}
@@ -370,6 +391,7 @@ function Running({ A }: { A: ActiveWorkout }) {
             <View key={l} style={{ flex: 1 }}><T size={24} tab lh={1.25}>{v}</T><Muted size={11}>{l}</Muted></View>
           ))}
         </View>
+        <Muted size={12}>{`Workout time ${fmtT(elapsed)}${A.pausedMs || paused ? ' · paused time not counted' : ''}`}</Muted>
         <T size={14} color={alpha(C.text, 0.85)}>{doneW < totalW ? `${totalW - doneW} planned working set(s) not completed — only completed sets are saved. Next-session targets update from what you logged.` : 'Every planned set is logged. Next-session targets update from these numbers.'}</T>
       </Dialog>
 
