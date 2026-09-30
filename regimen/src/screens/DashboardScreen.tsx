@@ -23,14 +23,16 @@ export default function DashboardScreen() {
   const [wInput, setWInput] = useState<number | null>(null);
   const [moveTo, setMoveTo] = useState<string | null>(null);
   const [shiftOverride, setShift] = useState<boolean | null>(null);
+  const [moveId, setMoveId] = useState<string | null>(null);
 
   const S = RG.s, P = S.profile, T0 = RG.TODAY, wu = RG.wu();
-  const entry = S.schedule.find(e => e.date === T0 && (e.status === 'planned' || e.status === 'done'));
-  const moveTarget = entry && entry.status === 'planned' ? entry : RG.nextEntry(T0);
+  const todayEntries = S.schedule.filter(e => e.date === T0 && (e.status === 'planned' || e.status === 'done'));
+  const entry = todayEntries.find(e => e.status === 'planned') || todayEntries[0];
+  const moveTarget = (moveId ? RG.entry(moveId) : undefined) || (entry && entry.status === 'planned' ? entry : RG.nextEntry(T0));
   const w = entry && RG.workout(entry.workoutId, entry.planId);
   const pause = RG.activePause();
 
-  const exercises = w ? w.items.map(item => {
+  const exercisesOf = (w: NonNullable<ReturnType<typeof RG.workout>>) => w.items.map(item => {
     const e = RG.ex(item.exId); const last = RG.lastPerf(item.exId); const rec = RG.recommend(item.exId, item);
     const up = rec?.type === 'increase', dn = rec?.type === 'reduce';
     return {
@@ -40,8 +42,8 @@ export default function DashboardScreen() {
       icon: (up ? 'arrow-up-right' : dn ? 'arrow-down-right' : rec?.type === 'baseline' ? 'flag' : 'equals') as IconName,
       color: up ? C.accent : dn ? C.n300 : C.n500,
     };
-  }) : [];
-  const increases = w ? w.items.filter(i => RG.recommend(i.exId, i)?.type === 'increase').length : 0;
+  });
+  const todays_ = todayEntries.map(e => ({ e, w: RG.workout(e.workoutId, e.planId) })).filter((x): x is { e: typeof x.e; w: NonNullable<typeof x.w> } => !!x.w);
 
   // week strip
   const mon = RG.monday(T0); const ws = RG.weekStats(mon); const nextCheck = RG.nextCheckIn();
@@ -65,9 +67,10 @@ export default function DashboardScreen() {
 
   // nutrition
   const day = RG.getDay(T0); const tot = RG.dayTotals(T0); const tgs = RG.mealTargets(day.type);
-  const mk: [string, number, number, number, string][] = [['Calories', P.kcal, tot.planned.kcal, tot.logged.kcal, 'kcal'], ['Protein', P.protein, tot.planned.p, tot.logged.p, 'g'], ['Carbs', P.carbs, tot.planned.c, tot.logged.c, 'g'], ['Fat', P.fat, tot.planned.f, tot.logged.f, 'g']];
-  const macroKcal = P.protein * 4 + P.carbs * 4 + P.fat * 9; const dk = macroKcal - P.kcal;
-  const macroNote = `Planned today: ${RG.num(tot.planned.kcal)} kcal. ` + (Math.abs(dk) > 5 ? `Your macro targets add up to ${RG.num(macroKcal)} kcal, ${Math.abs(dk)} kcal ${dk > 0 ? 'above' : 'below'} the ${RG.num(P.kcal)} kcal calorie target. Macros are rounded to whole grams.` : 'Macro targets reconcile with the calorie target.');
+  const DT = RG.dayTargets(T0);
+  const mk: [string, number, number, number, string][] = [['Calories', DT.kcal, tot.planned.kcal, tot.logged.kcal, 'kcal'], ['Protein', DT.protein, tot.planned.p, tot.logged.p, 'g'], ['Carbs', DT.carbs, tot.planned.c, tot.logged.c, 'g'], ['Fat', DT.fat, tot.planned.f, tot.logged.f, 'g']];
+  const macroKcal = DT.protein * 4 + DT.carbs * 4 + DT.fat * 9; const dk = macroKcal - DT.kcal;
+  const macroNote = `Planned today: ${RG.num(tot.planned.kcal)} kcal. ` + (Math.abs(dk) > 5 ? `Your macro targets add up to ${RG.num(macroKcal)} kcal, ${Math.abs(dk)} kcal ${dk > 0 ? 'above' : 'below'} the ${RG.num(DT.kcal)} kcal calorie target. Macros are rounded to whole grams.` : 'Macro targets reconcile with the calorie target.');
 
   // quote & reminders
   const quote = RG.todayQuote(q);
@@ -82,11 +85,11 @@ export default function DashboardScreen() {
   const shift = shiftOverride ?? P.shiftLater;
   const mv = moveTarget;
   const moveDays = mv ? Array.from({ length: 12 }, (_, i) => RG.add(T0, i)).filter(d => d !== mv.date).map(d => {
-    const o = S.schedule.find(e => e.date === d && e.status === 'planned');
-    return { d, label: RG.fmtD(d), occ: o ? (RG.workout(o.workoutId, o.planId)?.name || '').replace(' Body ', ' ') : RG.inPause(d) ? 'Paused' : 'Free' };
+    const os = S.schedule.filter(e => e.date === d && e.status === 'planned' && e.id !== mv.id);
+    return { d, label: RG.fmtD(d), occ: os.length > 1 ? `${os.length} workouts` : os.length ? (RG.workout(os[0].workoutId, os[0].planId)?.name || '').replace(' Body ', ' ') : RG.inPause(d) ? 'Paused' : 'Free' };
   }) : [];
 
-  const openMove = () => { if (!mv) return RG.toast('No upcoming workout to move.'); setMoveTo(null); setShift(null); setDlg('move'); };
+  const openMove = (id?: string) => { if (!id && !(entry && entry.status === 'planned') && !RG.nextEntry(T0)) return RG.toast('No upcoming workout to move.'); setMoveId(id || null); setMoveTo(null); setShift(null); setDlg('move'); };
   const saveWeight = () => { const v = wInput; if (!(v != null && v > 20)) return; RG.logWeight(RG.toKg(v)); setDlg(null); RG.toast(`Weight logged: ${v} ${wu}. The 7-day average is updated.`); };
   const confirmMove = () => {
     if (!moveTo || !mv) return;
@@ -105,7 +108,7 @@ export default function DashboardScreen() {
         <Row gap={6} wrap style={{ flexShrink: 1, maxWidth: '100%' }}>
           <Btn icon="scales" title="Log weight" onPress={() => { setWInput(S.weights.length ? Number(RG.w(S.weights[S.weights.length - 1].kg)) : null); setDlg('weight'); }} />
           <Btn icon="camera" title="Progress photos" onPress={() => RG.go('photos')} />
-          <Btn icon="arrows-left-right" title="Move workout" onPress={openMove} />
+          <Btn icon="arrows-left-right" title="Move workout" onPress={() => openMove()} />
           <Btn icon="cooking-pot" title="Prepare meals" onPress={() => RG.go('prep')} />
         </Row>
         <Seg value={P.units} onChange={v => RG.update(s => { s.profile.units = v; })} options={[{ value: 'metric', label: 'kg' }, { value: 'imperial', label: 'lb' }]} />
@@ -121,42 +124,51 @@ export default function DashboardScreen() {
 
       <Grid min={420}>
         <HeroCard style={{ flexGrow: 1 }}>
-          {entry && w ? (
+          {todays_.length ? (
             <>
-              <Row gap={12} wrap align="flex-start">
-                <View style={{ marginRight: 'auto', flexShrink: 1 }}>
-                  <Kicker>{`Today · ${P.workoutTime} · ~${P.duration} min · ${P.location}`}</Kicker>
-                  <H size={30} style={{ marginTop: 6 }}>{w.name}</H>
-                  <T size={13} color={C.n400} style={{ marginTop: 4 }}>{`${w.focus} · ${w.items.reduce((a, i) => a + i.sets, 0)} working sets · ${increases ? increases + ' weight increase' + (increases > 1 ? 's' : '') + ' suggested' : 'hold weights, add reps'}`}</T>
-                </View>
-                {entry.status === 'planned' && !pause && (
-                  <Btn variant="primary" size="lg" icon="play" iconFill title={S.active && S.active.entryId === entry.id ? 'Resume workout' : 'Start workout'} onPress={() => RG.startWorkout(entry.id)} />
-                )}
-                {entry.status === 'done' && <Tag variant="accent" icon="check-circle">Logged</Tag>}
-              </Row>
-              <View>
-                <View style={{ flexDirection: 'row', gap: 14, paddingTop: 6, paddingBottom: 4 }}>
-                  <ColLabel style={{ flex: 1 }}>Exercise</ColLabel><ColLabel>Last session</ColLabel><ColLabel>Next target</ColLabel>
-                </View>
-                {exercises.map(ex => (
-                  <RuledRow key={ex.key} style={{ flexDirection: 'row', gap: 14, alignItems: 'center', paddingVertical: 12 }}>
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <T size={14} numberOfLines={1}>{ex.name}</T>
-                      <Muted numberOfLines={1}>{ex.scheme}</Muted>
-                    </View>
-                    <T size={13} color={C.n300} tab style={{ flexShrink: 0 }}>{ex.last}</T>
-                    <Row gap={6} style={{ flexShrink: 0 }}>
-                      <Icon name={ex.icon} size={14} color={ex.color} />
-                      <T size={13} tab>{ex.next}</T>
+              {todays_.map(({ e: en, w: tw }, ti) => {
+                const incr = tw.items.filter(i => RG.recommend(i.exId, i)?.type === 'increase').length;
+                return (
+                  <View key={en.id} style={{ gap: 12, paddingTop: ti ? 18 : 0, borderTopWidth: ti ? 1 : 0, borderColor: C.divider }}>
+                    <Row gap={12} wrap align="flex-start">
+                      <View style={{ marginRight: 'auto', flexShrink: 1 }}>
+                        <Kicker>{todays_.length > 1 ? `Today · workout ${ti + 1} of ${todays_.length} · ~${P.duration} min · ${P.location}` : `Today · ${P.workoutTime} · ~${P.duration} min · ${P.location}`}</Kicker>
+                        <H size={30} style={{ marginTop: 6 }}>{tw.name}</H>
+                        <T size={13} color={C.n400} style={{ marginTop: 4 }}>{`${tw.focus} · ${tw.items.reduce((a, i) => a + i.sets, 0)} working sets · ${incr ? incr + ' weight increase' + (incr > 1 ? 's' : '') + ' suggested' : 'hold weights, add reps'}`}</T>
+                      </View>
+                      {en.status === 'planned' && !pause && (
+                        <Btn variant="primary" size="lg" icon="play" iconFill title={S.active && S.active.entryId === en.id ? 'Resume workout' : 'Start workout'} onPress={() => RG.startWorkout(en.id)} />
+                      )}
+                      {en.status === 'done' && <Tag variant="accent" icon="check-circle">Logged</Tag>}
                     </Row>
-                  </RuledRow>
-                ))}
-              </View>
-              <Row gap={4} wrap>
-                <Btn variant="ghost" icon="calendar-blank" title="Move" onPress={openMove} />
-                <Btn variant="ghost" icon="skip-forward" title="Skip" onPress={() => { if (entry.status === 'planned') { RG.skipEntry(entry.id); RG.toast(`${w.name} skipped. The rotation continues with the next workout.`); } }} />
-                <Btn variant="ghost" icon="calendar-dots" title="Full schedule" onPress={() => RG.go('schedule')} />
-              </Row>
+                    <View>
+                      <View style={{ flexDirection: 'row', gap: 14, paddingTop: 6, paddingBottom: 4 }}>
+                        <ColLabel style={{ flex: 1 }}>Exercise</ColLabel><ColLabel>Last session</ColLabel><ColLabel>Next target</ColLabel>
+                      </View>
+                      {exercisesOf(tw).map(ex => (
+                        <RuledRow key={ex.key} style={{ flexDirection: 'row', gap: 14, alignItems: 'center', paddingVertical: 12 }}>
+                          <View style={{ flex: 1, minWidth: 0 }}>
+                            <T size={14} numberOfLines={1}>{ex.name}</T>
+                            <Muted numberOfLines={1}>{ex.scheme}</Muted>
+                          </View>
+                          <T size={13} color={C.n300} tab style={{ flexShrink: 0 }}>{ex.last}</T>
+                          <Row gap={6} style={{ flexShrink: 0 }}>
+                            <Icon name={ex.icon} size={14} color={ex.color} />
+                            <T size={13} tab>{ex.next}</T>
+                          </Row>
+                        </RuledRow>
+                      ))}
+                    </View>
+                    {(en.status === 'planned' || ti === todays_.length - 1) && (
+                      <Row gap={4} wrap>
+                        <Btn variant="ghost" icon="calendar-blank" title="Move" onPress={() => openMove(en.status === 'planned' ? en.id : undefined)} />
+                        {en.status === 'planned' && <Btn variant="ghost" icon="skip-forward" title="Skip" onPress={() => { RG.skipEntry(en.id); RG.toast(`${tw.name} skipped. The rotation continues with the next workout.`); }} />}
+                        {ti === todays_.length - 1 && <Btn variant="ghost" icon="calendar-dots" title="Full schedule" onPress={() => RG.go('schedule')} />}
+                      </Row>
+                    )}
+                  </View>
+                );
+              })}
             </>
           ) : (
             <>
@@ -307,7 +319,7 @@ export default function DashboardScreen() {
             );
           })}
         </Grid>
-        <Check checked={shift} onChange={setShift} label="Shift later workouts to keep the rotation order" />
+        <Check checked={shift} onChange={setShift} label="Shift later workouts: if the new day already has a workout, it moves to the next training day (and so on, only as far as needed). Off: both workouts stay on that day." />
       </Dialog>
     </Screen>
   );
