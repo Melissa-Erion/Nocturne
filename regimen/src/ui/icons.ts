@@ -28,6 +28,7 @@ import { CheckIcon } from 'phosphor-react-native/src/icons/Check';
 import { CheckCircleIcon } from 'phosphor-react-native/src/icons/CheckCircle';
 import { CircleDashedIcon } from 'phosphor-react-native/src/icons/CircleDashed';
 import { ClipboardTextIcon } from 'phosphor-react-native/src/icons/ClipboardText';
+import { CreditCardIcon } from 'phosphor-react-native/src/icons/CreditCard';
 import { ClockCounterClockwiseIcon } from 'phosphor-react-native/src/icons/ClockCounterClockwise';
 import { CookingPotIcon } from 'phosphor-react-native/src/icons/CookingPot';
 import { CopyIcon } from 'phosphor-react-native/src/icons/Copy';
@@ -119,6 +120,7 @@ export const ICONS = {
   'check-circle': CheckCircleIcon,
   'circle-dashed': CircleDashedIcon,
   'clipboard-text': ClipboardTextIcon,
+  'credit-card': CreditCardIcon,
   'clock-counter-clockwise': ClockCounterClockwiseIcon,
   'cooking-pot': CookingPotIcon,
   'copy': CopyIcon,

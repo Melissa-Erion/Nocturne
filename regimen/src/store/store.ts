@@ -8,7 +8,8 @@ import { newUserState, sampleState } from '@/domain/seed';
 import type { Ctx, State } from '@/domain/types';
 import { syncCalendar } from '@/lib/calendar';
 import { syncNotifications } from '@/lib/notifications';
-import type { Subscription } from '@/lib/plans';
+import { currentAccess } from '@/lib/billing';
+import { hasFullAccess, type Subscription } from '@/lib/plans';
 import { supabase } from '@/lib/supabase';
 import { CloudSync } from './sync';
 
@@ -29,12 +30,14 @@ interface UI {
   syncError: string | null;
   /** The signed-in user's subscription row (null = none / not loaded / device mode). */
   subscription: Subscription | null;
+  /** RevenueCat's page for changing or cancelling the subscription (web purchases), when there is one. */
+  manageUrl: string | null;
   error: string | null;
 }
 
 export const useUI = create<UI>(() => ({
   phase: 'booting', mode: supabase ? 'cloud' : 'device', userId: null, email: null, version: 0,
-  toast: null, undoLabel: null, routeParam: null, sync: 'idle', syncError: null, subscription: null, error: null,
+  toast: null, undoLabel: null, routeParam: null, sync: 'idle', syncError: null, subscription: null, manageUrl: null, error: null,
 }));
 
 let S: State = newUserState(localToday());
@@ -113,11 +116,22 @@ async function readCache(): Promise<State | null> {
 /** Read the user's access row (written only by the server). Failures leave access unknown → treated as no subscription. */
 export async function refreshSubscription() {
   const uid = useUI.getState().userId;
-  if (!supabase || !uid) { useUI.setState({ subscription: null }); return; }
+  if (!supabase || !uid) { useUI.setState({ subscription: null, manageUrl: null }); return; }
+  let sub: Subscription | null = null;
   try {
     const { data } = await supabase.from('subscriptions').select('status, plan, period_end').eq('user_id', uid).maybeSingle();
-    useUI.setState({ subscription: data ? { status: data.status, plan: data.plan, periodEnd: data.period_end } : null });
+    sub = data ? { status: data.status, plan: data.plan, periodEnd: data.period_end } : null;
+    useUI.setState({ subscription: sub });
   } catch { /* keep previous value */ }
+  // RevenueCat is checked too: it knows about a purchase a few seconds before the webhook updates the database,
+  // and it provides the "manage subscription" link. Comp accounts never need it.
+  if (sub?.status === 'comp') return;
+  try {
+    const rc = await currentAccess(uid);
+    if (!rc || useUI.getState().userId !== uid) return;
+    useUI.setState({ manageUrl: rc.manageUrl });
+    if (rc.sub && hasFullAccess(rc.sub, Date.now(), true) && !hasFullAccess(sub, Date.now(), true)) useUI.setState({ subscription: rc.sub });
+  } catch { /* RevenueCat unreachable: the database row stands */ }
 }
 
 async function loadFor(userId: string | null, email: string | null) {
@@ -156,7 +170,7 @@ export function boot() {
   });
   supabase.auth.onAuthStateChange((event, session) => {
     const u = session?.user; const cur = useUI.getState().userId;
-    if (event === 'SIGNED_OUT' || !u) { cloud = null; S = newUserState(localToday()); useUI.setState({ phase: 'signedOut', userId: null, email: null }); return; }
+    if (event === 'SIGNED_OUT' || !u) { cloud = null; S = newUserState(localToday()); useUI.setState({ phase: 'signedOut', userId: null, email: null, subscription: null, manageUrl: null }); return; }
     if (u.id !== cur && event === 'SIGNED_IN') loadFor(u.id, u.email ?? null);
   });
 }

@@ -1,7 +1,7 @@
 /* My Account — profile, sign-in email, password, subscription (information only for now) and sign out. */
 import type { User } from '@supabase/supabase-js';
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Linking, View } from 'react-native';
 import { authRedirect, friendlyAuthError } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { useRG } from '@/store/rg';
@@ -48,6 +48,7 @@ export default function AccountScreen() {
     : sub?.status === 'expired' ? { tag: 'Ended', tone: 'neutral', line: 'Your subscription has ended. Paid features are locked; your data is kept.' }
     : { tag: billingLive() ? 'Free version' : 'Coming soon', tone: 'outline', line: billingLive() ? 'You\'re on the free version.' : 'No subscription yet.' };
   const mode = useUI(u => u.mode);
+  const manageUrl = useUI(u => u.manageUrl);
   const cloud = !!supabase && mode === 'cloud';
 
   const [user, setUser] = useState<User | null>(null);
@@ -263,6 +264,9 @@ export default function AccountScreen() {
             <InfoRow label="Free trial"><T size={14}>{`${TRIAL_DAYS} days`}</T></InfoRow>
             <Muted size={12}>If you cancel, you keep full access until the end of the period you've paid for. After that, paid features lock, but your data is kept, so everything comes back if you subscribe again.</Muted>
             {!access.full && <Btn variant="primary" title="See plans" onPress={() => RG.go('upgrade')} style={{ alignSelf: 'flex-start' }} />}
+            {manageUrl && sub?.status !== 'comp' && (
+              <Btn icon="credit-card" title="Manage or cancel subscription" onPress={() => Linking.openURL(manageUrl)} style={{ alignSelf: 'flex-start' }} />
+            )}
           </Card>
         </Grid>
       )}
