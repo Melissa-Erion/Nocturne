@@ -27,6 +27,7 @@ export const RG = {
   /* state */
   get s(): State { return getState(); },
   update, commit, toast,
+  setUnits: D.setUnits, incKg: D.incKg,
   go(route: Route, param?: unknown) {
     if (!canOpenRoute(route)) { useUI.setState({ lockPrompt: route }); return; }
     useUI.setState({ routeParam: param == null ? null : param }); router.navigate(('/' + route) as never);

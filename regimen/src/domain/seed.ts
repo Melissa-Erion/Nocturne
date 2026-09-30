@@ -5,6 +5,7 @@ import { EX } from './data/exercises';
 import { PLAN_UL4, PLAN_UL5, START_KG } from './data/plans';
 import { avgWeight } from './misc';
 import type { ISODate, Plan, Reminder, ScheduleEntry, SetLog, State } from './types';
+import { INCREMENTS_METRIC } from './units';
 import { mulberry, r1, uid } from './util';
 
 const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
@@ -33,7 +34,7 @@ export function newUserState(today: ISODate): State {
       trainingDays: [0, 1, 3, 4], restDays: [2, 5, 6], duration: 60, location: 'Gym', equipment: ['Barbell', 'Dumbbell', 'Cable', 'Machine', 'Bodyweight'], priorities: [],
       kcal: 1800, protein: 140, carbs: 190, fat: 55, restTargets: null, mealsPerDay: 4, dietPrefs: [], allergies: [], exclude: [],
       checkInDay: 6, checkInFreq: 'Weekly', units: 'metric', water: true, waterMl: 2500, supplements: false,
-      increments: { Barbell: 2.5, Dumbbell: 2, Cable: 2.5, Machine: 5, Bodyweight: 0 },
+      increments: { ...INCREMENTS_METRIC },
       progression: 'double', quietStart: '22:00', quietEnd: '07:00', calendarSync: false, shiftLater: true, workoutTime: '17:30',
       quoteTone: 'Disciplined', onboarded: false, startDate: today,
     },
@@ -117,7 +118,7 @@ export function sampleState(today: ISODate): State {
     { id: 'sm5', name: 'Restaurant: poke bowl (estimate)', items: [], estimate: { kcal: 640, p: 38, c: 78, f: 18 }, fav: false, uses: 2 },
   ];
   s.recipes = [
-    { id: 'rc1', name: 'Turkey-lentil chili', ingredients: [{ foodId: 'beef_r', g: 900 }, { foodId: 'lentil_r', g: 250 }, { foodId: 'peppers', g: 300 }, { foodId: 'oil', g: 15 }], cookedWeight: 2650, servings: 6, byWeight: false, fav: true },
+    { id: 'rc1', name: 'Beef & lentil chili', ingredients: [{ foodId: 'beef_r', g: 900 }, { foodId: 'lentil_r', g: 250 }, { foodId: 'peppers', g: 300 }, { foodId: 'oil', g: 15 }], cookedWeight: 2650, servings: 6, byWeight: false, fav: true },
     { id: 'rc2', name: 'Overnight protein oats', ingredients: [{ foodId: 'oats', g: 200 }, { foodId: 'whey', g: 60 }, { foodId: 'yog', g: 400 }, { foodId: 'blueb', g: 200 }], cookedWeight: 1150, servings: 4, byWeight: false, fav: false },
   ];
   s.prep = [

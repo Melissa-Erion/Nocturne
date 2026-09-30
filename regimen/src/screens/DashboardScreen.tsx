@@ -56,7 +56,7 @@ export default function DashboardScreen() {
     const lab = ww ? ww.id : d === nextCheck ? 'Check' : st === 'paused' ? 'Paused' : 'Rest';
     const icon: IconName = st === 'done' ? 'check-circle' : st === 'missed' ? 'x-circle' : st === 'skipped' ? 'skip-forward-circle' : st === 'planned' ? (isT ? 'barbell' : 'circle-dashed') : st === 'paused' ? 'pause' : lab === 'Check' ? 'clipboard-text' : 'moon';
     const color = st === 'rest' || st === 'paused' ? C.n600 : st === 'missed' ? C.n400 : C.text;
-    return { d, day: RG.DN[i] + ' ' + Number(d.slice(8)), lab, icon, fill: st === 'done', color, st, isT, title: ww ? `${ww.name} · ${st}` : lab };
+    return { d, day: RG.DN[i], dnum: Number(d.slice(8)), lab, icon, fill: st === 'done', color, st, isT, title: ww ? `${ww.name} · ${st}` : lab };
   });
 
   // weight
@@ -191,7 +191,10 @@ export default function DashboardScreen() {
                   style={{ flex: 1, minWidth: 0, alignItems: 'center', gap: 4, paddingVertical: 8, paddingHorizontal: 2, borderRadius: 8,
                     backgroundColor: d.st === 'done' ? C.a900 : d.isT ? alpha(C.accent, 0.1) : 'transparent',
                     boxShadow: d.isT ? `inset 0 0 0 1px ${C.accent}` : d.st === 'planned' ? `inset 0 0 0 1px ${C.n800}` : undefined }}>
-                  <T size={10} color={C.n500} upper style={{ letterSpacing: 0.6 }} numberOfLines={1}>{d.day}</T>
+                  <View style={{ alignItems: 'center' }}>
+                    <T size={10} color={C.n500} upper style={{ letterSpacing: 0.6 }} numberOfLines={1}>{d.day}</T>
+                    <T size={12} color={d.isT ? C.text : C.n400} tab lh={1.2}>{d.dnum}</T>
+                  </View>
                   <Icon name={d.icon} fill={d.fill} size={18} color={d.color} />
                   <T size={11} color={d.color} lh={1.2} numberOfLines={1}>{d.lab}</T>
                 </Tap>

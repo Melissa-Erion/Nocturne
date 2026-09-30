@@ -40,7 +40,8 @@ describe('sample seed reproduces the prototype', () => {
   });
   it('meal prep and grocery list', () => {
     expect(R.prepCalc(ctx.s, ctx.s.prep[0])).toEqual(golden.prep1);
-    expect(R.prepCalc(ctx.s, ctx.s.prep[1])).toEqual(golden.prep2);
+    // The prototype called this sample recipe 'Turkey-lentil chili' although it's made with beef; renamed.
+    expect(R.prepCalc(ctx.s, ctx.s.prep[1])).toEqual({ ...golden.prep2, name: 'Beef & lentil chili' });
     expect(R.groceryList(ctx.s).map(g => [g.id, Math.round(g.g), g.buy, g.est])).toEqual(golden.grocery);
   });
 });
@@ -232,6 +233,28 @@ describe('nutrition maths', () => {
     expect(out[0].g % 5).toBe(0); expect(out[1].g % 5).toBe(0);
     const m = R.sumM(s, out);
     expect(Math.abs(m.p - 40)).toBeLessThan(4); expect(Math.abs(m.c - 50)).toBeLessThan(5); expect(Math.abs(m.f - 12)).toBeLessThan(2);
+  });
+  it('a workout done early is recorded on the day it was done, and the entry moves to that day', () => {
+    const ctx = make();
+    const next = R.nextEntry(ctx, R.add(TODAY, 1))!; expect(next.date > TODAY).toBe(true);
+    const later = ctx.s.schedule.filter(e => e.status === 'planned' && e.date > next.date).map(e => [e.id, e.date]);
+    R.startWorkout(ctx, next.id);
+    ctx.s.active!.ex[0].sets.filter(st => !st.warm)[0].done = true; ctx.s.active!.ex[0].sets.filter(st => !st.warm)[0].reps = 8;
+    const ses = R.finishWorkout(ctx)!;
+    expect(ses.date).toBe(TODAY);
+    const e = ctx.s.schedule.find(x => x.id === next.id)!;
+    expect(e.date).toBe(TODAY); expect(e.status).toBe('done');
+    // later workouts are untouched
+    expect(ctx.s.schedule.filter(x => later.some(([id]) => id === x.id)).map(x => [x.id, x.date])).toEqual(later);
+  });
+  it('switching to imperial swaps default increments to whole pounds, and keeps custom ones', () => {
+    const p = R.newUserState(TODAY).profile;
+    R.setUnits(p, 'imperial');
+    expect(p.units).toBe('imperial');
+    expect(Math.round(p.increments.Barbell / 0.45359237 * 10) / 10).toBe(5);
+    expect(Math.round(p.increments.Machine / 0.45359237 * 10) / 10).toBe(10);
+    R.setUnits(p, 'metric'); expect(p.increments.Barbell).toBe(2.5);
+    p.increments.Barbell = 1.25; R.setUnits(p, 'imperial'); expect(p.increments.Barbell).toBe(1.25);
   });
   it('solver keeps vegetables at their amount and never drops a chosen food to 0 g', () => {
     const s = R.newUserState(TODAY);

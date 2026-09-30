@@ -142,7 +142,7 @@ export default function SettingsScreen() {
               <Field label="Sex"><Select value={P.sex} options={['Female', 'Male', 'Prefer not to say']} onChange={setK('sex')} title="Sex" /></Field>
               <Field label="Activity level"><Select value={P.activity} options={['Sedentary', 'Lightly active', 'Moderately active', 'Very active']} onChange={setK('activity')} title="Activity level" /></Field>
               <Field label="Experience"><Select value={P.experience} options={['Beginner', 'Intermediate', 'Advanced']} onChange={setK('experience')} title="Experience" /></Field>
-              <Field label="Units"><Seg value={P.units} options={[{ value: 'metric', label: 'Metric' }, { value: 'imperial', label: 'Imperial' }]} onChange={setK('units')} /></Field>
+              <Field label="Units"><Seg value={P.units} options={[{ value: 'metric', label: 'Metric' }, { value: 'imperial', label: 'Imperial' }]} onChange={v => RG.update(s => { RG.setUnits(s.profile, v); })} /></Field>
             </Grid>
             <Muted>{`Current weight comes from your weight log (7-day average: ${RG.bw(RG.avgWeight())} ${wu}). Calculations always run in metric.`}</Muted>
           </Card>
@@ -167,7 +167,7 @@ export default function SettingsScreen() {
                 {['Barbell', 'Dumbbell', 'Cable', 'Machine'].map(l => (
                   <View key={l} style={{ gap: 3 }}>
                     <Muted size={11}>{l}</Muted>
-                    <NumInput value={RG.w(P.increments[l])} onValue={v => { if (v != null) up(p => { p.increments[l] = RG.r1(RG.toKg(v)); }); }} />
+                    <NumInput value={RG.w(P.increments[l])} onValue={v => { if (v != null) up(p => { p.increments[l] = RG.incKg(RG.toKg(v)); }); }} />
                   </View>
                 ))}
               </Grid>

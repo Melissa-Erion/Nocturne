@@ -12,7 +12,7 @@ export function startWorkout(ctx: Ctx, entryId?: string): boolean {
   if (s.active && s.active.entryId === e.id) return false;
   const w = workoutOf(ctx, e.workoutId, e.planId); if (!w) return false;
   s.active = {
-    entryId: e.id, workoutId: w.id, planId: e.planId, date: e.date, startedAt: Date.now(), restEnd: null, restFor: null, pausedAt: null, pausedMs: 0,
+    entryId: e.id, workoutId: w.id, planId: e.planId, date: ctx.today, startedAt: Date.now(), restEnd: null, restFor: null, pausedAt: null, pausedMs: 0,
     ex: w.items.map(item => {
       const rec: Partial<Recommendation> = recommend(ctx, item.exId, item) || {};
       const kg = rec.kg ?? item.targetKg ?? (lastPerf(ctx, item.exId) || { sets: [{ kg: START_KG[item.exId] || 10 }] }).sets[0].kg;
@@ -25,9 +25,12 @@ export function startWorkout(ctx: Ctx, entryId?: string): boolean {
   return true;
 }
 
-/** The only place an entry becomes "done": finishing a session with at least one logged set. */
+/** The only place an entry becomes "done": finishing a session with at least one logged set.
+    The session is dated the day it was actually done. A workout done on a different day than planned (early, or a
+    missed one made up) moves to that day, so history, streaks and the schedule match reality. */
 export function finishWorkout(ctx: Ctx): Session | undefined {
   const { s } = ctx; const a = s.active; if (!a) return;
+  a.date = ctx.today;
   const sets: SetLog[] = [];
   a.ex.forEach(x => x.sets.filter(st => st.done && st.reps).forEach(st => sets.push({
     exId: x.exId, kg: Number(st.kg) || 0, reps: Number(st.reps), rir: st.rir === '' || st.rir == null ? null : Number(st.rir), warm: st.warm, note: st.note, feel: st.feel || x.feel,
@@ -35,7 +38,7 @@ export function finishWorkout(ctx: Ctx): Session | undefined {
   })));
   const ses: Session = { id: uid(), date: a.date, workoutId: a.workoutId, planId: a.planId, entryId: a.entryId, sets, durationMin: Math.max(1, Math.round(elapsedMs(a) / 60000)), notes: a.ex.map(x => x.note).filter(Boolean).join(' · ') };
   const e = entry(ctx, a.entryId);
-  if (sets.length) { s.sessions.push(ses); if (e) { e.status = 'done'; e.sessionId = ses.id; } }
+  if (sets.length) { s.sessions.push(ses); if (e) { if (e.date !== ctx.today) { e.date = ctx.today; e.origin = 'rescheduled'; } e.status = 'done'; e.sessionId = ses.id; } }
   s.active = null;
   return ses;
 }

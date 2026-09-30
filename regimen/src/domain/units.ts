@@ -1,5 +1,5 @@
 /* Unit conversion happens only at display and input. Internally everything is metric. */
-import type { State } from './types';
+import type { Profile, State } from './types';
 import { r1 } from './util';
 
 export const makeUnits = (s: State) => {
@@ -19,3 +19,21 @@ export const makeUnits = (s: State) => {
   };
 };
 export type Units = ReturnType<typeof makeUnits>;
+
+/** Default smallest weight jumps. Imperial defaults are whole pounds (5 lb, machines 10 lb), stored in kg. */
+const LB = 0.45359237;
+const r3 = (n: number) => Math.round(n * 1000) / 1000;
+export const INCREMENTS_METRIC: Record<string, number> = { Barbell: 2.5, Dumbbell: 2, Cable: 2.5, Machine: 5, Bodyweight: 0 };
+export const INCREMENTS_IMPERIAL: Record<string, number> = { Barbell: r3(5 * LB), Dumbbell: r3(5 * LB), Cable: r3(5 * LB), Machine: r3(10 * LB), Bodyweight: 0 };
+/** Kilograms to the stored precision used for increments (keeps 5 lb exactly 5 lb when shown). */
+export const incKg = r3;
+
+/** Switch units. If the weight increments are still the other system's defaults, they switch to this system's
+    defaults too, so pounds users progress in 5 lb jumps instead of 5.5 lb (2.5 kg). Custom increments are kept. */
+export function setUnits(p: Profile, units: 'metric' | 'imperial') {
+  const from = units === 'imperial' ? INCREMENTS_METRIC : INCREMENTS_IMPERIAL;
+  const to = units === 'imperial' ? INCREMENTS_IMPERIAL : INCREMENTS_METRIC;
+  const isDefault = Object.keys(from).every(k => Math.abs((p.increments?.[k] ?? -1) - from[k]) < 0.01);
+  p.units = units;
+  if (isDefault) p.increments = { ...to };
+}

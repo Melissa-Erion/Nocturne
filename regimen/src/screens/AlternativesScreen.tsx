@@ -40,17 +40,16 @@ export default function AlternativesScreen() {
   const tg = ctx && day ? RG.mealTargets(day.type)[ctx.meal] : undefined;
   const key = f ? ({ protein: 'protein', carb: 'carbohydrate', fat: 'fat', veg: 'calories' } as Record<string, string>)[f.role] || 'calories' : 'calories';
   let swapNote = '';
-  if (swapped && meal && tg) { const tot = RG.sumM(meal.items); swapNote = `Meal is now ${RG.num(tot.kcal)} kcal · ${RG.r1(tot.p)}P ${RG.r1(tot.c)}C ${RG.r1(tot.f)}F vs target ${tg.p}/${tg.c}/${tg.f}. Rebalance adjusts the other foods and keeps ${RG.food(swapped)?.name || 'the substitute'} locked.`; }
+  if (swapped && meal && tg) { const tot = RG.sumM(meal.items); swapNote = `Swapped in ${ctx?.g ?? ''} g ${RG.food(swapped)?.name || 'the substitute'}. Meal is now ${RG.num(tot.kcal)} kcal · ${RG.r1(tot.p)}P ${RG.r1(tot.c)}C ${RG.r1(tot.f)}F vs target ${tg.p}/${tg.c}/${tg.f}. Rebalance adjusts the other foods and keeps ${RG.food(swapped)?.name || 'the substitute'} locked.`; }
   const afterSwap = !!swapped && !!meal && !!tg;
 
   const foodOpts = RG.allFoods().map(x => ({ value: x.id, label: `${x.name} · ${x.basis}` })).sort((a, b) => (a.label < b.label ? -1 : 1));
-  const use = (altId: string, altG: number, altName: string) => {
+  const use = (altId: string, altG: number, _altName: string) => {
     if (!ctx) return;
     let ok = false;
     RG.update(s => { const it = s.days[ctx.date]?.meals[ctx.meal]?.items.find(x => x.key === ctx.key); if (it) { it.foodId = altId; it.g = altG; it.locked = true; ok = true; } });
     if (!ok) return RG.toast('That food is no longer in the meal. Go back to the meal and try again.');
     setFoodId(altId); setG(altG); setSwapped(altId); setCtx({ ...ctx, foodId: altId, g: altG });
-    RG.toast(`Swapped to ${altG} g ${altName}.`);
   };
   const rebalance = () => {
     if (!ctx || !tg) return;
