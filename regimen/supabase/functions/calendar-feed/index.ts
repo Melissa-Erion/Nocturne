@@ -7,7 +7,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 const SB = Deno.env.get("SUPABASE_URL")!;
 const SR = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const H = { apikey: SR, Authorization: `Bearer ${SR}` };
-const APP_URL = "https://melissa-erion.github.io/Nocturne/";
+const APP_URL = "https://regimenfit.ca/app/";
 
 async function q<T>(path: string): Promise<T[]> {
   const r = await fetch(`${SB}/rest/v1/${path}`, { headers: H });

@@ -38,7 +38,12 @@ npm run typecheck
 
 ## Web address
 
-The web app is published to **https://melissa-erion.github.io/Nocturne/** by `.github/workflows/deploy-web.yml` on every push to `main` that changes `regimen/` (or run it by hand from the Actions tab). The workflow typechecks, runs the tests, builds with the `/Nocturne` base path, and adds `404.html` so deep links work.
+**https://regimenfit.ca** (GitHub Pages with a custom domain; DNS at Cloudflare). `.github/workflows/deploy-web.yml` runs on every push to `main` that changes `regimen/`: it typechecks, runs the tests, builds the app with the `/app` base path into `dist/app`, copies `dist/app/index.html` to `dist/404.html` so app deep links work, then `scripts/build-landing.mjs` adds the landing site.
+
+- `/` landing page, `/privacy/`, `/terms/` (`landing/`, plain HTML/CSS, no build step). `{{SITE}}` is replaced with `SITE_URL`.
+- `/app/` the Regimen web app.
+- SEO / AI search: page titles and descriptions, canonical links, Open Graph image (`landing/img/og.png`), JSON-LD (Organization, WebSite, SoftwareApplication with CAD offers, FAQPage), `robots.txt` (AI crawlers allowed, `/app/` excluded), `sitemap.xml`, `llms.txt`.
+- Landing screenshots in `landing/img/` come from the demo data set; retake them when the app's look changes.
 
 ## Phones
 
