@@ -45,7 +45,7 @@ export function newUserState(today: ISODate): State {
       training: [{ name: 'Meal 1', label: 'Breakfast', time: '07:30' }, { name: 'Meal 2', label: 'Lunch', time: '12:30' }, { name: 'Meal 3', label: 'Pre-workout', time: '16:00' }, { name: 'Meal 4', label: 'Post-workout dinner', time: '19:30' }],
       rest: [{ name: 'Meal 1', label: 'Breakfast', time: '08:30' }, { name: 'Meal 2', label: 'Lunch', time: '12:30' }, { name: 'Meal 3', label: 'Snack', time: '15:30' }, { name: 'Meal 4', label: 'Dinner', time: '19:00' }],
     },
-    savedMeals: [], recipes: [], customFoods: {}, prep: [], grocery: { checked: {}, manual: [] },
+    savedMeals: [], recipes: [], customFoods: {}, customExercises: {}, prep: [], grocery: { checked: {}, manual: [] },
     reminders: defaultReminders(), quotes: { fav: {}, hidden: {}, custom: [] }, active: null, photos: {},
   };
 }

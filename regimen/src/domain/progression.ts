@@ -1,6 +1,6 @@
 /* Progressive overload, PRs and exercise history — port of prototype/store.js (history, prs, recommend).
    Everything is computed from working sets only (warm-ups excluded). */
-import { EX } from './data/exercises';
+import { exById } from './exercises';
 import { activePlan } from './schedule';
 import type { Ctx, ISODate, PlanItem, Recommendation, SetLog, Workout } from './types';
 import { makeUnits } from './units';
@@ -54,14 +54,14 @@ export function planItemFor(ctx: Ctx, exId: string): { item: PlanItem; workout: 
 export function recommend(ctx: Ctx, exId: string, item?: PlanItem | null): Recommendation | null {
   item = item || (planItemFor(ctx, exId) || { item: null }).item; if (!item) return null;
   const U = makeUnits(ctx.s);
-  const h = history(ctx, exId); const inc = ctx.s.profile.increments[EX[exId]?.equip] ?? 2.5;
+  const h = history(ctx, exId); const inc = ctx.s.profile.increments[exById(ctx.s, exId)?.equip as string] ?? 2.5;
   if (!h.length) {
     const lastRepl = item.replaced && item.replaced.length ? item.replaced[item.replaced.length - 1] : null;
     const rep = lastRepl ? lastPerf(ctx, lastRepl.exId) : null;
     return {
       type: 'baseline', kg: null, reps: Array(item.sets).fill(item.repMin),
       reason: rep && lastRepl
-        ? `New exercise — replaces ${EX[lastRepl.exId]?.name}. Pick a weight you can do for ${item.repMin}–${item.repMax} at RIR ${item.rir}; this session sets the baseline.`
+        ? `New exercise — replaces ${exById(ctx.s, lastRepl.exId)?.name}. Pick a weight you can do for ${item.repMin}–${item.repMax} at RIR ${item.rir}; this session sets the baseline.`
         : `No history yet. Choose a weight for ${item.repMin}–${item.repMax} reps at RIR ${item.rir}.`,
     };
   }

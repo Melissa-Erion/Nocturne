@@ -3,6 +3,7 @@ export * from './dates';
 export * from './util';
 export * from './units';
 export * from './clock';
+export * from './exercises';
 export * from './schedule';
 export * from './progression';
 export * from './workout';

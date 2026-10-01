@@ -331,6 +331,8 @@ export interface State {
   savedMeals: SavedMeal[];
   recipes: Recipe[];
   customFoods: Record<string, Food>;
+  /** Exercises the user added (ids start with "cx_"); the built-in library is EX. */
+  customExercises: Record<string, Exercise>;
   prep: PrepPlan[];
   grocery: Grocery;
   reminders: Reminder[];

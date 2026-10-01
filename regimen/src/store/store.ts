@@ -169,6 +169,7 @@ async function loadFor(userId: string | null, email: string | null) {
     }
   }
   if (!S.photos) S.photos = {};
+  if (!S.customExercises) S.customExercises = {};
   // Pounds users still on the metric default increments get whole-pound defaults (no-op otherwise).
   if (S.profile.units === 'imperial') setUnits(S.profile, 'imperial');
   ensureFuture(ctx());

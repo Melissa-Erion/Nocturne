@@ -109,7 +109,7 @@ function Running({ A }: { A: ActiveWorkout }) {
       if (pb) prCount++;
       return { st, si, pb, label: st.warm ? 'W' : String(x.sets.slice(0, si + 1).filter(s => !s.warm).length), ph: st.warm ? '' : String(st.target || item.repMin) };
     });
-    const alts = (e.alts || []).map(id => RG.ex(id)).filter(Boolean)
+    const alts = (e.alts || []).map(id => RG.ex(id)).filter((o): o is NonNullable<typeof o> => !!o)
       .concat(Object.values(RG.EX).filter(o => o.muscle === e.muscle && o.id !== e.id && !(e.alts || []).includes(o.id)))
       .filter(o => S.profile.equipment.includes(o.equip)).slice(0, 5);
     const done = x.sets.length > 0 && x.sets.every(s => s.done);
