@@ -77,9 +77,10 @@ export default function DashboardScreen() {
   // quote & reminders
   const quote = RG.todayQuote(q);
   const now = new Date(); const nowHM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  const todays = S.reminders.filter(r => r.enabled && /Daily|Training|Every/.test(r.freq) && r.time > nowHM && (!/Training/.test(r.freq) || (entry && entry.status === 'planned')));
-  const reminders = todays.slice(0, 3).map(r => ({ when: r.time, icon: REMINDER_ICONS[r.type] || 'bell' as IconName, text: r.type + (r.type === 'Upcoming workout' && w ? ` · ${w.name} at ${P.workoutTime}` : '') }))
-    .concat(S.reminders.filter(r => r.enabled && /Sat|Sun/.test(r.freq)).slice(0, 2).map(r => ({ when: (r.freq.includes('Sat') ? 'Sat ' : 'Sun ') + r.time, icon: REMINDER_ICONS[r.type] || 'bell', text: r.type })));
+  const wdToday = RG.dow(RG.TODAY);
+  const todays = S.reminders.map(r => ({ ...r, time: RG.reminderTimeOn(P, r, wdToday) })).filter(r => r.enabled && /Daily|Training|Every/.test(r.freq) && r.time > nowHM && (!/Training/.test(r.freq) || (entry && entry.status === 'planned')));
+  const reminders = todays.slice(0, 3).map(r => ({ when: RG.clock(r.time), icon: REMINDER_ICONS[r.type] || 'bell' as IconName, text: r.type + (r.type === 'Upcoming workout' && w ? ` · ${w.name} at ${RG.clock(RG.timeOn(RG.TODAY))}` : '') }))
+    .concat(S.reminders.filter(r => r.enabled && /Sat|Sun/.test(r.freq)).slice(0, 2).map(r => ({ when: (r.freq.includes('Sat') ? 'Sat ' : 'Sun ') + RG.clock(r.time), icon: REMINDER_ICONS[r.type] || 'bell', text: r.type })));
 
   const hour = now.getHours();
   const greeting = `Good ${hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening'}${P.name ? ', ' + P.name : ''}`;
@@ -134,7 +135,7 @@ export default function DashboardScreen() {
                   <View key={en.id} style={{ gap: 12, paddingTop: ti ? 18 : 0, borderTopWidth: ti ? 1 : 0, borderColor: C.divider }}>
                     <Row gap={12} wrap align="flex-start">
                       <View style={{ marginRight: 'auto', flexShrink: 1 }}>
-                        <Kicker>{todays_.length > 1 ? `Today · workout ${ti + 1} of ${todays_.length} · ~${P.duration} min · ${P.location}` : `Today · ${P.workoutTime} · ~${P.duration} min · ${P.location}`}</Kicker>
+                        <Kicker>{todays_.length > 1 ? `Today · workout ${ti + 1} of ${todays_.length} · ~${P.duration} min · ${P.location}` : `Today · ${RG.clock(RG.timeOn(RG.TODAY))} · ~${P.duration} min · ${P.location}`}</Kicker>
                         <H size={30} style={{ marginTop: 6 }}>{tw.name}</H>
                         <T size={13} color={C.n400} style={{ marginTop: 4 }}>{`${tw.focus} · ${tw.items.reduce((a, i) => a + i.sets, 0)} working sets · ${incr ? incr + ' weight increase' + (incr > 1 ? 's' : '') + ' suggested' : 'hold weights, add reps'}`}</T>
                       </View>
@@ -262,7 +263,7 @@ export default function DashboardScreen() {
             const foods = m.items.map(x => { const f = RG.food(x.foodId); return f ? (full ? `${f.name.split(',')[0]} ${Math.round(x.g)} g${f.basis === 'cooked' ? ' cooked' : f.basis === 'raw' ? ' raw' : ''}` : f.name.split(',')[0]) : ''; }).filter(Boolean).join(' · ');
             return (
               <RuledRow key={m.key} style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
-                <Muted tab style={{ width: 44 }}>{t?.time || ''}</Muted>
+                <Muted tab style={{ width: 66 }}>{RG.clock(t?.time)}</Muted>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <T size={14}>{t?.name || 'Meal ' + (i + 1)} <T size={14} color={C.n500}>· {t?.label || ''}</T></T>
                   <Muted numberOfLines={1}>{foods || 'Nothing planned yet'}</Muted>

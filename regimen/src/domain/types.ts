@@ -253,6 +253,10 @@ export interface Profile {
   calendarSync: boolean;
   shiftLater: boolean;
   workoutTime: string;
+  /** Per-weekday workout times (key "0" = Monday … "6" = Sunday); days without one use workoutTime. */
+  dayTimes?: Record<string, string>;
+  /** How times are shown: 12-hour with AM/PM (default) or 24-hour. Stored values are always "HH:MM". */
+  clock?: '12h' | '24h';
   quoteTone: string;
   onboarded: boolean;
   /** The guided app tour was finished or skipped. */

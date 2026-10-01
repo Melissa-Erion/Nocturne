@@ -112,7 +112,7 @@ export default function ScheduleScreen() {
   const mkItem = (en: ScheduleEntry) => {
     const w = RG.workout(en.workoutId, en.planId); const st = en.status; const dragOk = st === 'planned';
     const sub = st === 'done' ? 'Logged' : st === 'missed' ? (en.rescheduledTo ? 'Missed · rescheduled' : 'Missed') : st === 'skipped' ? 'Skipped'
-      : `${P.workoutTime} · ${w ? w.focus : ''}${en.origin === 'manual' ? ' · moved' : en.origin === 'rescheduled' ? ' · rescheduled' : ''}`;
+      : `${RG.clock(RG.timeOn(en.date))} · ${w ? w.focus : ''}${en.origin === 'manual' ? ' · moved' : en.origin === 'rescheduled' ? ' · rescheduled' : ''}`;
     return { en, name: w ? w.name : en.workoutId, short: w ? w.id : '', icon: statusIcon(st), drag: dragOk, sub };
   };
 

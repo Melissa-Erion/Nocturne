@@ -35,7 +35,7 @@ export function newUserState(today: ISODate): State {
       kcal: 1800, protein: 140, carbs: 190, fat: 55, restTargets: null, mealsPerDay: 4, dietPrefs: [], allergies: [], exclude: [],
       checkInDay: 6, checkInFreq: 'Weekly', units: 'metric', water: true, waterMl: 2500, supplements: false,
       increments: { ...INCREMENTS_METRIC },
-      progression: 'double', quietStart: '22:00', quietEnd: '07:00', calendarSync: false, shiftLater: true, workoutTime: '17:30',
+      progression: 'double', quietStart: '22:00', quietEnd: '07:00', calendarSync: false, shiftLater: true, workoutTime: '17:30', dayTimes: {}, clock: '12h',
       quoteTone: 'Disciplined', onboarded: false, startDate: today,
     },
     plans: [clone(PLAN_UL4), clone(PLAN_UL5)], activePlanId: 'ul4', sessions: [], schedule: [], pauses: [],

@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
     const today = new Date().toISOString().slice(0, 10);
     const from = addDays(today, -60);
     const [profiles, entries, workouts, items] = await Promise.all([
-      q<{ workout_time: string | null; duration_min: number | null }>(`profiles?select=workout_time,duration_min&user_id=eq.${uid}`),
+      q<{ workout_time: string | null; day_times: Record<string, string> | null; duration_min: number | null }>(`profiles?select=workout_time,day_times,duration_min&user_id=eq.${uid}`),
       q<{ id: string; date: string; plan_id: string; workout_code: string; status: string }>(
         `schedule_entries?select=id,date,plan_id,workout_code,status&user_id=eq.${uid}&date=gte.${from}&status=in.(planned,done)&order=date`),
       q<{ id: string; name: string; focus: string }>(`plan_workouts?select=id,name,focus&user_id=eq.${uid}`),
@@ -78,8 +78,13 @@ Deno.serve(async (req) => {
     const itemsBy = new Map<string, typeof items>();
     for (const it of items) { const a = itemsBy.get(it.workout_id) || []; a.push(it); itemsBy.set(it.workout_id, a); }
 
-    const P = profiles[0] || { workout_time: null, duration_min: null };
-    const time = /^\d{1,2}:\d{2}$/.test(P.workout_time || "") ? P.workout_time!.padStart(5, "0").replace(":", "") + "00" : null;
+    const P = profiles[0] || { workout_time: null, day_times: null, duration_min: null };
+    // Each weekday can have its own time (day_times: {"0": "06:30"}, 0 = Monday); otherwise the default workout_time.
+    const timeOn = (date: string) => {
+      const wd = String((new Date(date + "T00:00:00Z").getUTCDay() + 6) % 7);
+      const t = (P.day_times && P.day_times[wd]) || P.workout_time || "";
+      return /^\d{1,2}:\d{2}$/.test(t) ? t.padStart(5, "0").replace(":", "") + "00" : null;
+    };
     const mins = Math.max(15, Math.min(240, Number(P.duration_min) || 60));
     const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
 
@@ -89,6 +94,7 @@ Deno.serve(async (req) => {
       const name = w?.name || "Workout";
       const list = (itemsBy.get(wid) || []).map(i => `• ${exName.get(i.exercise_id) || i.exercise_id} — ${i.sets} × ${i.rep_min === i.rep_max ? i.rep_min : `${i.rep_min}–${i.rep_max}`}`);
       const desc = [...(w?.focus ? [w.focus] : []), ...list, "", `Open Regimen: ${APP_URL}`].join("\n");
+      const time = timeOn(e.date);
       const when = time
         ? [tz ? `DTSTART;TZID=${tz}:${ymd(e.date)}T${time}` : `DTSTART:${ymd(e.date)}T${time}`, `DURATION:PT${mins}M`]
         : [`DTSTART;VALUE=DATE:${ymd(e.date)}`, `DTEND;VALUE=DATE:${ymd(addDays(e.date, 1))}`];

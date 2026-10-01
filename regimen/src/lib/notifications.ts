@@ -2,6 +2,7 @@
    Quiet hours are respected: a reminder whose time falls inside them is not scheduled. */
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { reminderTimeOn } from '@/domain/clock';
 import type { Reminder, State } from '@/domain/types';
 
 if (Platform.OS !== 'web') {
@@ -37,7 +38,11 @@ function triggersFor(r: Reminder, s: State): Notifications.NotificationTriggerIn
   const [hour, minute] = r.time.split(':').map(Number);
   const T = Notifications.SchedulableTriggerInputTypes;
   if (/^Daily/.test(r.freq)) return [{ type: T.DAILY, hour, minute }];
-  if (/Training days/.test(r.freq)) return s.profile.trainingDays.map(d => ({ type: T.WEEKLY, weekday: ((d + 1) % 7) + 1, hour, minute }));
+  // Workout reminders follow each training day's own workout time.
+  if (/Training days/.test(r.freq)) return s.profile.trainingDays.map(d => {
+    const [h, m] = reminderTimeOn(s.profile, r, d).split(':').map(Number);
+    return { type: T.WEEKLY, weekday: ((d + 1) % 7) + 1, hour: h, minute: m };
+  });
   const wk = r.freq.match(/(Sun|Mon|Tue|Wed|Thu|Fri|Sat)/);
   if (wk) return [{ type: T.WEEKLY, weekday: DAYS[wk[1]], hour, minute }];
   if (/Every 2 h/.test(r.freq)) return [10, 12, 14, 16, 18].map(h => ({ type: T.DAILY, hour: h, minute: 0 }));
@@ -47,7 +52,7 @@ function triggersFor(r: Reminder, s: State): Notifications.NotificationTriggerIn
 let lastSig = '';
 export async function syncNotifications(s: State) {
   if (Platform.OS === 'web') return;
-  const sig = JSON.stringify([s.reminders, s.profile.trainingDays, s.profile.quietStart, s.profile.quietEnd]);
+  const sig = JSON.stringify([s.reminders, s.profile.trainingDays, s.profile.workoutTime, s.profile.dayTimes, s.profile.quietStart, s.profile.quietEnd]);
   if (sig === lastSig) return; lastSig = sig;
   const perm = await Notifications.getPermissionsAsync();
   if (!perm.granted) return;

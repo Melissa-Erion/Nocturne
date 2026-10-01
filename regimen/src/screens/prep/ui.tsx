@@ -5,6 +5,7 @@ import { Children, cloneElement, isValidElement, useState, type ReactElement, ty
 import { Pressable, ScrollView, View, type PressableStateCallbackType, type StyleProp, type ViewStyle } from 'react-native';
 import { Input, Rule, T, type InputProps } from '@/ui/kit';
 import { alpha, C } from '@/ui/theme';
+import { useRG } from '@/store/rg';
 
 /** `top`: like CSS `align-items: start` — items keep their own height. */
 export function Grid({ min, gap = 16, children, style, top }: { min: number; gap?: number; children?: ReactNode; style?: StyleProp<ViewStyle>; top?: boolean }) {
@@ -65,9 +66,33 @@ export function Pick({ label, on, onPress, style, sub }: { label: string; on: bo
 
 const TIME = /^([01]?\d|2[0-3]):([0-5]\d)$/;
 /** HH:MM time field (stands in for <input type=time>). Keeps its own text while typing; commits valid times. */
-export function TimeInput({ value, onChange, ...rest }: Omit<InputProps, 'value' | 'onChange'> & { value: string; onChange: (v: string) => void }) {
+export function TimeInput({ value, onChange, style, ...rest }: Omit<InputProps, 'value' | 'onChange'> & { value: string; onChange: (v: string) => void }) {
+  const clock = useRG().s.profile.clock;
   const [txt, setTxt] = useState<string | null>(null);
-  const commit = (v: string) => { const m = v.trim().match(TIME); if (m) onChange(`${m[1].padStart(2, '0')}:${m[2]}`); };
-  return <Input {...rest} value={txt ?? value} placeholder={rest.placeholder ?? 'HH:MM'} maxLength={5} inputMode="numeric"
-    onChange={v => { setTxt(v); commit(v); }} onBlur={e => { setTxt(null); rest.onBlur?.(e); }} />;
+  if (clock === '24h') {
+    const commit = (v: string) => { const m = v.trim().match(TIME); if (m) onChange(`${m[1].padStart(2, '0')}:${m[2]}`); };
+    return <Input {...rest} style={style} value={txt ?? value} placeholder={rest.placeholder ?? 'HH:MM'} maxLength={5} inputMode="numeric"
+      onChange={v => { setTxt(v); commit(v); }} onBlur={e => { setTxt(null); rest.onBlur?.(e); }} />;
+  }
+  // 12-hour: "h:mm" plus an AM/PM switch. Typing a 24-hour time (e.g. 17:30) also works.
+  const m = /^(\d{1,2}):(\d{2})$/.exec(value || '');
+  const h24 = m ? Number(m[1]) % 24 : null; const pm = h24 != null && h24 >= 12;
+  const shown = m ? `${(h24! % 12) || 12}:${m[2]}` : '';
+  const to24 = (h: number, min: string, isPm: boolean) => `${String((h % 12) + (isPm ? 12 : 0)).padStart(2, '0')}:${min}`;
+  const commit = (v: string) => {
+    const x = /^(\d{1,2}):?([0-5]\d)$/.exec(v.trim()); if (!x) return;
+    const h = Number(x[1]); if (h > 23) return;
+    onChange(h === 0 || h > 12 ? `${String(h).padStart(2, '0')}:${x[2]}` : to24(h, x[2], pm));
+  };
+  const flip = () => { if (m) onChange(to24(h24! % 12, m[2], !pm)); };
+  return (
+    <View style={[{ flexDirection: 'row', gap: 6, alignItems: 'center' }, style as StyleProp<ViewStyle>]}>
+      <Input {...rest} style={{ flex: 1, minWidth: 64 }} value={txt ?? shown} placeholder={rest.placeholder ?? 'h:mm'} maxLength={5} inputMode="numeric"
+        onChange={v => { setTxt(v); commit(v); }} onBlur={e => { setTxt(null); rest.onBlur?.(e); }} />
+      <Pressable onPress={flip} accessibilityRole="button" accessibilityLabel={`${pm ? 'PM' : 'AM'}, switch to ${pm ? 'AM' : 'PM'}`}
+        style={({ hovered }: PressableStateCallbackType & { hovered?: boolean }) => ({ height: rest.height ?? 36, minWidth: 48, paddingHorizontal: 8, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.divider, backgroundColor: hovered ? alpha(C.accent, 0.12) : C.surface })}>
+        <T size={13} w={600} color={C.a200}>{pm ? 'PM' : 'AM'}</T>
+      </Pressable>
+    </View>
+  );
 }

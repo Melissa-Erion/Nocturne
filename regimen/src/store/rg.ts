@@ -28,6 +28,12 @@ export const RG = {
   get s(): State { return getState(); },
   update, commit, toast,
   setUnits: D.setUnits, incKg: D.incKg,
+  /** "17:30" in the user's clock format ("5:30 PM" by default). */
+  clock: (hhmm: string | null | undefined) => D.fmtTime(hhmm, getState().profile.clock),
+  /** Workout time for a date (that weekday's own time, else the default). */
+  workoutTimeOn: D.workoutTimeOn, reminderTimeOn: D.reminderTimeOn,
+  timeOn: (d: ISODate) => D.workoutTimeOn(getState().profile, D.dow(d)),
+  suggestRestTargets: D.suggestRestTargets,
   go(route: Route, param?: unknown) {
     if (!canOpenRoute(route)) { useUI.setState({ lockPrompt: route }); return; }
     useUI.setState({ routeParam: param == null ? null : param }); router.navigate(('/' + route) as never);

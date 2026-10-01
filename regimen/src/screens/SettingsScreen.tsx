@@ -8,7 +8,7 @@ import { requestNotificationPermission } from '@/lib/notifications';
 import { useRG } from '@/store/rg';
 import { useUI } from '@/store/store';
 import {
-  Btn, Card, Check, Dialog, Field, H, Icon, Input, Muted, NotMedical, NumInput, Row, Rule, Seg, Select, T, Tag,
+  Btn, Card, Check, Dialog, Field, H, Icon, Input, Muted, NotMedical, NumInput, Row, Rule, Seg, Select, T, Tag, Tap,
 } from '@/ui/kit';
 import { C, R } from '@/ui/theme';
 import { Grid, Pick, Table, TimeInput } from './prep/ui';
@@ -60,7 +60,11 @@ export default function SettingsScreen() {
   const lowWhat = lowTrain && lowRest ? `Your training-day (${RG.num(P.kcal)} kcal) and rest-day (${RG.num(RT.kcal)} kcal) targets are` : lowRest && RT ? `Your rest-day target of ${RG.num(RT.kcal)} kcal is` : RT ? `Your training-day target of ${RG.num(P.kcal)} kcal is` : `${RG.num(P.kcal)} kcal is`;
   const lowWarn = RG.lowCalorie(safetyP) ? `${lowWhat} below your estimated minimum (~${RG.num(floor)} kcal: the higher of your estimated resting need and ${P.sex === 'Male' ? '1,500' : '1,200'} kcal). Regimen doesn't recommend targets this low. Consider a smaller deficit, and consult a qualified professional for anything more aggressive.` : '';
   const setRest = (k: 'kcal' | 'protein' | 'carbs' | 'fat') => (v: number | null) => { if (v != null) up(p => { if (p.restTargets) p.restTargets[k] = v; }); };
-  const toggleRest = (on: boolean) => up(p => { p.restTargets = on ? { kcal: p.kcal, protein: p.protein, carbs: p.carbs, fat: p.fat } : null; });
+  // Turning rest-day targets on starts from a suggestion (same protein and fat, ~10% fewer calories from carbs).
+  const toggleRest = (on: boolean) => up(p => { p.restTargets = on ? RG.suggestRestTargets({ kcal: p.kcal, protein: p.protein, carbs: p.carbs, fat: p.fat }, floor) : null; });
+  // Each training day can have its own workout time; the default (workoutTime) covers days without one.
+  const setDayTime = (i: number) => (v: string) => up(p => { p.dayTimes = { ...(p.dayTimes || {}), [String(i)]: v }; if (i === p.trainingDays[0]) p.workoutTime = v; });
+  const sameTimeAll = () => up(p => { const t = RG.workoutTimeOn(p, p.trainingDays[0]); p.workoutTime = t; p.dayTimes = {}; });
 
   const toggleDay = (i: number) => {
     up(p => { p.trainingDays = p.trainingDays.includes(i) ? p.trainingDays.filter(x => x !== i) : p.trainingDays.concat([i]).sort((a, b) => a - b); p.restDays = [0, 1, 2, 3, 4, 5, 6].filter(x => !p.trainingDays.includes(x)); });
@@ -110,7 +114,7 @@ export default function SettingsScreen() {
       cells: [
         <Check key="on" checked={r.enabled} onChange={() => u(x => { x.enabled = !x.enabled; })} />,
         <T key="t" size={14}>{r.type}</T>,
-        <TimeInput key="tm" value={r.time} onChange={v => u(x => { x.time = v; })} style={{ width: 110 }} />,
+        <TimeInput key="tm" value={r.time} onChange={v => u(x => { x.time = v; })} style={{ width: 150 }} />,
         <Input key="f" value={r.freq} onChange={v => u(x => { x.freq = v; })} style={{ minWidth: 150 }} />,
         <Select key="c" value={r.channel} options={['Push', 'Email', 'Push + email', 'In-app only']} onChange={v => u(x => { x.channel = v; })} title="Channel" />,
         <Select<number> key="s" value={r.snooze} options={[{ value: 0, label: 'None' }, { value: 10, label: '10 min' }, { value: 15, label: '15 min' }, { value: 30, label: '30 min' }, { value: 60, label: '1 h' }]} onChange={v => u(x => { x.snooze = v; })} title="Snooze" />,
@@ -144,6 +148,7 @@ export default function SettingsScreen() {
               <Field label="Activity level"><Select value={P.activity} options={['Sedentary', 'Lightly active', 'Moderately active', 'Very active']} onChange={setK('activity')} title="Activity level" /></Field>
               <Field label="Experience"><Select value={P.experience} options={['Beginner', 'Intermediate', 'Advanced']} onChange={setK('experience')} title="Experience" /></Field>
               <Field label="Units"><Seg value={P.units} options={[{ value: 'metric', label: 'Metric' }, { value: 'imperial', label: 'Imperial' }]} onChange={v => RG.update(s => { RG.setUnits(s.profile, v); })} /></Field>
+              <Field label="Time format"><Seg value={P.clock === '24h' ? '24h' : '12h'} options={[{ value: '12h', label: '12-hour (5:30 PM)' }, { value: '24h', label: '24-hour (17:30)' }]} onChange={v => up(p => { p.clock = v; })} /></Field>
             </Grid>
             <Muted>{`Current weight comes from your weight log (7-day average: ${RG.bw(RG.avgWeight())} ${wu}). Calculations always run in metric.`}</Muted>
           </Card>
@@ -154,9 +159,25 @@ export default function SettingsScreen() {
             <Field label="Training days · the rest become rest days">
               <Row gap={6} wrap>{RG.DN.map((l, i) => <Pick key={l} label={l} on={P.trainingDays.includes(i)} onPress={() => toggleDay(i)} />)}</Row>
             </Field>
+            {P.trainingDays.length > 0 && (
+              <Field label="Workout time on each training day">
+                <Grid min={190} gap={10}>
+                  {P.trainingDays.map(i => (
+                    <Row key={i} gap={10}>
+                      <T size={14} style={{ width: 44 }}>{RG.DN[i]}</T>
+                      <TimeInput value={RG.workoutTimeOn(P, i)} onChange={setDayTime(i)} style={{ flex: 1 }} />
+                    </Row>
+                  ))}
+                </Grid>
+                {P.trainingDays.length > 1 && (
+                  <Tap onPress={sameTimeAll} label="Use the first day's time for every day" style={{ alignSelf: 'flex-start', marginTop: 8 }}>
+                    <T size={13} color={C.accent}>{`Use ${RG.clock(RG.workoutTimeOn(P, P.trainingDays[0]))} for every day`}</T>
+                  </Tap>
+                )}
+              </Field>
+            )}
             <Grid min={170} gap={12}>
               <Field label="Workout duration (min)"><NumInput value={P.duration} onValue={num('duration')} /></Field>
-              <Field label="Workout time"><TimeInput value={P.workoutTime} onChange={setK('workoutTime')} /></Field>
               <Field label="Location"><Select value={P.location} options={['Gym', 'Home', 'Both']} onChange={setK('location')} title="Location" /></Field>
               <Field label="Progression rule"><Select value={P.progression} options={[{ value: 'double', label: 'Double progression (reps, then load)' }, { value: 'linear', label: 'Linear (add load when min reps hit)' }]} onChange={setK('progression')} title="Progression rule" /></Field>
             </Grid>
@@ -202,6 +223,7 @@ export default function SettingsScreen() {
                   <Field label="Fat g"><NumInput value={RT.fat} onValue={setRest('fat')} /></Field>
                 </Grid>
                 <T size={12} color={C.n400}>{macroNote(RT)}</T>
+                <Muted>Suggested to start: the same protein and fat, with about 10% fewer calories (from carbs) since you burn less on rest days. Change any number you like.</Muted>
               </>
             ) : <Muted>Off: rest days use the same targets as training days.</Muted>}
             <Grid min={140} gap={12}>
@@ -236,7 +258,7 @@ export default function SettingsScreen() {
                     <Row key={i} gap={6}>
                       <Muted style={{ width: 60 }}>{sl.name}</Muted>
                       <Input value={sl.label} onChange={v => RG.update(s => { s.mealSlots[t][i].label = v; })} style={{ flex: 1, width: undefined, minWidth: 0 }} />
-                      <TimeInput value={sl.time} onChange={v => RG.update(s => { s.mealSlots[t][i].time = v; })} style={{ width: 100 }} />
+                      <TimeInput value={sl.time} onChange={v => RG.update(s => { s.mealSlots[t][i].time = v; })} style={{ width: 150 }} />
                     </Row>
                   ))}
                 </View>
@@ -249,9 +271,9 @@ export default function SettingsScreen() {
           <Card gap={8} pad={[12, 18]}>
             <Row gap={12} wrap>
               <T size={13} color={C.n400}>Quiet hours</T>
-              <TimeInput value={P.quietStart} onChange={setK('quietStart')} style={{ width: 120 }} />
+              <TimeInput value={P.quietStart} onChange={setK('quietStart')} style={{ width: 150 }} />
               <T size={13}>to</T>
-              <TimeInput value={P.quietEnd} onChange={setK('quietEnd')} style={{ width: 120 }} />
+              <TimeInput value={P.quietEnd} onChange={setK('quietEnd')} style={{ width: 150 }} />
               <Muted style={{ flexShrink: 1, minWidth: 200 }}>Nothing is sent during quiet hours; reminders wait until they end.</Muted>
             </Row>
             <Row gap={10} wrap style={{ paddingVertical: 4 }}>

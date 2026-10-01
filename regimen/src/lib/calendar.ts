@@ -2,6 +2,8 @@
    On web, use the .ics export instead. */
 import * as Calendar from 'expo-calendar/legacy';
 import { Platform } from 'react-native';
+import { workoutTimeOn } from '@/domain/clock';
+import { dow } from '@/domain/dates';
 import { workoutOf } from '@/domain/schedule';
 import type { State } from '@/domain/types';
 
@@ -29,7 +31,7 @@ export async function requestCalendarPermission() {
 export async function syncCalendar(s: State, today: string) {
   if (Platform.OS === 'web' || !s.profile.calendarSync) return;
   const planned = s.schedule.filter(e => e.status === 'planned' && e.date >= today).sort((a, b) => a.date < b.date ? -1 : 1);
-  const sig = JSON.stringify([planned.map(e => [e.date, e.workoutId]), s.profile.workoutTime, s.profile.duration]);
+  const sig = JSON.stringify([planned.map(e => [e.date, e.workoutId]), s.profile.workoutTime, s.profile.dayTimes, s.profile.duration]);
   if (sig === lastSig) return;
   const perm = await Calendar.getCalendarPermissionsAsync();
   if (!perm.granted) return;
@@ -38,9 +40,9 @@ export async function syncCalendar(s: State, today: string) {
   const from = new Date(today + 'T00:00:00'); const to = new Date(from.getTime() + 90 * 864e5);
   for (const ev of await Calendar.getEventsAsync([id], from, to)) await Calendar.deleteEventAsync(ev.id);
   const ctx = { s, today };
-  const [h, m] = s.profile.workoutTime.split(':').map(Number);
   for (const e of planned) {
     const w = workoutOf(ctx, e.workoutId, e.planId); if (!w) continue;
+    const [h, m] = workoutTimeOn(s.profile, dow(e.date)).split(':').map(Number);
     const start = new Date(e.date + 'T00:00:00'); start.setHours(h || 0, m || 0, 0, 0);
     await Calendar.createEventAsync(id, { title: w.name, notes: w.focus, startDate: start, endDate: new Date(start.getTime() + s.profile.duration * 60000) });
   }
