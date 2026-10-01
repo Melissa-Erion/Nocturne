@@ -100,12 +100,25 @@ export function setMealsPerDay(ctx: Ctx, n: number) {
     }
   });
   if (s.distribution.custom.length !== v) { s.distribution.custom = Array(v).fill(Math.round(100 / v)); s.distribution.manual = null; }
+  rebalanceMeals(ctx, true);
+}
+
+/** Everything that decides each meal's target: daily targets (training and rest), meal count and how the day is split. */
+export const targetsSignature = (s: State) => {
+  const P = s.profile, D = s.distribution;
+  return JSON.stringify([P.kcal, P.protein, P.carbs, P.fat, P.restTargets, P.mealsPerDay, D.mode, D.custom, D.manual, D.preIdx, D.postIdx, D.proteinIdx]);
+};
+
+/** Re-portion every meal from today on that isn't logged or prepped to its current target (locked foods stay as they
+    are). Run when targets change, so planned meals never sit on old portions. `fillEmpty` gives empty meals a snack. */
+export function rebalanceMeals(ctx: Ctx, fillEmpty = false) {
+  const { s } = ctx;
   for (const d of Object.keys(s.days)) {
     if (d < ctx.today) continue;
     const day = getDay(ctx, d); const tg = mealTargets(ctx, day.type);
     day.meals.forEach((m, i) => {
       if (m.logged || m.prepped || !tg[i]) return;
-      if (!m.items.length) m.items = (EXTRA_MEALS[i - 4] || EXTRA_MEALS[0]).map(foodId => ({ key: uid(), foodId, g: 100, locked: false }));
+      if (!m.items.length) { if (!fillEmpty) return; m.items = (EXTRA_MEALS[i - 4] || EXTRA_MEALS[0]).map(foodId => ({ key: uid(), foodId, g: 100, locked: false })); }
       m.items = solve(s, m.items, tg[i]);
     });
   }

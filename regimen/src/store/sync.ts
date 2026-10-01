@@ -10,10 +10,14 @@ const PAGE = 1000;
 
 const keyOf = (key: string[], r: Row) => key.map(k => String(r[k])).join('|');
 
+// Tables added after launch: if one isn't in the database yet, load it as empty instead of failing sign-in.
+const OPTIONAL = new Set(['custom_exercises']);
+
 async function readAll(table: string): Promise<Row[]> {
   const out: Row[] = [];
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await supabase!.from(table).select('*').range(from, from + PAGE - 1);
+    if (error && OPTIONAL.has(table) && (error.code === 'PGRST205' || error.code === '42P01')) return [];
     if (error) throw error;
     out.push(...(data as Row[]));
     if (!data || data.length < PAGE) return out;
@@ -53,6 +57,7 @@ export class CloudSync {
   async wipe() {
     for (const t of [...TABLES].reverse()) {
       const { error } = await supabase!.from(t.table).delete().eq('user_id', this.userId);
+      if (error && OPTIONAL.has(t.table) && (error.code === 'PGRST205' || error.code === '42P01')) continue;
       if (error) throw new Error(`${t.table}: ${error.message}`);
     }
     this.snap = new Map();

@@ -2,7 +2,7 @@
    Each table lists its primary-key columns (besides user_id) so the sync layer can diff rows by key. */
 import { FOODS } from '@/domain/data/foods';
 import { newUserState } from '@/domain/seed';
-import type { Checkin, DayType, Food, Plan, Recipe, State } from '@/domain/types';
+import type { Checkin, DayType, Exercise, Food, Plan, Recipe, State } from '@/domain/types';
 
 export type Row = Record<string, unknown>;
 export interface TableDef { table: string; key: string[]; rows: (s: State) => Row[] }
@@ -103,6 +103,9 @@ export const TABLES: TableDef[] = [
       const { id, name, basis, kcal, p, c, f: fat, role, cat, tags, src, est, serving, rawId, cookedId, yld, buy, ...extra } = f;
       return { id, name, basis, kcal, protein: p, carbs: c, fat, role, category: cat, tags, source: src, estimated: !!est, serving: serving || null, raw_id: rawId || null, cooked_id: cookedId || null, yield: yld ?? null, buy: buy || null, extra };
     }),
+  },
+  {
+    table: 'custom_exercises', key: ['id'], rows: s => Object.values(s.customExercises || {}).map(e => ({ id: e.id, name: e.name, muscle: e.muscle, region: e.region, equip: e.equip, instr: e.instr })),
   },
   {
     table: 'saved_meals', key: ['id'], rows: s => s.savedMeals.map((m, i) => ({
@@ -236,6 +239,9 @@ export function fromTables(t: Record<string, Row[]>, today: string): State | nul
     ...(f.serving ? { serving: f.serving as Food['serving'] } : {}), ...(f.buy ? { buy: f.buy as Food['buy'] } : {}),
     ...(f.raw_id ? { rawId: str(f.raw_id) } : {}), ...(f.cooked_id ? { cookedId: str(f.cooked_id) } : {}), ...(f.yield != null ? { yld: Number(f.yield) } : {}),
   } as Food]));
+  s.customExercises = Object.fromEntries((t.custom_exercises || []).map(e => [str(e.id), {
+    id: str(e.id), name: str(e.name), muscle: str(e.muscle) || 'Other', region: (e.region as Exercise['region']) || 'full', equip: (e.equip as Exercise['equip']) || 'Bodyweight', instr: str(e.instr), alts: [],
+  } as Exercise]));
   s.savedMeals = [...(t.saved_meals || [])].sort(byPos).map(m => ({ id: str(m.id), name: str(m.name), items: (m.items as State['savedMeals'][number]['items']) || [], ...(m.estimate ? { estimate: m.estimate as never } : {}), fav: !!m.fav, uses: Number(m.uses) }));
   const ingByRecipe = group(t.recipe_ingredients || [], 'recipe_id');
   s.recipes = [...(t.recipes || [])].sort(byPos).map((r): Recipe => ({

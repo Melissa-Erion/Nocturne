@@ -19,7 +19,9 @@ const U = () => D.makeUnits(getState());
 export const RG = {
   /* constants & date helpers */
   get TODAY(): ISODate { return D.localToday(); },
-  EX: D.EX, FOODS: D.FOODS, QUOTES: D.QUOTES, DN: D.DN, DFULL: D.DFULL, MN: D.MN, MFULL: D.MFULL, tagMap: D.tagMap,
+  /** Built-in exercises plus the user's own. */
+  get EX(): Record<string, D.Exercise> { return { ...D.EX, ...getState().customExercises }; },
+  FOODS: D.FOODS, QUOTES: D.QUOTES, DN: D.DN, DFULL: D.DFULL, MN: D.MN, MFULL: D.MFULL, tagMap: D.tagMap,
   add: D.add, dow: D.dow, diff: D.diff, fmtD: D.fmtD, fmtShort: D.fmtShort, uid: D.uid, r1: D.r1, sum: D.sum, num: D.num,
   /** Long id for rows that must be globally unique (custom foods). */
   lid: (prefix = '') => prefix + Math.random().toString(36).slice(2, 10) + Date.now().toString(36),
@@ -50,7 +52,14 @@ export const RG = {
   /* plans */
   plan: () => D.activePlan(ctx()),
   workout: (wid: string, planId?: string) => D.workoutOf(ctx(), wid, planId),
-  ex: (id: string) => D.EX[id],
+  ex: (id: string) => D.exById(getState(), id),
+  allExercises: () => D.allExercises(getState()),
+  /** Add the user's own exercise; returns it (id starts with "cx_"). */
+  addCustomExercise(name: string, muscle: string, equip: D.Equipment, instr = '') {
+    const e = D.makeCustomExercise('cx_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36), name, muscle, equip, instr);
+    update(s => { s.customExercises = { ...(s.customExercises || {}), [e.id]: e }; });
+    return e;
+  },
 
   /* schedule */
   inPause: (d: ISODate) => D.inPause(ctx(), d),
