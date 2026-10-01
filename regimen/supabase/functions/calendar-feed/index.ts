@@ -72,7 +72,12 @@ Deno.serve(async (req) => {
         `plan_items?select=workout_id,exercise_id,position,sets,rep_min,rep_max&user_id=eq.${uid}&order=position`),
     ]);
     const exIds = [...new Set(items.map(i => i.exercise_id))];
-    const exercises = exIds.length ? await q<{ id: string; name: string }>(`exercises?select=id,name&id=in.(${exIds.map(encodeURIComponent).join(",")})`) : [];
+    const inList = exIds.map(encodeURIComponent).join(",");
+    const [builtIn, own] = exIds.length ? await Promise.all([
+      q<{ id: string; name: string }>(`exercises?select=id,name&id=in.(${inList})`),
+      q<{ id: string; name: string }>(`custom_exercises?select=id,name&user_id=eq.${uid}&id=in.(${inList})`), // the user's own exercises
+    ]) : [[], []];
+    const exercises = [...builtIn, ...own];
     const exName = new Map(exercises.map(e => [e.id, e.name]));
     const wById = new Map(workouts.map(w => [w.id, w]));
     const itemsBy = new Map<string, typeof items>();

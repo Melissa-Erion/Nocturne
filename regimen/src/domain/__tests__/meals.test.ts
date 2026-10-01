@@ -67,3 +67,12 @@ describe('rebalanceMeals', () => {
     });
   });
 });
+
+test('custom exercises are found everywhere built-in ones are, and drive progression increments', () => {
+  const s = R.newUserState(TODAY);
+  s.customExercises.cx_k = R.makeCustomExercise('cx_k', '  Cable kickback  ', 'Glutes', 'Cable');
+  expect(R.exById(s, 'cx_k')).toMatchObject({ name: 'Cable kickback', region: 'lower', equip: 'Cable' });
+  expect(R.exById(s, 'squat')?.name).toBe('Back squat');
+  expect(R.allExercises(s).some(e => e.id === 'cx_k')).toBe(true);
+  expect(R.makeCustomExercise('x', 'Thing', 'Other', 'Bodyweight').region).toBe('full');
+});

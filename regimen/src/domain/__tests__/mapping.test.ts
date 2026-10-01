@@ -18,6 +18,8 @@ it('round-trips the full sample state through the table mapping', () => {
   s.quotes = { fav: { q1: true }, hidden: { q3: true }, custom: [{ id: 'c1', text: 'Mine', tone: 'Your own' }] };
   s.pauses.push({ id: 'p1', from: '2026-11-01', to: null, reason: 'Travel' });
   s.plans[0].workouts[0].items[0].targetKg = 60;
+  s.customExercises.cx_test = R.makeCustomExercise('cx_test', 'Cable kickback', 'Glutes', 'Cable', 'Hinge slightly');
+  s.plans[0].workouts[0].items[1].exId = 'cx_test';
 
   const t: Record<string, Row[]> = {};
   for (const d of TABLES) t[d.table] = d.rows(s).map(r => ({ ...r, user_id: 'u' }));

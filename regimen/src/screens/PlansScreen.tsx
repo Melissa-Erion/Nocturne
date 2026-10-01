@@ -3,8 +3,9 @@ import { useState, type ReactNode } from 'react';
 import { View, type ViewStyle } from 'react-native';
 import { useRG } from '@/store/rg';
 import type { Plan, PlanItem, Region, Workout } from '@/domain/types';
-import { Btn, Card, Check, ColLabel, Dialog, Field, H, Input, Muted, NumInput, Row, Select, T, Tag, Tap, useLayout } from '@/ui/kit';
+import { Btn, Card, Check, ColLabel, Dialog, Field, H, Icon, Input, Muted, NumInput, Row, Select, T, Tag, Tap, useLayout } from '@/ui/kit';
 import { alpha, C, R } from '@/ui/theme';
+import { ExercisePicker } from './plans/ExercisePicker';
 import { Screen } from './Shell';
 
 const REGIONS: { value: Region; label: string }[] = [{ value: 'upper', label: 'Upper' }, { value: 'lower', label: 'Lower' }, { value: 'full', label: 'Full body' }, { value: 'core', label: 'Core / conditioning' }];
@@ -21,6 +22,8 @@ export default function PlansScreen() {
   const [planSel, setPlanSel] = useState<string | null>(null);
   const [wid, setWid] = useState<string | null>(null);
   const [confirmRm, setConfirmRm] = useState(false);
+  // Exercise picker: replace the exercise in row `idx`, or add a new row.
+  const [picker, setPicker] = useState<{ mode: 'replace'; idx: number } | { mode: 'add' } | null>(null);
   const [cardW, setCardW] = useState(0);
   const { wide } = useLayout();
 
@@ -38,7 +41,6 @@ export default function PlansScreen() {
   };
   const upItem = (idx: number, fn: (it: PlanItem) => void) => up((_, w) => { const it = w?.items[idx]; if (it) fn(it); });
 
-  const exOptions = Object.values(RG.EX).sort((a, b) => a.muscle < b.muscle ? -1 : a.muscle > b.muscle ? 1 : a.name < b.name ? -1 : 1).map(e => ({ value: e.id, label: `${e.name} · ${e.muscle}` }));
 
   const items = (wk?.items || []).map((it, idx) => {
     const rec = RG.recommend(it.exId, it);
@@ -96,7 +98,8 @@ export default function PlansScreen() {
     RG.update(s => { s.plans.push({ id, name: 'My plan', note: '', workouts: [{ id: 'A', name: 'Workout A', focus: '', muscles: [], region: 'full', items: [] }], rotation: ['A'], allowConsecutive: false }); });
     setPlanSel(id); setWid(null);
   };
-  const addItem = () => up((_, w) => { w?.items.push({ id: RG.uid(), exId: 'goblet', sets: 3, repMin: 8, repMax: 12, rir: 2, rest: 90, tempo: '2-0-1-0', warmups: 0, superset: '', notes: '', replaced: [] }); });
+  const addItem = () => setPicker({ mode: 'add' });
+  const addExercise = (exId: string) => up((_, w) => { w?.items.push({ id: RG.uid(), exId, sets: 3, repMin: 8, repMax: 12, rir: 2, rest: 90, tempo: '2-0-1-0', warmups: 0, superset: '', notes: '', replaced: [] }); });
 
   const tab = (on: boolean): ViewStyle => ({ paddingVertical: 7, paddingHorizontal: 14, borderRadius: 6, borderWidth: 1, borderColor: on ? C.accent : C.n800, backgroundColor: on ? alpha(C.accent, 0.14) : 'transparent', minHeight: 36, justifyContent: 'center' });
   const iconBtn = (icon: 'arrow-up' | 'arrow-down' | 'x', label: string, onPress: () => void, disabled?: boolean, color?: string) =>
@@ -110,7 +113,11 @@ export default function PlansScreen() {
   );
   const exSelect = (i: Item) => (
     <View style={{ gap: 3 }}>
-      <Select value={i.it.exId} options={exOptions} onChange={i.setEx} title="Exercise" />
+      <Tap onPress={() => setPicker({ mode: 'replace', idx: i.idx })} label={`Exercise: ${RG.ex(i.it.exId)?.name || i.it.exId}. Change`}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 36, paddingHorizontal: 10, borderRadius: R.md, borderWidth: 1, borderColor: C.divider, backgroundColor: C.surface }}>
+        <T size={14} numberOfLines={1} style={{ flex: 1 }}>{RG.ex(i.it.exId)?.name || i.it.exId}</T>
+        <Icon name="caret-down" size={14} color={C.n500} />
+      </Tap>
       {!!i.replacedNote && <Muted size={11}>{i.replacedNote}</Muted>}
     </View>
   );
@@ -264,6 +271,10 @@ export default function PlansScreen() {
       <Dialog open={confirmRm} onClose={() => setConfirmRm(false)} title={`Remove ${wk?.name || 'workout'}?`}
         body="It is removed from this plan and its rotation. Logged sessions stay in your history."
         actions={<><Btn title="Cancel" onPress={() => setConfirmRm(false)} /><Btn variant="primary" icon="trash" title="Remove workout" onPress={removeWorkout} /></>} />
+      <ExercisePicker open={!!picker} onClose={() => setPicker(null)}
+        title={picker?.mode === 'add' ? 'Add an exercise' : 'Change exercise'}
+        currentId={picker?.mode === 'replace' ? items[picker.idx]?.it.exId : undefined}
+        onPick={id => { if (picker?.mode === 'replace') items[picker.idx]?.setEx(id); else addExercise(id); }} />
     </Screen>
   );
 }
