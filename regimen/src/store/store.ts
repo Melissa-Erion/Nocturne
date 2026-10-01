@@ -3,6 +3,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { localToday } from '@/domain/dates';
+import { rebalanceMeals, targetsSignature } from '@/domain/nutrition';
 import { ensureFuture } from '@/domain/schedule';
 import { setUnits } from '@/domain/units';
 import { newUserState, sampleState } from '@/domain/seed';
@@ -69,7 +70,13 @@ function persistSoon() {
 }
 
 /** Re-render and save. Call after mutating state. */
+// When anything that sets meal targets changes (macros, rest-day targets, meal count, how the day is split), planned
+// meals from today on are re-portioned, so nobody has to press "Calculate portions" after changing a setting.
+let targetsSig: string | null = null;
 export function commit() {
+  const sig = targetsSignature(S);
+  if (targetsSig !== null && sig !== targetsSig) rebalanceMeals(ctx());
+  targetsSig = sig;
   useUI.setState(u => ({ version: u.version + 1 }));
   persistSoon();
 }
@@ -78,7 +85,7 @@ export function update(fn: (s: State) => void) { fn(S); commit(); }
 
 /** Swap in a whole new state (sign-in, restore sample data). */
 export function replaceState(next: State, opts: { resync?: boolean } = {}) {
-  S = next; clearUndo();
+  S = next; clearUndo(); targetsSig = null;
   ensureFuture(ctx());
   if (opts.resync) cloud?.reset();
   commit();
@@ -142,6 +149,7 @@ export async function refreshSubscription() {
 
 async function loadFor(userId: string | null, email: string | null) {
   useUI.setState({ phase: 'loading', userId, email, error: null });
+  targetsSig = null; // a freshly loaded state is taken as it is
   const today = localToday();
   if (!supabase || !userId) {
     // EXPO_PUBLIC_DEMO=1 starts on-device mode with the sample data set (for demos and testing).
