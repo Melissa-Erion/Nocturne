@@ -138,14 +138,13 @@ export default function OnboardingScreen() {
         restTargets: d.rest ? { kcal: d.rest.kcal || d.kcal || p.kcal, protein: d.rest.protein ?? d.protein ?? p.protein, carbs: d.rest.carbs ?? d.carbs ?? p.carbs, fat: d.rest.fat ?? d.fat ?? p.fat } : null, dietPrefs: d.dietPrefs,
         allergies: csv(d.allergies), exclude: csv(d.exclude), checkInDay: d.checkInDay, checkInFreq: d.checkInFreq, quietStart: d.quietStart, quietEnd: d.quietEnd, onboarded: true,
       } satisfies Partial<Profile>);
-      (['training', 'rest'] as const).forEach(t => { while (s.mealSlots[t].length < meals) s.mealSlots[t].push({ name: 'Meal ' + (s.mealSlots[t].length + 1), label: 'Snack', time: '' }); });
-      if (s.distribution.custom.length !== meals) { s.distribution.custom = Array(meals).fill(Math.round(100 / meals)); s.distribution.manual = null; }
       const r1 = s.reminders.find(r => r.id === 'r1') || s.reminders.find(r => r.type === 'Upcoming workout');
       if (r1) { r1.enabled = d.remLead !== 0; if (d.remLead) r1.time = hm(toMin(d.workoutTime) - d.remLead); }
       const r2 = s.reminders.find(r => r.id === 'r2') || s.reminders.find(r => r.type === 'Start workout'); if (r2) r2.time = d.workoutTime;
       const r6 = s.reminders.find(r => r.id === 'r6') || s.reminders.find(r => r.type === 'Weight log'); if (r6) r6.time = d.weighTime;
       Object.keys(s.days).forEach(k => { if (k > RG.TODAY) delete s.days[k]; });
     });
+    RG.setMealsPerDay(meals); // meal times for any new meals, and today's meals re-portioned to the new targets
     if (kg != null && kg > 20 && Math.abs(kg - (RG.avgWeight() ?? 0)) > 0.05) RG.logWeight(kg);
     RG.regenerate(RG.TODAY); RG.go(full ? 'dashboard' : 'upgrade'); RG.toast(wasSample ? 'Setup saved. Sample data cleared — your history starts today.' : 'Setup saved. Future workouts rescheduled, history kept.', false);
   };

@@ -56,6 +56,8 @@ export const RG = {
   inPause: (d: ISODate) => D.inPause(ctx(), d),
   activePause: () => D.activePause(ctx()),
   recoveryClash: (date: ISODate, wid: string, ignoreId?: string) => D.recoveryClash(ctx(), date, wid, ignoreId),
+  /** Change meals per day; new meals get a time and a snack, and meals from today on are re-portioned. */
+  setMealsPerDay(n: number) { D.setMealsPerDay(ctx(), n); commit(); },
   regenerate(from?: ISODate) { pushUndo('rebuild schedule'); D.regenerate(ctx(), from); commit(); },
   /** Rebuild upcoming workouts from the plan (history kept). */
   resetSchedule() { pushUndo('reset schedule'); D.resetSchedule(ctx()); commit(); },
