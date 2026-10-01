@@ -78,11 +78,9 @@ export default function SettingsScreen() {
   };
   const setMeals = (n: number | null) => {
     if (n == null) return; const v = Math.min(6, Math.max(2, Math.round(n)));
-    RG.update(s => {
-      s.profile.mealsPerDay = v;
-      (['training', 'rest'] as DayType[]).forEach(t => { while (s.mealSlots[t].length < v) s.mealSlots[t].push({ name: 'Meal ' + (s.mealSlots[t].length + 1), label: 'Snack', time: '' }); });
-      s.distribution.custom = Array(v).fill(Math.round(100 / v)); s.distribution.manual = null;
-    });
+    if (v === P.mealsPerDay) return;
+    RG.setMealsPerDay(v);
+    RG.toast(`${v} meals a day. Meals from today on were re-portioned to fit your targets${v > P.mealsPerDay ? '; the new meal starts as a snack you can change' : ''}.`);
   };
   const enableNotifications = async () => {
     const ok = await requestNotificationPermission();

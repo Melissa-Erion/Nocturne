@@ -89,7 +89,7 @@ export default function AlternativesScreen() {
           </Row>
         </Card>
 
-        <Muted>Ranked by closest macro match, then same food role, similar calories and your dietary preferences. Substitute weights match the main nutrient. Other macros will differ, and every difference is shown. No two foods are nutritionally identical.</Muted>
+        <Muted>Only foods of the same type are suggested (a protein for a protein, a fat for a fat, a carb for a carb), ranked by closest macro match, similar calories and your dietary preferences. Substitute weights match the main nutrient. Other macros will differ, and every difference is shown. No two foods are nutritionally identical.</Muted>
 
         <View style={{ gap: 8 }}>
           {list.map((a, i) => {

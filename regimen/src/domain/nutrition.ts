@@ -79,6 +79,38 @@ export function solve(s: State, items: MealItem[], target: { p: number; c: numbe
   return out;
 }
 
+/** Foods for meals 5 and 6 (snacks) when someone eats more than four meals a day. */
+const EXTRA_MEALS = [['yog', 'blueb', 'almonds'], ['cottage', 'banana']];
+
+/** Change meals per day (2–6) and keep the plan usable: new meals get a time after the last one and a snack to start
+    from, and every meal from today on that isn't logged or prepped is re-portioned to its new (smaller or larger)
+    share of the day's targets. Past days, logged meals and prepped meals are left as they are. */
+export function setMealsPerDay(ctx: Ctx, n: number) {
+  const { s } = ctx; const v = Math.min(6, Math.max(2, Math.round(n)));
+  const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return (h || 0) * 60 + (m || 0); };
+  const hm = (t: number) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+  s.profile.mealsPerDay = v;
+  (['training', 'rest'] as DayType[]).forEach(t => {
+    const slots = s.mealSlots[t];
+    while (slots.length < v) {
+      const last = [...slots].reverse().find(x => /^\d{1,2}:\d{2}$/.test(x.time || ''));
+      const at = last ? Math.min(toMin(last.time) + 120, 21 * 60 + 30) : -1;
+      const time = last && at > toMin(last.time) ? hm(at) : '';
+      slots.push({ name: 'Meal ' + (slots.length + 1), label: time && at >= 20 * 60 ? 'Evening snack' : 'Snack', time });
+    }
+  });
+  if (s.distribution.custom.length !== v) { s.distribution.custom = Array(v).fill(Math.round(100 / v)); s.distribution.manual = null; }
+  for (const d of Object.keys(s.days)) {
+    if (d < ctx.today) continue;
+    const day = getDay(ctx, d); const tg = mealTargets(ctx, day.type);
+    day.meals.forEach((m, i) => {
+      if (m.logged || m.prepped || !tg[i]) return;
+      if (!m.items.length) m.items = (EXTRA_MEALS[i - 4] || EXTRA_MEALS[0]).map(foodId => ({ key: uid(), foodId, g: 100, locked: false }));
+      m.items = solve(s, m.items, tg[i]);
+    });
+  }
+}
+
 /** Get (creating from the default template if needed) the meal plan for a date. */
 export function getDay(ctx: Ctx, d: ISODate): DayPlan {
   const { s } = ctx;
@@ -89,7 +121,7 @@ export function getDay(ctx: Ctx, d: ISODate): DayPlan {
       : [['eggs', 'bread', 'blueb'], ['tuna', 'quinoa_c', 'avocado'], ['cottage', 'blueb', 'almonds'], ['chicken_c', 'sweet_c', 'broccoli_c']];
     const fallback: Record<string, string[]> = { sm2: ['yog', 'oats', 'blueb'] };
     const meals = tg.map((t, i) => {
-      let items: MealItem[] = (tpl[i] || ['chicken_c', 'rice_c', 'oil']).flatMap(x => {
+      let items: MealItem[] = (tpl[i] || EXTRA_MEALS[i - tpl.length] || ['chicken_c', 'rice_c', 'oil']).flatMap(x => {
         if (!x.startsWith('sm')) return [{ foodId: x, g: 100 }];
         const sm = s.savedMeals.find(m => m.id === x);
         return sm ? sm.items.map(q => ({ ...q })) : (fallback[x] || []).map(foodId => ({ foodId, g: 100 }));
@@ -116,7 +148,8 @@ export function dayTotals(ctx: Ctx, d: ISODate) {
 
 export interface Alternative { food: Food; g: number; m: Macros; d: Macros; score: number }
 
-/** Ranked substitutes matched on the source food's primary nutrient. */
+/** Ranked substitutes matched on the source food's primary nutrient. A protein, carb or fat is only swapped for a food
+    of the same type (your custom foods included); vegetables and other foods can match any type. */
 export function alternatives(s: State, foodId: string, g: number, opts: { tag?: string; lower?: boolean; higher?: boolean } = {}): Alternative[] {
   const src = food(s, foodId); if (!src) return [];
   const m0 = macros(s, foodId, g); const P = s.profile;
@@ -126,6 +159,7 @@ export function alternatives(s: State, foodId: string, g: number, opts: { tag?: 
       && !(P.exclude || []).some(x => f.name.toLowerCase().includes(x.toLowerCase()))
       && !(P.allergies || []).some(a => f.name.toLowerCase().includes(a.toLowerCase())))
     .filter(f => !opts.tag || f.tags.includes(opts.tag))
+    .filter(f => !['protein', 'carb', 'fat'].includes(src.role) || f.role === src.role)
     .map(f => {
       const per = key === 'kcal' ? f.kcal : f[key]; if (!per || per < (key === 'kcal' ? 5 : 1)) return null;
       let sg = m0[key] / per * 100; sg = Math.round(sg / 5) * 5 || 5; const m = macros(s, f.id, sg);
