@@ -4,6 +4,7 @@
      place rotation[idx] unless an adjacent day holds the same region and allowConsecutive is off.
    - Never set status "done" except by finishing a logged session (see workout.ts).
    - Missed → reschedule creates a new entry and keeps the missed record. */
+import { workoutTimeOn } from './clock';
 import { add, dow, fmtD } from './dates';
 import type { Ctx, ISODate, Plan, ScheduleEntry, Workout } from './types';
 import { uid } from './util';
@@ -194,7 +195,7 @@ export function icsExport(ctx: Ctx) {
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Regimen//Fitness//EN'];
   s.schedule.filter(e => e.status === 'planned').forEach(e => {
     const w = workoutOf(ctx, e.workoutId, e.planId); if (!w) return;
-    const [h, m] = s.profile.workoutTime.split(':');
+    const [h, m] = workoutTimeOn(s.profile, dow(e.date)).padStart(5, '0').split(':');
     const dt = e.date.replace(/-/g, '') + 'T' + h + m + '00';
     lines.push('BEGIN:VEVENT', 'UID:' + e.id + '@regimen', 'DTSTART:' + dt, 'DURATION:PT' + s.profile.duration + 'M', 'SUMMARY:' + w.name, 'END:VEVENT');
   });

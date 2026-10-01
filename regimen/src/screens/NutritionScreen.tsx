@@ -60,7 +60,7 @@ export default function NutritionScreen() {
           <Row style={{ alignItems: 'baseline' }}><CardTitle style={{ flex: 1 }}>Meals planned</CardTitle><Muted>{`${day.meals.filter(m => m.prepped).length} of ${day.meals.length} prepped`}</Muted></Row>
           {meals.map(m => (
             <RuledRow key={m.key} style={{ flexDirection: 'row', flexWrap: narrow ? 'wrap' : 'nowrap', gap: 10, alignItems: 'center', paddingVertical: 10 }}>
-              <Muted tab style={{ width: 44 }}>{m.time}</Muted>
+              <Muted tab style={{ width: 66 }}>{RG.clock(m.time)}</Muted>
               <Tap onPress={() => RG.go('meals', { date, meal: m.i })} label={`Open ${m.name} in the meal planner`} style={{ flex: 1, minWidth: narrow ? 180 : 0 }}>
                 <T size={14}>{m.name} <T size={14} color={C.n500}>· {m.label}</T></T>
                 <Muted tab>{`${m.macro} · target ${m.target}`}</Muted>

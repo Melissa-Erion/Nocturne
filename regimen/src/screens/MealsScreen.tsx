@@ -159,7 +159,7 @@ export default function MealsScreen() {
             </TRow>
             {tgs.map((t, i) => (
               <TRow key={i} onPress={() => setMeal(i)} style={i === mi ? { backgroundColor: alpha(C.accent, 0.08) } : undefined}>
-                <Cell flex={2.2}><T size={14}>{t.name}</T><Muted size={11}>{`${t.label} · ${t.time}`}</Muted></Cell>
+                <Cell flex={2.2}><T size={14}>{t.name}</T><Muted size={11}>{`${t.label}${t.time ? ' · ' + RG.clock(t.time) : ''}`}</Muted></Cell>
                 {isCustom && <Cell><NumInput value={S.distribution.custom[i] ?? 0} onValue={v => RG.update(s => { s.distribution.custom[i] = v ?? 0; })} style={{ width: 64 }} /></Cell>}
                 {isManual
                   ? (['p', 'c', 'f'] as const).map(k => <Cell key={k}><NumInput value={t[k]} onValue={v => setManual(i, k, v)} style={{ width: 64 }} /></Cell>)
@@ -202,7 +202,7 @@ export default function MealsScreen() {
         <Card gap={14} pad={[18, 20]} style={{ boxShadow: SHADOW.md, zIndex: 2 }}>
           <Row gap={12} wrap align="flex-start">
             <View style={{ flex: 1, minWidth: 220 }}>
-              <Kicker>{`${tg.name} · ${tg.label} · ${tg.time} · target`}</Kicker>
+              <Kicker>{`${tg.name} · ${tg.label}${tg.time ? ' · ' + RG.clock(tg.time) : ''} · target`}</Kicker>
               <T size={22} tab lh={1.3} style={{ marginTop: 4 }}>{`${tg.p} P · ${tg.c} C · ${tg.f} F · ${RG.num(tg.kcal)} kcal`}</T>
             </View>
             <Row gap={6} wrap style={{ flexShrink: 1, maxWidth: '100%' }}>

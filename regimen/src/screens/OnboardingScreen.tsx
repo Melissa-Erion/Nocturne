@@ -102,7 +102,9 @@ export default function OnboardingScreen() {
   const mk = (d.protein || 0) * 4 + (d.carbs || 0) * 4 + (d.fat || 0) * 9;
   const mkR = d.rest ? (d.rest.protein || 0) * 4 + (d.rest.carbs || 0) * 4 + (d.rest.fat || 0) * 9 : 0;
   const setRest = (k: 'kcal' | 'protein' | 'carbs' | 'fat') => (v: number | null) => setDraft(x => (x.rest ? { ...x, rest: { ...x.rest, [k]: v } } : x));
-  const toggleRest = (on: boolean) => setDraft(x => ({ ...x, rest: on ? { kcal: x.kcal, protein: x.protein, carbs: x.carbs, fat: x.fat } : null }));
+  // Rest-day targets start from a suggestion: same protein and fat, ~10% fewer calories from carbs.
+  const toggleRest = (on: boolean) => setDraft(x => ({ ...x, rest: !on ? null : x.kcal && x.protein != null && x.carbs != null && x.fat != null
+    ? RG.suggestRestTargets({ kcal: x.kcal, protein: x.protein, carbs: x.carbs, fat: x.fat }, floor) : { kcal: x.kcal, protein: x.protein, carbs: x.carbs, fat: x.fat } }));
   const lowT = !!d.kcal && d.kcal < floor, lowR = !!d.rest?.kcal && d.rest.kcal < floor;
   const lowWhat = !d.rest ? `${RG.num(d.kcal || 0)} kcal is` : lowT && lowR ? `Training-day (${RG.num(d.kcal || 0)} kcal) and rest-day (${RG.num(d.rest.kcal || 0)} kcal) targets are` : lowR ? `The rest-day target of ${RG.num(d.rest.kcal || 0)} kcal is` : `The training-day target of ${RG.num(d.kcal || 0)} kcal is`;
   const lowWarn = d.kcal && RG.lowCalorie(est)
@@ -166,14 +168,14 @@ export default function OnboardingScreen() {
     ['Name', d.name.trim() || '—'],
     ['Goal', d.goal],
     ['Body', `${d.weight ?? '—'} ${wu} → ${d.goalWeight ?? '—'} ${wu} · ${d.height ?? '—'} ${lu} · ${d.age ?? '—'} y · ${d.sex}`],
-    ['Training', `${d.trainingDays.slice().sort((a, b) => a - b).map(i => RG.DN[i]).join(', ') || '—'} · ${d.duration ?? '—'} min at ${d.workoutTime} · ${d.location}`],
+    ['Training', `${d.trainingDays.slice().sort((a, b) => a - b).map(i => RG.DN[i]).join(', ') || '—'} · ${d.duration ?? '—'} min at ${RG.clock(d.workoutTime)} · ${d.location}`],
     ['Equipment', d.equipment.join(', ') || '—'], ['Priorities', d.priorities.join(', ') || '—'],
     ['Targets', `${d.rest ? 'Training days: ' : ''}${RG.num(d.kcal || 0)} kcal · ${d.protein ?? 0} P · ${d.carbs ?? 0} C · ${d.fat ?? 0} F · ${d.meals ?? '—'} meals`],
     ...(d.rest ? [['Rest-day targets', `${RG.num(d.rest.kcal || d.kcal || 0)} kcal · ${d.rest.protein ?? 0} P · ${d.rest.carbs ?? 0} C · ${d.rest.fat ?? 0} F`] as [string, string]] : []),
     ['Diet', [d.dietPrefs.join(', '), d.allergies && 'allergies: ' + d.allergies, d.exclude && 'exclude: ' + d.exclude].filter(Boolean).join(' · ') || 'No restrictions'],
     ['Check-ins', `${d.checkInFreq} on ${RG.DFULL[d.checkInDay]}`],
-    ['Workout reminder', d.remLead ? `${d.remLead >= 60 ? d.remLead / 60 + ' h' : d.remLead + ' min'} before (${hm(toMin(d.workoutTime) - d.remLead)})` : 'Off'],
-    ['Quiet hours', `${d.quietStart}–${d.quietEnd}`],
+    ['Workout reminder', d.remLead ? `${d.remLead >= 60 ? d.remLead / 60 + ' h' : d.remLead + ' min'} before (${RG.clock(hm(toMin(d.workoutTime) - d.remLead))})` : 'Off'],
+    ['Quiet hours', `${RG.clock(d.quietStart)}–${RG.clock(d.quietEnd)}`],
   ];
 
   return (
@@ -243,7 +245,7 @@ export default function OnboardingScreen() {
             </Field>
             <Grid min={170} gap={12}>
               <Field label="Typical duration (min)"><NumInput value={d.duration} onValue={set('duration')} height={44} /></Field>
-              <Field label="Preferred workout time"><TimeInput value={d.workoutTime} onChange={set('workoutTime')} height={44} /></Field>
+              <Field label="Preferred workout time" hint="You can set a different time for each day later in Settings."><TimeInput value={d.workoutTime} onChange={set('workoutTime')} height={44} /></Field>
               <Field label="Where"><Select value={d.location} options={['Gym', 'Home', 'Both']} onChange={set('location')} height={44} title="Where" /></Field>
             </Grid>
             <Field label="Available equipment">
@@ -273,7 +275,7 @@ export default function OnboardingScreen() {
               <Check checked={!!d.rest} onChange={toggleRest} label="Different targets on rest days (optional)" />
               {d.rest ? (
                 <>
-                  <Muted>The boxes above are for training days. Enter what you want to eat on rest days.</Muted>
+                  <Muted>The boxes above are for training days. We’ve suggested rest-day numbers: the same protein and fat, with about 10% fewer calories from carbs. Change any of them.</Muted>
                   <Grid min={140} gap={12}>
                     <Field label="Rest-day calories"><NumInput value={d.rest.kcal} onValue={setRest('kcal')} {...big} /></Field>
                     <Field label="Protein (g)"><NumInput value={d.rest.protein} onValue={setRest('protein')} {...big} /></Field>

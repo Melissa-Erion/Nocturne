@@ -17,7 +17,7 @@ export const TABLES: TableDef[] = [
       return [{
         name: P.name, goal: P.goal, weight_kg: n(P.weightKg), goal_weight_kg: n(P.goalWeightKg), height_cm: n(P.heightCm), age: n(P.age), sex: P.sex,
         activity: P.activity, experience: P.experience, training_days: P.trainingDays, rest_days: P.restDays, duration_min: Number(P.duration) || 0,
-        workout_time: P.workoutTime, location: P.location, equipment: P.equipment, priorities: P.priorities, kcal: Math.round(Number(P.kcal) || 0),
+        workout_time: P.workoutTime, day_times: P.dayTimes || {}, clock: P.clock === '24h' ? '24h' : '12h', location: P.location, equipment: P.equipment, priorities: P.priorities, kcal: Math.round(Number(P.kcal) || 0),
         protein_g: Math.round(Number(P.protein) || 0), carbs_g: Math.round(Number(P.carbs) || 0), fat_g: Math.round(Number(P.fat) || 0),
         rest_kcal: P.restTargets ? Math.round(Number(P.restTargets.kcal) || 0) : null, rest_protein_g: P.restTargets ? Math.round(Number(P.restTargets.protein) || 0) : null, rest_carbs_g: P.restTargets ? Math.round(Number(P.restTargets.carbs) || 0) : null, rest_fat_g: P.restTargets ? Math.round(Number(P.restTargets.fat) || 0) : null,
         meals_per_day: Math.min(6, Math.max(1, Number(P.mealsPerDay) || 4)), diet_prefs: P.dietPrefs, allergies: P.allergies, exclude: P.exclude,
@@ -155,6 +155,7 @@ export function fromTables(t: Record<string, Row[]>, today: string): State | nul
     name: str(pr.name), goal: str(pr.goal), weightKg: pr.weight_kg as number | null, goalWeightKg: pr.goal_weight_kg as number | null, heightCm: pr.height_cm as number | null,
     age: pr.age as number | null, sex: str(pr.sex), activity: str(pr.activity), experience: str(pr.experience), trainingDays: (pr.training_days as number[]) || [],
     restDays: (pr.rest_days as number[]) || [], duration: Number(pr.duration_min), workoutTime: str(pr.workout_time), location: str(pr.location),
+    dayTimes: (pr.day_times as Record<string, string>) || {}, clock: pr.clock === '24h' ? '24h' : '12h',
     equipment: (pr.equipment as string[]) || [], priorities: (pr.priorities as string[]) || [], kcal: Number(pr.kcal), protein: Number(pr.protein_g),
     carbs: Number(pr.carbs_g), fat: Number(pr.fat_g), restTargets: pr.rest_kcal != null ? { kcal: Number(pr.rest_kcal), protein: Number(pr.rest_protein_g), carbs: Number(pr.rest_carbs_g), fat: Number(pr.rest_fat_g) } : null,
     mealsPerDay: Number(pr.meals_per_day), dietPrefs: (pr.diet_prefs as string[]) || [],
