@@ -310,6 +310,7 @@ footer a:hover { color: var(--text); }
 .disclaimer { flex-basis: 100%; font-size: 13px; }
 
 /* mobile sticky CTA */
+.skip-calc { display: inline-block; margin-top: 16px; color: var(--soft); font-size: 15px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 .sticky { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 90; display: none; }
 .sticky .btn { width: 100%; box-shadow: 0 18px 40px -10px rgba(0,0,0,.7); }
 
@@ -359,7 +360,7 @@ footer a:hover { color: var(--text); }
     </nav>
     <div class="right">
       <a class="login" href="/app/" data-auth="login">Log in</a>
-      <a class="btn btn-primary btn-sm" href="#numbers" data-auth="cta-top">Get my numbers</a>
+      <a class="btn btn-primary btn-sm" href="/app/" data-auth="cta">Start free</a>
     </div>
   </div>
 </header>
@@ -373,8 +374,8 @@ footer a:hover { color: var(--text); }
         <h1 id="hero-title">Stop <span class="strike">guessing</span> what to eat and lift.</h1>
         <p class="lede">Regimen turns your body and your goal into exact numbers: how much to eat, down to the gram, and what to lift next session. Then it keeps your plan on track when life gets busy.</p>
         <div class="ctas">
-          <a class="btn btn-primary" href="#numbers">Get my numbers, free</a>
-          <a class="btn btn-line" href="#how">See how it works</a>
+          <a class="btn btn-primary" href="/app/" data-auth="cta">Start free</a>
+          <a class="btn btn-line" href="#numbers">Try the 20-second calculator</a>
         </div>
         <div class="assure"><span>Free to start</span><span>No card to see your plan</span><span>Works on phone and computer</span></div>
       </div>
@@ -429,6 +430,7 @@ footer a:hover { color: var(--text); }
 
         <div class="result" aria-live="polite" id="result">
           <div id="r-empty" class="empty">Enter your weight, height and age to see your daily targets and a dinner portioned to the gram.</div>
+          <a class="skip-calc" id="r-skip" href="/app/" data-auth="cta">Rather skip it? Start free</a>
           <div id="r-full" hidden>
             <div style="color:var(--soft);font-size:14px;font-weight:600;letter-spacing:.08em;text-transform:uppercase">Your daily target</div>
             <div class="kcal num"><span id="r-kcal">0</span><small>kcal</small></div>
@@ -604,7 +606,7 @@ footer a:hover { color: var(--text); }
     <div class="wrap">
       <h2 id="final-title">Know exactly what to do today.</h2>
       <p>Your plan is about two minutes away. Start free; no card needed to see your targets.</p>
-      <a class="btn" href="#numbers">Get my numbers</a>
+      <a class="btn" href="/app/" data-auth="cta">Start free</a>
     </div>
   </section>
 </main>
@@ -625,7 +627,7 @@ footer a:hover { color: var(--text); }
   </div>
 </footer>
 
-<div class="sticky" id="sticky"><a class="btn btn-primary" href="#numbers">Get my numbers, free</a></div>
+<div class="sticky" id="sticky"><a class="btn btn-primary" href="/app/" data-auth="cta">Start free</a></div>
 
 <script>
 (function () {
@@ -679,7 +681,7 @@ footer a:hover { color: var(--text); }
     var kg = w == null ? null : st.units === 'imperial' ? w / 2.20462 : w;
     var cm = st.units === 'imperial' ? ((num('ft') != null || num('in') != null) ? ((num('ft') || 0) * 12 + (num('in') || 0)) * 2.54 : null) : num('cm');
     var ok = kg && kg >= 30 && kg <= 300 && cm && cm >= 120 && cm <= 230 && age && age >= 16 && age <= 100;
-    $('r-empty').hidden = !!ok; $('r-full').hidden = !ok;
+    $('r-empty').hidden = !!ok; $('r-skip').hidden = !!ok; $('r-full').hidden = !ok;
     if (!ok) { $('r-empty').textContent = age && age < 16 ? 'Regimen is designed for people 16 and older.' : 'Enter your weight, height and age to see your daily targets and a dinner portioned to the gram.'; return; }
     var goal = $('goal').value, act = $('act').value;
     var bmr = Math.round(10 * kg + 6.25 * cm - 5 * age + (st.sex === 'Male' ? 5 : -161));
