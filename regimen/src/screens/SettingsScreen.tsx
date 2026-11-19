@@ -12,6 +12,7 @@ import {
 } from '@/ui/kit';
 import { C, R } from '@/ui/theme';
 import { Grid, Pick, Table, TimeInput } from './prep/ui';
+import { setAppearance, useAppearance } from '@/ui/appearance';
 import { Screen } from './Shell';
 import { RemoveSampleButton } from './SampleData';
 import { useAccess } from '@/store/access';
@@ -121,6 +122,7 @@ export default function SettingsScreen() {
     };
   });
 
+  const appearance = useAppearance(a => a.pref);
   return (
     <Screen>
       <View style={{ gap: 16, maxWidth: 1000, width: '100%' }}>
@@ -132,6 +134,15 @@ export default function SettingsScreen() {
           <Btn icon="compass" title="Replay app tour" onPress={startTour} />
           <Btn variant="primary" icon="magic-wand" title="Run guided setup" onPress={() => RG.go('onboarding')} />
         </Row>
+        <Card pad={[12, 16]}>
+          <Row gap={12} wrap>
+            <View style={{ flex: 1, minWidth: 200 }}>
+              <T size={15} w={600}>Appearance</T>
+              <Muted size={12}>Saved on this device. Match device follows your phone or computer setting.</Muted>
+            </View>
+            <Seg value={appearance} onChange={setAppearance} options={[{ value: 'dark', label: 'Dark' }, { value: 'light', label: 'Light' }, { value: 'system', label: 'Match device' }]} />
+          </Row>
+        </Card>
         <Seg<Tab> value={tab} onChange={setTab} options={TABS} style={{ flexWrap: 'wrap' }} />
 
         {tab === 'profile' && (

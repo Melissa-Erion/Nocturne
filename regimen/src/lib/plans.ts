@@ -32,8 +32,10 @@ export function hasFullAccess(sub: Subscription | null, now = Date.now(), enforc
   return !!sub.periodEnd && Date.parse(sub.periodEnd) > now;
 }
 
-/** What free users can open. Everything else shows the upgrade screen. */
-export const FREE_ROUTES = new Set(['dashboard', 'settings', 'account', 'onboarding', 'upgrade']);
+/** What free users can open. Everything else shows the upgrade screen.
+    Meals is open for TODAY only (the screen itself locks other days, swaps and saving favourites), so people feel the
+    portion calculator work before they're asked to pay for the rest of the week. */
+export const FREE_ROUTES = new Set(['dashboard', 'meals', 'settings', 'account', 'onboarding', 'upgrade']);
 
 /** Plain descriptions of what each locked screen unlocks. */
 export const FEATURE: Record<string, { title: string; body: string }> = {
@@ -47,6 +49,8 @@ export const FEATURE: Record<string, { title: string; body: string }> = {
   analytics: { title: 'Analytics', body: 'Weight trends, training volume, strength and nutrition adherence.' },
   nutrition: { title: 'Nutrition dashboard', body: 'Your day’s meals, macros remaining and water, planned vs logged.' },
   meals: { title: 'Meal builder', body: 'Meals with exact portions solved to hit your macros, for training and rest days.' },
+  mealsWeek: { title: 'Planning the rest of your week', body: 'Today is free. Plan tomorrow and every day after it with exact portions, switch training and rest days, and build your grocery list from it.' },
+  favourites: { title: 'Saved meals', body: 'Save meals you like and load them into any day with one tap, portioned to fit.' },
   prep: { title: 'Meal prep', body: 'Batch-cook amounts, cooked yields and portions per container.' },
   recipes: { title: 'Recipes & saved meals', body: 'Your recipes and favourite meals with full nutrition.' },
   alternatives: { title: 'Food substitutions', body: 'Swap any food for one that matches its macros, with the exact amount.' },

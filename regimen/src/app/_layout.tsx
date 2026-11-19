@@ -9,6 +9,7 @@ import AuthScreen from '@/screens/AuthScreen';
 import { Shell } from '@/screens/Shell';
 import { boot, getState, useUI } from '@/store/store';
 import { Btn, Muted, T } from '@/ui/kit';
+import { initAppearance, useAppearance } from '@/ui/appearance';
 import { C } from '@/ui/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -23,13 +24,14 @@ export default function RootLayout() {
   const error = useUI(u => u.error);
   const version = useUI(u => u.version);
   const path = usePathname();
+  const mode = useAppearance(a => a.mode);
 
-  useEffect(() => { boot(); }, []);
-  // Web: paint the page behind the app dark too, so no white shows when the browser's bars move or the keyboard closes.
+  useEffect(() => { initAppearance(); boot(); }, []);
+  // Web: paint the page behind the app in the theme colour too, so nothing else shows when the browser's bars move.
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;
-    for (const el of [document.documentElement, document.body]) { el.style.backgroundColor = C.bg; el.style.colorScheme = 'dark'; }
-  }, []);
+    for (const el of [document.documentElement, document.body]) { el.style.backgroundColor = C.bg; el.style.colorScheme = mode; }
+  }, [mode]);
   useEffect(() => { if (fonts && phase !== 'booting') SplashScreen.hideAsync().catch(() => {}); }, [fonts, phase]);
   // First run: send the user through onboarding before anything else.
   useEffect(() => {
@@ -50,8 +52,9 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
-      <View style={{ flex: 1, backgroundColor: C.bg }}>{body}</View>
+      <StatusBar style={mode === 'light' ? 'dark' : 'light'} />
+      {/* keyed by theme: a switch remounts the UI so every screen picks up the new colours */}
+      <View key={mode} style={{ flex: 1, backgroundColor: C.bg }}>{body}</View>
     </SafeAreaProvider>
   );
 }

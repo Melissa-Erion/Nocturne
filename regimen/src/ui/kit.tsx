@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import Svg, { Line, Polyline, Rect } from 'react-native-svg';
 import { ICONS, type IconName } from './icons';
-import { alpha, C, FONT, R, SHADOW, WIDE } from './theme';
+import { alpha, C, FONT, onTheme, R, SHADOW, WIDE } from './theme';
 
 type PState = PressableStateCallbackType & { hovered?: boolean; focused?: boolean };
 const focusRing = (st: PState): ViewStyle => (st.focused && Platform.OS === 'web' ? { outlineColor: C.accent, outlineWidth: 2, outlineStyle: 'solid', outlineOffset: 2 } as ViewStyle : {});
@@ -426,7 +426,7 @@ export function Stripes({ style, children }: { style?: StyleProp<ViewStyle>; chi
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderColor: 'transparent', borderRadius: R.md, paddingVertical: 5.6, paddingHorizontal: 10.08, minHeight: 32, backgroundColor: 'transparent' },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 5, paddingHorizontal: 11, borderRadius: 999, borderWidth: 1, borderColor: C.n800 },
   card: { backgroundColor: C.surface, borderRadius: R.md, boxShadow: SHADOW.sm, minWidth: 0 },
@@ -438,3 +438,5 @@ const s = StyleSheet.create({
   backdrop: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 11.2, backgroundColor: alpha(C.n900, 0.6) },
   dialog: { padding: 16, borderRadius: R.lg, backgroundColor: C.surface, boxShadow: SHADOW.lg },
 });
+let s = makeStyles();
+onTheme(() => { s = makeStyles(); });
