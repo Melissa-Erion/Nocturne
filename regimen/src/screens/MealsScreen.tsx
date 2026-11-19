@@ -3,9 +3,11 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { ScrollView, View, type StyleProp, type ViewStyle } from 'react-native';
 import type { DayPlan, DistributionMode, Food, Meal, State } from '@/domain/types';
+import type { IconName } from '@/ui/icons';
 import { searchUsda, usdaEnabled } from '@/lib/foodApi';
 import { RG as RGS, useRG } from '@/store/rg';
 import { useUI } from '@/store/store';
+import { useAccess } from '@/store/access';
 import {
   Btn, Card, CardTitle, ColLabel, Dialog, Field, Grid, H, Icon, Input, Kicker, Muted, NotMedical, NumInput, Row, Rule, Seg, Select, T, Tap, useLayout,
 } from '@/ui/kit';
@@ -35,9 +37,24 @@ const Cell = ({ children, flex = 1, style }: { children?: ReactNode; flex?: numb
 const Th = ({ children, flex }: { children?: ReactNode; flex?: number }) =>
   <Cell flex={flex} style={{ paddingVertical: 6 }}><T size={11} upper color={alpha(C.text, 0.6)} style={{ letterSpacing: 0.88 }}>{children}</T></Cell>;
 
+const GUIDE: [IconName, string, string][] = [
+  ['list-checks', 'Check each meal', 'Tap a meal below to see its foods and exact grams. Weigh foods as shown.'],
+  ['swap', 'Change what you like', 'Swap a food, remove it, or search to add your own. The grams refit to your targets by themselves.'],
+  ['check-circle', 'Mark it as eaten', 'Tap Mark as eaten after each meal so Today shows what you have left.'],
+];
+/** Common foods offered as one-tap buttons when a meal is empty. */
+const QUICK: [string, string[]][] = [
+  ['protein', ['chicken_c', 'eggs', 'yog', 'tuna', 'salmon_r', 'tofu']],
+  ['carb', ['rice_c', 'oats', 'potato_r', 'bread', 'sweet_c', 'banana']],
+  ['veg', ['broccoli_c', 'spinach', 'greens']],
+  ['fat', ['avocado', 'almonds', 'oil', 'pb']],
+];
+
 export default function MealsScreen() {
   const RG = useRG();
   const { width } = useLayout();
+  const { full } = useAccess();
+  const locked = (what: string) => useUI.setState({ lockPrompt: what });
   const rp = useUI(u => u.routeParam);
   const [dateSt, setDate] = useState<string | null>(() => (isMealParam(rp) ? rp.date : null));
   const [mealSt, setMeal] = useState<number>(() => {
@@ -63,7 +80,7 @@ export default function MealsScreen() {
     return () => { live = false; clearTimeout(t); };
   }, [qq]);
 
-  const S = RG.s, P = S.profile; const date = dateSt || RG.TODAY; const day = RG.getDay(date);
+  const S = RG.s, P = S.profile; const date = full ? dateSt || RG.TODAY : RG.TODAY; /* free version: today only */ const day = RG.getDay(date);
   const tgs = RG.mealTargets(day.type); const n = tgs.length; const DT = RG.dayTargets(day.type);
   const mi = Math.max(0, Math.min(mealSt, Math.min(day.meals.length, n) - 1)); const meal: Meal | undefined = day.meals[mi]; const tg = tgs[mi];
   const upM = (fn: (m: Meal, d: DayPlan) => void) => RG.update(s => { const d = s.days[date]; if (d && d.meals[mi]) fn(d.meals[mi], d); });
@@ -80,6 +97,7 @@ export default function MealsScreen() {
     : `Meal grams are whole numbers. Rounding remainders go to the meals with the largest fractions, so every column adds up exactly to the daily target. kcal is calculated from macros (4/4/9), so it can differ slightly from the ${RG.num(DT.kcal)} kcal target.`;
   const kcalNote = Math.abs(dk) > 0 ? ` Your macros add up to ${RG.num(macroKcal)} kcal, ${RG.num(Math.abs(dk))} kcal ${dk > 0 ? 'above' : 'below'} the ${RG.num(DT.kcal)} kcal calorie target.` : '';
   const isCustom = mode === 'custom', isManual = mode === 'manual';
+  const allEmpty = day.meals.every(m => !m.items.length);
 
   // food rows
   const items = (meal?.items || []).map((it, ii) => {
@@ -140,16 +158,32 @@ export default function MealsScreen() {
       {/* header */}
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 12, flexWrap: 'wrap' }}>
         <View style={{ marginRight: 'auto' }}>
-          <Muted>Exact portions from your targets · weights in grams</Muted>
-          <H size={28} style={{ marginTop: 2 }}>Meal Planner</H>
+          <Muted>{`${RG.num(DT.kcal)} kcal · ${DT.protein} g protein · ${day.type === 'rest' ? 'rest day' : 'training day'}`}</Muted>
+          <H size={28} style={{ marginTop: 2 }}>{date === RG.TODAY ? "Today's meals" : `Meals · ${RG.fmtD(date)}`}</H>
         </View>
         <Row gap={4}>
-          <Btn iconOnly icon="caret-left" label="Previous day" onPress={() => setDate(RG.add(date, -1))} />
+          <Btn iconOnly icon="caret-left" label="Previous day" onPress={() => full ? setDate(RG.add(date, -1)) : locked('mealsWeek')} />
           <T size={14} center style={{ minWidth: 110 }}>{date === RG.TODAY ? 'Today' : RG.fmtD(date)}</T>
-          <Btn iconOnly icon="caret-right" label="Next day" onPress={() => setDate(RG.add(date, 1))} />
+          <Btn iconOnly icon={full ? 'caret-right' : 'lock-simple'} label={full ? 'Next day' : 'Next day (Regimen Pro)'} onPress={() => full ? setDate(RG.add(date, 1)) : locked('mealsWeek')} />
         </Row>
-        <Seg style={{ alignSelf: 'flex-end' }} value={day.type} onChange={v => RG.update(s => { s.days[date].type = v; })} options={[{ value: 'training', label: 'Training day' }, { value: 'rest', label: 'Rest day' }]} />
+        <Seg style={{ alignSelf: 'flex-end' }} value={day.type} onChange={v => full ? RG.update(s => { s.days[date].type = v; }) : locked('mealsWeek')} options={[{ value: 'training', label: 'Training day' }, { value: 'rest', label: 'Rest day' }]} />
       </View>
+
+      {/* how it works: the day is already planned, here's what to do with it */}
+      <Card gap={10} pad={[14, 16]}>
+        <T size={15} w={600}>{allEmpty ? 'Pick foods for each meal. Regimen works out the grams.' : `${date === RG.TODAY ? 'Today is' : 'This day is'} already planned for you, portioned to hit your targets.`}</T>
+        <Grid min={220} gap={10}>
+          {GUIDE.map(([icon, title, body], i) => (
+            <Row key={title} gap={10} align="flex-start">
+              <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: C.a800, alignItems: 'center', justifyContent: 'center' }}><T size={13} w={600} color={C.a100}>{i + 1}</T></View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Row gap={6}><Icon name={icon} size={14} color={C.a400} /><T size={14} w={600}>{title}</T></Row>
+                <Muted size={12}>{body}</Muted>
+              </View>
+            </Row>
+          ))}
+        </Grid>
+      </Card>
 
       {/* meal tabs */}
       <Row gap={6} wrap>
@@ -210,7 +244,7 @@ export default function MealsScreen() {
                   </Tap>
                   {stack ? <View style={{ flex: 1 }} /> : <T size={12} tab color={C.n300} style={{ flex: 1.3, minWidth: 0 }}>{i.macro}</T>}
                   <Row gap={2}>
-                    {!i.it.estimate && <Btn variant="ghost" size="sm" icon="swap" title="Swap" onPress={() => RG.go('alternatives', { date, meal: mi, key: i.it.key, foodId: i.it.foodId, g: i.it.g })} />}
+                    {!i.it.estimate && <Btn variant="ghost" size="sm" icon={full ? "swap" : "lock-simple"} title="Swap" onPress={() => RG.go('alternatives', { date, meal: mi, key: i.it.key, foodId: i.it.foodId, g: i.it.g })} />}
                     <Btn variant="ghost" iconOnly icon="x" color={C.n500} label={`Remove ${i.name}`} style={{ width: 30, height: 30 }} onPress={() => upM(mm => { mm.items.splice(i.ii, 1); if (tg && mm.items.length) mm.items = RG.solve(mm.items, tg); })} />
                   </Row>
                 </>
@@ -225,6 +259,21 @@ export default function MealsScreen() {
               );
             })}
             {!items.length && <RuledEmpty />}
+            {items.length < 2 && (
+              <View style={{ gap: 8, paddingTop: 10 }}>
+                {QUICK.map(([role, ids]) => (
+                  <Row key={role} gap={6} wrap>
+                    <T size={12} color={C.n400} style={{ width: 92 }}>{`Add ${role === 'veg' ? 'veg' : 'a ' + role}`}</T>
+                    {ids.map(id => RG.food(id)).filter((x): x is Food => !!x).map(fd => (
+                      <Tap key={fd.id} onPress={() => addFood(fd)} label={`Add ${fd.name}`}
+                        style={{ paddingVertical: 6, paddingHorizontal: 10, borderRadius: 16, borderWidth: 1, borderColor: C.n700 }}>
+                        <T size={12}>{fd.name.split(',')[0]}</T>
+                      </Tap>
+                    ))}
+                  </Row>
+                ))}
+              </View>
+            )}
           </View>
 
           {/* food search */}
@@ -266,15 +315,23 @@ export default function MealsScreen() {
           <Muted size={11}>Typing an amount locks that food (lock icon), so it stays put when portions are refitted.</Muted>
           <NotMedical />
           <Row gap={6} wrap>
-            <Btn variant="ghost" icon="star" title="Save as favourite meal" onPress={openFav} />
-            <Select title="Load a saved meal" value={null as string | null} placeholder="Load a saved meal…" options={saved} onChange={loadSaved} style={{ width: 'auto', minWidth: 200 }} />
+            <Btn variant="ghost" icon={full ? 'star' : 'lock-simple'} title="Save as favourite meal" onPress={() => full ? openFav() : locked('favourites')} />
+            <Select title="Load a saved meal" value={null as string | null} placeholder="Load a saved meal…" options={saved} onChange={id => full ? loadSaved(id) : locked('favourites')} style={{ width: 'auto', minWidth: 200 }} />
             <View style={{ flex: 1 }} />
             <Muted size={11} color={C.n600}>Nutrition: USDA FoodData Central unless marked custom · values per 100 g of the stated basis</Muted>
           </Row>
         </Card>
       ) : (
-        <Card><Muted size={13}>No meals set up for this day. Set meals per day in Settings → Nutrition.</Muted></Card>
+        <Card><Muted size={13}>No meals set up for this day. Set meals per day in Me › Settings › Nutrition.</Muted></Card>
       )}
+
+      {/* what to do next */}
+      <Row gap={8} wrap>
+        <ColLabel style={{ width: '100%' }}>What's next</ColLabel>
+        <Btn icon={full ? 'calendar-blank' : 'lock-simple'} title={date === RG.TODAY ? 'Plan tomorrow' : 'Next day'} onPress={() => full ? setDate(RG.add(date, 1)) : locked('mealsWeek')} />
+        <Btn icon="cooking-pot" title="Batch-cook it (Prep)" onPress={() => RG.go('prep')} />
+        <Btn icon="shopping-cart" title="Grocery list" onPress={() => RG.go('grocery')} />
+      </Row>
 
       {/* how the daily targets are split per meal (collapsed by default) */}
       <Card gap={12}>
@@ -342,7 +399,7 @@ function RuledEmpty() {
   return (
     <View style={{ paddingVertical: 14 }}>
       <Rule style={{ position: 'absolute', top: 0, left: 0, right: 0 }} />
-      <Muted size={13}>No foods in this meal yet. Search below to add one, or load a saved meal.</Muted>
+      <Muted size={13}>No foods in this meal yet. Tap a food below, or search for any food. Regimen works out the grams.</Muted>
     </View>
   );
 }

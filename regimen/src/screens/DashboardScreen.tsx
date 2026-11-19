@@ -71,7 +71,6 @@ export default function DashboardScreen() {
   const nextM = nextI >= 0 ? day.meals[nextI] : null; const nextT = nextI >= 0 ? tgs[nextI] : null; const nextSum = nextM ? RG.sumM(nextM.items) : null;
   const nextFoods = nextM ? nextM.items.map(x => RG.food(x.foodId)?.name.split(',')[0]).filter(Boolean).join(', ') : '';
   const logMeal = (i: number) => {
-    if (!full) return RG.go('meals');
     RG.update(s => { s.days[T0].meals[i].logged = true; });
     RG.toast(`${tgs[i]?.name || 'Meal'} marked as eaten.`, true);
   };
