@@ -3,8 +3,8 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { View } from 'react-native';
 import { useRG } from '@/store/rg';
 import { useUI } from '@/store/store';
-import { Btn, Card, Chip, Field, H, Icon, Muted, NotMedical, NumInput, Row, Select, T, useLayout } from '@/ui/kit';
-import { C, R, SHADOW } from '@/ui/theme';
+import { Btn, Card, Chip, Field, H, Muted, NotMedical, NumInput, Row, Select, T, useLayout } from '@/ui/kit';
+import { C } from '@/ui/theme';
 import { Screen } from './Shell';
 
 /** Context passed by the Meal Planner: RG.go('alternatives', { date, meal, key, foodId, g }). */
@@ -27,8 +27,7 @@ export default function AlternativesScreen() {
   const [foodIdSt, setFoodId] = useState<string | null>(() => (isCtx(rp) ? rp.foodId : null));
   const [gSt, setG] = useState<number | null>(() => (isCtx(rp) ? rp.g : null));
   const [tag, setTag] = useState('');
-  const [swapped, setSwapped] = useState<string | null>(null);
-  useEffect(() => { if (isCtx(rp)) { setCtx(rp); setFoodId(rp.foodId); setG(rp.g); setSwapped(null); } }, [rp]);
+  useEffect(() => { if (isCtx(rp)) { setCtx(rp); setFoodId(rp.foodId); setG(rp.g); } }, [rp]);
 
   const foodId = foodIdSt && RG.food(foodIdSt) ? foodIdSt : 'chicken_c'; const g = gSt ?? 145;
   const f = RG.food(foodId); const m0 = RG.macros(foodId, g);
@@ -39,9 +38,6 @@ export default function AlternativesScreen() {
   const day = ctx ? RG.getDay(ctx.date) : null; const meal = day ? day.meals[ctx!.meal] : undefined;
   const tg = ctx && day ? RG.mealTargets(day.type)[ctx.meal] : undefined;
   const key = f ? ({ protein: 'protein', carb: 'carbohydrate', fat: 'fat', veg: 'calories' } as Record<string, string>)[f.role] || 'calories' : 'calories';
-  let swapNote = '';
-  if (swapped && meal && tg) { const tot = RG.sumM(meal.items); swapNote = `Swapped in ${ctx?.g ?? ''} g ${RG.food(swapped)?.name || 'the substitute'}. Meal is now ${RG.num(tot.kcal)} kcal · ${RG.r1(tot.p)}P ${RG.r1(tot.c)}C ${RG.r1(tot.f)}F vs target ${tg.p}/${tg.c}/${tg.f}. Rebalance adjusts the other foods and keeps ${RG.food(swapped)?.name || 'the substitute'} locked.`; }
-  const afterSwap = !!swapped && !!meal && !!tg;
 
   const foodOpts = RG.allFoods().map(x => ({ value: x.id, label: `${x.name} · ${x.basis}` })).sort((a, b) => (a.label < b.label ? -1 : 1));
   const use = (altId: string, altG: number, _altName: string) => {
@@ -49,13 +45,10 @@ export default function AlternativesScreen() {
     let ok = false;
     RG.update(s => { const it = s.days[ctx.date]?.meals[ctx.meal]?.items.find(x => x.key === ctx.key); if (it) { it.foodId = altId; it.g = altG; it.locked = true; ok = true; } });
     if (!ok) return RG.toast('That food is no longer in the meal. Go back to the meal and try again.');
-    setFoodId(altId); setG(altG); setSwapped(altId); setCtx({ ...ctx, foodId: altId, g: altG });
-  };
-  const rebalance = () => {
-    if (!ctx || !tg) return;
-    RG.update(s => { const mm = s.days[ctx.date].meals[ctx.meal]; mm.items = RG.solve(mm.items, tg); });
+    // Refit the other foods around the substitute (it stays locked) and go straight back to the meal.
+    if (tg) RG.update(s => { const mm = s.days[ctx.date].meals[ctx.meal]; mm.items = RG.solve(mm.items, tg); });
     RG.go('meals', { date: ctx.date, meal: ctx.meal });
-    RG.toast('Meal rebalanced around the substitute.');
+    RG.toast(`Swapped in ${altG} g ${_altName.split(',')[0]}. The rest of the meal was refitted around it.`);
   };
   const stack = width < (wide ? 1000 : 700);
 
@@ -73,7 +66,7 @@ export default function AlternativesScreen() {
         <Card gap={12}>
           <Row gap={10} wrap align="flex-end">
             <Field label="Original food" style={{ flex: 1, minWidth: 220 }}>
-              <Select title="Original food" value={foodId} options={foodOpts} onChange={v => { setFoodId(v); setSwapped(null); }} />
+              <Select title="Original food" value={foodId} options={foodOpts} onChange={v => setFoodId(v)} />
             </Field>
             <Field label="Amount (g)" style={{ width: 120 }}>
               <NumInput value={g} onValue={v => setG(v == null ? 0 : Math.max(0, v))} accessibilityLabel="Amount in grams" />
@@ -124,18 +117,8 @@ export default function AlternativesScreen() {
           {!list.length && <Card><Muted size={13}>No alternatives match this filter. Try another filter or a different food.</Muted></Card>}
         </View>
         <NotMedical />
-        {afterSwap && <View style={{ height: 72 }} />}
       </Screen>
 
-      {afterSwap && (
-        <View style={{ position: 'absolute', left: wide ? 28 : 14, right: wide ? 28 : 14, bottom: 12, alignItems: 'center', pointerEvents: 'box-none' }}>
-          <View style={{ width: '100%', maxWidth: 1264, flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap', paddingVertical: 12, paddingHorizontal: 16, borderRadius: R.md, backgroundColor: C.surface, boxShadow: SHADOW.lg }}>
-            <Icon name="scales" size={20} color={C.accent} />
-            <T size={13} style={{ flex: 1, minWidth: 200 }}>{swapNote}</T>
-            <Btn variant="primary" title="Rebalance meal" onPress={rebalance} />
-          </View>
-        </View>
-      )}
     </View>
   );
 }
