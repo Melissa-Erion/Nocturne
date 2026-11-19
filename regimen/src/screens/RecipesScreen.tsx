@@ -215,7 +215,7 @@ export default function RecipesScreen() {
                 })}
               </Grid>
             ) : (
-              <Card><Empty icon="fork-knife" title="No saved meals yet" body="Save a meal from the Meal Planner, or add a restaurant estimate below." action={<Btn title="Open meal planner" onPress={() => RG.go('meals')} />} /></Card>
+              <Card><Empty icon="fork-knife" title="No saved meals yet" body="Save a meal from Eat › Meals, or add a restaurant estimate below." action={<Btn title="Open meal planner" onPress={() => RG.go('meals')} />} /></Card>
             )}
             <Card gap={10} style={{ maxWidth: 640 }}>
               <CardTitle>Save a restaurant meal as an estimate</CardTitle>

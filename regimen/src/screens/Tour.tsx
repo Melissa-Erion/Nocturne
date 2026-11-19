@@ -1,4 +1,4 @@
-/* Guided app tour. Opens once after setup (on the dashboard) and can be replayed from Settings or the menu.
+/* Guided app tour. Opens once after setup (on Today) and can be replayed from Me › Settings.
    Each step takes the user to the screen it describes (when they have access) with a card explaining it. */
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -14,38 +14,38 @@ import { alpha, C, SHADOW } from '@/ui/theme';
 
 interface Step { route?: Route; icon: IconName; title: string; body: (wide: boolean) => string; where?: (wide: boolean) => string }
 
-const menu = (wide: boolean, item: string) => (wide ? `Menu on the left → ${item}` : `☰ menu (top left) → ${item}`);
+const menu = (wide: boolean, item: string) => (wide ? `Menu on the left → ${item}` : `Tabs at the bottom → ${item}`);
 
 const STEPS: Step[] = [
   { route: 'dashboard', icon: 'compass', title: 'Welcome to Regimen',
-    body: () => 'A one-minute tour of where everything is. You can skip it now and replay it anytime from Fitness Settings or the menu.' },
+    body: () => 'A one-minute tour of where everything is. You can skip it now and replay it anytime from Me › Settings.' },
   { icon: 'list', title: 'Getting around',
     body: w => w
-      ? 'Every section is in the menu on the left: Training, Progress, Nutrition and your Account.'
-      : 'Tap ☰ at the top left to open the menu with every section. The ← arrow next to it takes you back to the previous screen.' },
-  { route: 'dashboard', icon: 'house', title: 'Fitness Dashboard: your day',
+      ? 'Four tabs on the left: Today, Train, Eat and Progress. Each tab has a row of sections at the top of the page. Me, under the tabs, has your settings and account.'
+      : 'Four tabs at the bottom: Today, Train, Eat and Progress. Each tab has a row of sections at the top of the page. Tap the person icon (top right) for your settings and account. The ← arrow takes you back.' },
+  { route: 'dashboard', icon: 'house', title: 'Today: your day',
     body: () => 'Start here each day: today’s workout, your calories and macros, your meals (tap Log when you eat one), your weight trend and this week at a glance.',
-    where: w => menu(w, 'Fitness Dashboard') },
-  { route: 'schedule', icon: 'calendar-blank', title: 'My Schedule',
+    where: w => menu(w, 'Today') },
+  { route: 'schedule', icon: 'calendar-blank', title: 'Your schedule',
     body: () => 'Your workouts are placed on your training days automatically. Tap a workout to move, skip or reschedule it. Undo reverses your last change, Reset schedule rebuilds it from your plan, and Sync to calendar adds your workouts to Google Calendar, Outlook or Apple Calendar.',
-    where: w => menu(w, 'My Schedule') },
+    where: w => menu(w, 'Train › Schedule') },
   { route: 'workout', icon: 'barbell', title: 'Doing a workout',
-    body: () => 'Press Start workout on the dashboard or schedule. Log each set, follow the rest timer, swap an exercise if you need to, and pause if you’re interrupted. Your next session’s weights and reps are worked out for you.',
-    where: w => menu(w, 'Active Workout') },
-  { route: 'nutrition', icon: 'chart-donut', title: 'Nutrition',
-    body: () => 'Your targets for today (training and rest days can differ), what’s left to eat, and water. The Meal Planner builds meals with exact portions to hit your macros.',
-    where: w => menu(w, 'Nutrition Dashboard / Meal Planner') },
+    body: () => 'Press Start workout on Today or in Train › Schedule. The workout opens full screen: log each set, follow the rest timer, swap an exercise if you need to, and pause if you’re interrupted. The arrow at the top minimises it; a banner brings you back. Your next session’s weights and reps are worked out for you.',
+    where: w => menu(w, 'Train') },
+  { route: 'nutrition', icon: 'chart-donut', title: 'Eat',
+    body: () => 'Meals builds your day with exact portions to hit your macros; tap Alternatives on any food to swap it. Macros shows today’s targets (training and rest days can differ), what’s left to eat, and water.',
+    where: w => menu(w, 'Eat › Meals / Macros') },
   { route: 'prep', icon: 'cooking-pot', title: 'Prep, recipes and groceries',
-    body: () => 'Meal-Prep Calculator gives batch-cook amounts, Food Alternatives swaps a food for one with matching macros, and the Grocery List is built from your prep.',
-    where: w => menu(w, 'Meal-Prep Calculator') },
+    body: () => 'Prep gives batch-cook amounts, Recipes keeps your saved meals, and Groceries is built from your prep.',
+    where: w => menu(w, 'Eat › Prep / Recipes / Groceries') },
   { route: 'checkins', icon: 'chart-line-up', title: 'Tracking progress',
     body: () => 'Weekly check-ins, private progress photos, personal records and analytics show how far you’ve come.',
     where: w => menu(w, 'Progress') },
   { route: 'settings', icon: 'gear', title: 'Settings and your account',
-    body: () => 'Fitness Settings is where you change your targets, units, training days and reminders, and replay this tour. My Account has your email, password and subscription.',
-    where: w => menu(w, 'Fitness Settings / My Account') },
+    body: () => 'Settings is where you change your targets, units, training days and reminders, and replay this tour. Account has your email, password and subscription.',
+    where: w => (w ? 'Menu on the left → Me' : 'Person icon (top right) → Settings / Account') },
   { route: 'dashboard', icon: 'check-circle', title: 'You’re all set',
-    body: () => 'Head to your dashboard and start with today. You can replay this tour anytime from Fitness Settings or the menu.' },
+    body: () => 'Head to Today and start there. You can replay this tour anytime from Me › Settings.' },
 ];
 
 /** Opens the tour automatically the first time someone reaches the dashboard after setup. */

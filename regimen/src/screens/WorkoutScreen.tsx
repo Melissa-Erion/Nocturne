@@ -375,7 +375,7 @@ function Running({ A }: { A: ActiveWorkout }) {
           );
         })}
 
-        {!exs.length && <Card><Muted size={13}>This workout has no exercises. Add some in Workout Plans, or discard the session.</Muted></Card>}
+        {!exs.length && <Card><Muted size={13}>This workout has no exercises. Add some in Train › Plans, or discard the session.</Muted></Card>}
 
         <Row gap={8} wrap style={{ justifyContent: 'space-between', paddingTop: 8, paddingBottom: 8 }}>
           <Btn variant="ghost" title="Discard session" color={C.n400} onPress={() => setDlg('discard')} />

@@ -127,7 +127,7 @@ export default function SettingsScreen() {
         <Row gap={12} wrap align="flex-end">
           <View style={{ marginRight: 'auto' }}>
             <Muted>Changes save instantly. History is never overwritten.</Muted>
-            <H size={28} style={{ marginTop: 2 }}>Fitness Settings</H>
+            <H size={28} style={{ marginTop: 2 }}>Settings</H>
           </View>
           <Btn icon="compass" title="Replay app tour" onPress={startTour} />
           <Btn variant="primary" icon="magic-wand" title="Run guided setup" onPress={() => RG.go('onboarding')} />

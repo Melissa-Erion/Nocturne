@@ -28,7 +28,7 @@ const TITLES: [string, string][] = [
   ['Your training week', 'Workouts are placed on these days in rotation order, avoiding back-to-back sessions for the same muscles.'],
   ['Daily targets', 'Start from the estimate or enter your own. Meals are portioned to these numbers.'],
   ['Check-ins & reminders', 'Pick a rhythm you can keep. Every reminder is adjustable later.'],
-  ['Review', 'Confirm and save. You can change any of this in Fitness Settings.'],
+  ['Review', 'Confirm and save. You can change any of this later in Me › Settings.'],
 ];
 const GOALS: [string, IconName, string][] = [
   ['Fat loss', 'trend-down', 'Moderate deficit, high protein, keep strength'], ['Muscle gain', 'trend-up', 'Small surplus, progressive volume'],
