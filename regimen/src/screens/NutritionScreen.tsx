@@ -33,7 +33,7 @@ export default function NutritionScreen() {
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 12, flexWrap: 'wrap' }}>
         <View style={{ marginRight: 'auto' }}>
           <Muted>{`${day.type === 'training' ? 'Training day' : 'Rest day'} · ${tgs.length} meals · ${tLabel}`}</Muted>
-          <H size={28} style={{ marginTop: 2 }}>Nutrition Dashboard</H>
+          <H size={28} style={{ marginTop: 2 }}>Macros &amp; water</H>
         </View>
         <Row gap={4}>
           <Btn iconOnly icon="caret-left" label="Previous day" onPress={() => setDate(RG.add(date, -1))} />

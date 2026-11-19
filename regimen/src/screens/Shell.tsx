@@ -1,9 +1,11 @@
-/* App shell — port of prototype/Regimen.dc.html: sticky 236 px sidebar (≥ 980 px) or a top bar with a drawer,
-   the active-workout resume banner, and toasts. Screens render inside <Screen> (scrolling, max width 1320). */
+/* App shell. Four tabs (Today, Train, Eat, Progress) plus Me (settings and account). Each tab holds a few pages,
+   shown as a row of section buttons at the top. Wide screens (≥ 980 px): sticky 236 px sidebar. Phones: top bar with
+   Back and Me, and a tab bar at the bottom. A workout in progress is full screen (no tab bar). Also the resume-workout
+   banner and toasts. Screens render inside <Screen> (scrolling, max width 1320). */
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, usePathname } from 'expo-router';
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, View, type PressableStateCallbackType } from 'react-native';
+import { createContext, Fragment, useContext, useEffect, useState, type ReactNode } from 'react';
+import { Pressable, ScrollView, View, type PressableStateCallbackType } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RG, type Route, useRG } from '@/store/rg';
 import { retrySync, signOut, useUI } from '@/store/store';
@@ -18,12 +20,25 @@ import { Paywall } from './UpgradeScreen';
 
 type PState = PressableStateCallbackType & { hovered?: boolean };
 
-export const NAV: [string, [Route, string, IconName][]][] = [
-  ['Training', [['dashboard', 'Fitness Dashboard', 'house'], ['schedule', 'My Schedule', 'calendar-blank'], ['plans', 'Workout Plans', 'list-checks'], ['workout', 'Active Workout', 'barbell'], ['history', 'Exercise History', 'clock-counter-clockwise'], ['records', 'Personal Records', 'trophy']]],
-  ['Progress', [['checkins', 'Progress Check-Ins', 'clipboard-text'], ['photos', 'Progress Photos', 'camera'], ['analytics', 'Analytics', 'chart-line-up']]],
-  ['Nutrition', [['nutrition', 'Nutrition Dashboard', 'chart-donut'], ['meals', 'Meal Planner', 'fork-knife'], ['prep', 'Meal-Prep Calculator', 'cooking-pot'], ['recipes', 'Recipes & Saved Meals', 'book-open'], ['alternatives', 'Food Alternatives', 'swap'], ['grocery', 'Grocery List', 'shopping-cart']]],
-  ['Account', [['account', 'My Account', 'person'], ['settings', 'Fitness Settings', 'gear']]],
+export type TabId = 'today' | 'train' | 'eat' | 'progress' | 'me';
+/** The four main tabs and the pages inside each one (first page = where the tab opens the first time). */
+export const TABS: { id: TabId; label: string; icon: IconName; pages: [Route, string][] }[] = [
+  { id: 'today', label: 'Today', icon: 'house', pages: [['dashboard', 'Today']] },
+  { id: 'train', label: 'Train', icon: 'barbell', pages: [['schedule', 'Schedule'], ['plans', 'Plans'], ['history', 'History']] },
+  { id: 'eat', label: 'Eat', icon: 'fork-knife', pages: [['meals', 'Meals'], ['nutrition', 'Macros'], ['prep', 'Prep'], ['recipes', 'Recipes'], ['grocery', 'Groceries']] },
+  { id: 'progress', label: 'Progress', icon: 'chart-line-up', pages: [['checkins', 'Check-ins'], ['photos', 'Photos'], ['records', 'Records'], ['analytics', 'Analytics']] },
 ];
+export const ME_PAGES: [Route, string][] = [['settings', 'Settings'], ['account', 'Account']];
+/** Pages that belong to a tab without being one of its sections. */
+const EXTRA: Partial<Record<Route, TabId>> = { workout: 'train', alternatives: 'eat', upgrade: 'me' };
+export function tabOf(route: Route): TabId | null {
+  return TABS.find(t => t.pages.some(p => p[0] === route))?.id ?? (ME_PAGES.some(p => p[0] === route) ? 'me' : EXTRA[route] ?? null);
+}
+const sectionsOf = (tab: TabId | null) => (tab === 'me' ? ME_PAGES : TABS.find(t => t.id === tab)?.pages ?? []);
+const TITLE: Partial<Record<Route, string>> = { workout: 'Workout', alternatives: 'Swap a food', upgrade: 'Regimen Pro', onboarding: 'Setup' };
+/** Tapping a tab returns to the section you last had open in it. */
+const lastPage: Partial<Record<TabId, Route>> = {};
+const openTab = (tab: TabId) => RG.go(lastPage[tab] || sectionsOf(tab)[0][0]);
 
 const ShellCtx = createContext({ wide: true });
 export const useShell = () => useContext(ShellCtx);
@@ -33,20 +48,21 @@ export function Shell({ children }: { children: ReactNode }) {
   const { wide } = useLayout();
   const path = usePathname();
   const route = (path.replace(/^\//, '').split('/')[0] || 'dashboard') as Route;
-  const [menu, setMenu] = useState(false);
   const insets = useSafeAreaInsets();
   const toast = useUI(u => u.toast);
   const lockPrompt = useUI(u => u.lockPrompt);
   const lockedFeature = lockPrompt ? FEATURE[lockPrompt] : null;
   const closeLock = () => useUI.setState({ lockPrompt: null });
   const active = RGx.s.active;
-  const title = NAV.flatMap(g => g[1]).find(p => p[0] === route)?.[1] || (route === 'upgrade' ? 'Regimen Pro' : 'Setup');
+  const tab = tabOf(route);
+  const sections = sectionsOf(tab);
+  if (tab && sections.some(p => p[0] === route)) lastPage[tab] = route;
+  const title = TITLE[route] || (tab === 'me' ? 'Me' : TABS.find(t => t.id === tab)?.label) || 'Regimen';
+  const inWorkout = route === 'workout';
   const wk = active && RGx.workout(active.workoutId, active.planId);
   const onboarding = route === 'onboarding';
   const access = useAccess();
   useAutoTour(route);
-  const tourOpen = useUI(u => u.tourOpen);
-  useEffect(() => { if (tourOpen) setMenu(false); }, [tourOpen]);
 
   // In-app history for the Back button. Browser back (web) is recognised and pops instead of pushing.
   const [hist, setHist] = useState<string[]>([]);
@@ -64,7 +80,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <LinearGradient colors={[C.sidebarTop, C.bg]} style={{ width: 236, paddingTop: 20, paddingBottom: 16, borderRightWidth: 1, borderRightColor: C.n800 }}>
             <ScrollView contentContainerStyle={{ gap: 18, paddingHorizontal: 14, flexGrow: 1 }}>
               <Brand />
-              <NavList route={route} active={!!active} onGo={r => RG.go(r)} />
+              <NavList tab={tab} active={!!active} />
               <SidebarFooter />
             </ScrollView>
           </LinearGradient>
@@ -73,11 +89,17 @@ export function Shell({ children }: { children: ReactNode }) {
           {!wide && (
             <View style={{ paddingTop: insets.top, backgroundColor: alpha(C.bg, 0.92), zIndex: 20, borderBottomWidth: 1, borderBottomColor: C.n800 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 14 }}>
-                {canBack && <Btn variant="ghost" iconOnly icon="arrow-left" color={C.text} iconSize={22} label="Back" onPress={goBack} />}
-                {!onboarding && <Btn variant="ghost" iconOnly icon="list" color={C.text} iconSize={22} label="Menu" onPress={() => setMenu(true)} />}
-                <View style={{ width: 9, height: 9, borderRadius: 3, backgroundColor: C.accent, boxShadow: `0 0 10px ${C.accent}` }} />
-                <T size={16} w={500} style={{ flex: 1 }} numberOfLines={1}>{title}</T>
+                {inWorkout
+                  ? <Btn variant="ghost" iconOnly icon="caret-down" color={C.text} iconSize={22} label="Minimise workout" onPress={() => openTab('today')} />
+                  : canBack && <Btn variant="ghost" iconOnly icon="arrow-left" color={C.text} iconSize={22} label="Back" onPress={goBack} />}
+                <T size={18} style={{ flex: 1, fontFamily: FONT.display }} numberOfLines={1}>{title}</T>
                 <SyncDot />
+                {!onboarding && !inWorkout && (
+                  <Pressable onPress={() => openTab('me')} accessibilityRole="button" accessibilityLabel="Me: settings and account"
+                    style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: tab === 'me' ? C.a700 : C.a900 }}>
+                    <Icon name="user-circle" size={24} color={C.a200} />
+                  </Pressable>
+                )}
               </View>
             </View>
           )}
@@ -95,23 +117,10 @@ export function Shell({ children }: { children: ReactNode }) {
             </View>
           )}
           {!onboarding && RGx.s.sample && <View style={{ paddingHorizontal: wide ? 28 : 14, paddingTop: 12 }}><SampleBanner /></View>}
+          {sections.length > 1 && sections.some(p => p[0] === route) && <Sections route={route} pages={sections} wide={wide} />}
           <View style={{ flex: 1 }}>{access.canOpen(route) ? children : <Screen><Paywall feature={route} /></Screen>}</View>
+          {!wide && !onboarding && !inWorkout && <TabBar tab={tab} active={!!active} bottom={insets.bottom} />}
         </View>
-
-        <Modal visible={menu && !wide} transparent animationType="fade" onRequestClose={() => setMenu(false)}>
-          <Pressable style={{ flex: 1, backgroundColor: alpha(C.n900, 0.6) }} onPress={() => setMenu(false)} />
-          <View style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: 290, maxWidth: '86%', backgroundColor: C.bg, boxShadow: SHADOW.lg, paddingTop: insets.top + 18 }}>
-            <ScrollView contentContainerStyle={{ gap: 16, paddingHorizontal: 14, paddingBottom: insets.bottom + 18, flexGrow: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8 }}>
-                <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: C.accent }} />
-                <T size={19} style={{ flex: 1, fontFamily: FONT.display }}>Regimen</T>
-                <Btn variant="ghost" iconOnly icon="x" color={C.text} label="Close menu" onPress={() => setMenu(false)} />
-              </View>
-              <NavList route={route} active={!!active} large onGo={r => { setMenu(false); RG.go(r); }} />
-              <SidebarFooter />
-            </ScrollView>
-          </View>
-        </Modal>
 
         {!onboarding && <Tour />}
 
@@ -124,7 +133,7 @@ export function Shell({ children }: { children: ReactNode }) {
           </>} />
 
         {toast && (
-          <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: 24 + insets.bottom, alignItems: 'center', zIndex: 60, paddingHorizontal: 16 }}>
+          <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: 24 + insets.bottom + (!wide && !onboarding && !inWorkout ? 64 : 0), alignItems: 'center', zIndex: 60, paddingHorizontal: 16 }}>
             <View style={{ maxWidth: 560, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, backgroundColor: C.surface, boxShadow: SHADOW.lg }}>
               <Icon name="check-circle" size={16} color={C.accent} />
               <T size={13} style={{ flexShrink: 1 }}>{toast.msg}</T>
@@ -146,30 +155,69 @@ function Brand() {
   );
 }
 
-function NavList({ route, active, large, onGo }: { route: Route; active: boolean; large?: boolean; onGo: (r: Route) => void }) {
-  const access = useAccess();
-  const locked = (id: Route) => access.enforced && !access.canOpen(id);
+/** Sidebar (wide screens): the four tabs, then Me. */
+function NavList({ tab, active }: { tab: TabId | null; active: boolean }) {
+  const items: [TabId, string, IconName][] = [...TABS.map(t => [t.id, t.label, t.icon] as [TabId, string, IconName]), ['me', 'Me', 'user-circle']];
   return (
-    <>
-      {NAV.map(([label, items]) => (
-        <View key={label} style={{ gap: 1 }}>
-          <T size={10} color={C.n600} upper style={{ letterSpacing: 1, paddingHorizontal: 8, paddingBottom: 6 }}>{label}</T>
-          {items.map(([id, l, ic]) => {
-            const on = route === id;
-            return (
-              <Pressable key={id} onPress={() => onGo(id)} accessibilityRole="link" accessibilityState={{ selected: on }}
-                style={(st: PState) => [{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: large ? 10 : 6, paddingHorizontal: 8, borderRadius: 6, minHeight: large ? 44 : 32 },
-                  on ? { backgroundColor: alpha(C.accent, 0.12), boxShadow: `inset 2px 0 0 ${C.accent}` } : st.hovered && { backgroundColor: alpha(C.text, 0.05) }]}>
-                <Icon name={ic} size={large ? 18 : 16} color={on ? C.text : C.n400} />
-                <T size={large ? 15 : 13} color={on ? C.text : C.n400} style={{ flex: 1 }}>{l}</T>
-                {id === 'workout' && active && <T size={10} color={C.accent}>● live</T>}
-                {locked(id) && <Icon name="lock-simple" size={12} color={C.n600} />}
-              </Pressable>
-            );
-          })}
-        </View>
-      ))}
-    </>
+    <View style={{ gap: 2 }}>
+      {items.map(([id, l, ic]) => {
+        const on = tab === id;
+        return (
+          <Fragment key={id}>
+            {id === 'me' && <View style={{ height: 1, backgroundColor: C.n800, marginVertical: 8 }} />}
+            <Pressable onPress={() => openTab(id)} accessibilityRole="link" accessibilityState={{ selected: on }}
+              style={(st: PState) => [{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 10, borderRadius: 8, minHeight: 44 },
+                on ? { backgroundColor: alpha(C.accent, 0.14), boxShadow: `inset 3px 0 0 ${C.accent}` } : st.hovered && { backgroundColor: alpha(C.text, 0.05) }]}>
+              <Icon name={ic} size={20} color={on ? C.text : C.n400} />
+              <T size={15} w={on ? 600 : 400} color={on ? C.text : C.n300} style={{ flex: 1 }}>{l}</T>
+              {id === 'train' && active && <T size={10} color={C.accent}>● live</T>}
+            </Pressable>
+          </Fragment>
+        );
+      })}
+    </View>
+  );
+}
+
+/** Phone tab bar. */
+function TabBar({ tab, active, bottom }: { tab: TabId | null; active: boolean; bottom: number }) {
+  return (
+    <View accessibilityRole="tablist" style={{ flexDirection: 'row', backgroundColor: C.sidebarTop, borderTopWidth: 1, borderTopColor: C.n800, paddingBottom: bottom }}>
+      {TABS.map(t => {
+        const on = tab === t.id;
+        return (
+          <Pressable key={t.id} onPress={() => openTab(t.id)} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={t.label}
+            style={{ flex: 1, height: 60, alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+            <View>
+              <Icon name={t.icon} size={24} fill={on} color={on ? C.a400 : C.n500} />
+              {t.id === 'train' && active && <View style={{ position: 'absolute', top: -2, right: -4, width: 8, height: 8, borderRadius: 4, backgroundColor: C.accent }} />}
+            </View>
+            <T size={11} w={on ? 600 : 400} color={on ? C.a300 : C.n400}>{t.label}</T>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** The sections inside a tab (Train: Schedule · Plans · History), as a row of buttons at the top of the page. */
+function Sections({ route, pages, wide }: { route: Route; pages: [Route, string][]; wide: boolean }) {
+  const access = useAccess();
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }}
+      contentContainerStyle={{ gap: wide ? 6 : 5, paddingHorizontal: wide ? 28 : 14, paddingTop: 12, paddingBottom: 2 }}>
+      {pages.map(([id, l]) => {
+        const on = id === route; const locked = access.enforced && !access.canOpen(id);
+        return (
+          <Pressable key={id} onPress={() => RG.go(id)} accessibilityRole="tab" accessibilityState={{ selected: on }}
+            style={(st: PState) => [{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: wide ? 14 : 11, borderRadius: 19, borderWidth: 1 },
+              on ? { backgroundColor: C.a800, borderColor: C.a600 } : { borderColor: C.n800, backgroundColor: st.hovered ? alpha(C.text, 0.05) : 'transparent' }]}>
+            <T size={wide ? 14 : 13} w={on ? 600 : 400} color={on ? C.text : C.n300}>{l}</T>
+            {locked && <Icon name="lock-simple" size={12} color={C.n500} />}
+          </Pressable>
+        );
+      })}
+    </ScrollView>
   );
 }
 

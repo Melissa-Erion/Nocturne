@@ -37,7 +37,7 @@ interface UI {
   manageUrl: string | null;
   /** A locked screen the user tried to open: Shell shows the Regimen Pro pop-up for it. */
   lockPrompt: string | null;
-  /** The guided app tour is showing (opened automatically once, or from Settings / the menu). */
+  /** The guided app tour is showing (opened automatically once, or from Settings). */
   tourOpen: boolean;
   error: string | null;
 }

@@ -187,7 +187,7 @@ export default function AnalyticsScreen() {
               </View>
               <Muted>{P.restTargets ? "Line = that day's target (training or rest day). Filled bars are within ±10% of target." : 'Line = daily target. Filled bars are within ±10% of target.'}</Muted>
             </>
-          ) : <Hint>No logged days in the last 28 days. Log meals on the Nutrition Dashboard to track adherence.</Hint>}
+          ) : <Hint>No logged days in the last 28 days. Mark meals as eaten in Eat › Meals to track adherence.</Hint>}
         </Card>
 
         {/* meal prep */}

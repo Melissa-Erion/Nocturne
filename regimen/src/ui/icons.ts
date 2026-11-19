@@ -59,6 +59,7 @@ import { PackageIcon } from 'phosphor-react-native/src/icons/Package';
 import { PauseIcon } from 'phosphor-react-native/src/icons/Pause';
 import { PauseCircleIcon } from 'phosphor-react-native/src/icons/PauseCircle';
 import { PersonIcon } from 'phosphor-react-native/src/icons/Person';
+import { UserCircleIcon } from 'phosphor-react-native/src/icons/UserCircle';
 import { PillIcon } from 'phosphor-react-native/src/icons/Pill';
 import { PlayIcon } from 'phosphor-react-native/src/icons/Play';
 import { PlayCircleIcon } from 'phosphor-react-native/src/icons/PlayCircle';
@@ -153,6 +154,7 @@ export const ICONS = {
   'pause': PauseIcon,
   'pause-circle': PauseCircleIcon,
   'person': PersonIcon,
+  'user-circle': UserCircleIcon,
   'pill': PillIcon,
   'play': PlayIcon,
   'play-circle': PlayCircleIcon,
