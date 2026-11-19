@@ -92,7 +92,7 @@ export default function AnalyticsScreen() {
               {weeklyPct > 1 && <Row gap={6}><Icon name="warning" size={14} color={C.a300} /><T size={12} color={C.a300}>More than 1% of body weight per week</T></Row>}
               <NotMedical text={RG.NOT_MEDICAL} />
             </>
-          ) : <Hint>Log at least two weigh-ins to see your rolling average and weekly rate. Use “Log weight” on the dashboard.</Hint>}
+          ) : <Hint>Log at least two weigh-ins to see your rolling average and weekly rate. Use Quick log › Weight on Today.</Hint>}
         </Card>
 
         {/* measurements */}
