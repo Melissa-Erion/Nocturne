@@ -2,6 +2,7 @@
 // SITE_URL (default https://regimenfit.ca) is used for canonical links, the sitemap, social previews and llms.txt.
 import { cpSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { buildGuides } from './build-guides.mjs';
 
 const SITE = (process.env.SITE_URL || 'https://regimenfit.ca').replace(/\/$/, '');
 const DATE = new Date().toISOString().slice(0, 10);
@@ -18,6 +19,10 @@ const fill = dir => {
   }
 };
 fill(out);
+// Guides (regimenfit.ca/guides/) from guides/*.md, added to the sitemap.
+const guideUrls = buildGuides(out, SITE);
+const sm = join(out, 'sitemap.xml');
+writeFileSync(sm, readFileSync(sm, 'utf8').replace('</urlset>', guideUrls.map(u => `  <url><loc>${SITE}${u}</loc><lastmod>${DATE}</lastmod><changefreq>monthly</changefreq><priority>${u === '/guides/' ? '0.8' : '0.6'}</priority></url>\n`).join('') + '</urlset>'));
 // Custom domain for GitHub Pages.
 const host = new URL(SITE).host;
 if (!host.endsWith('github.io')) writeFileSync(join(out, 'CNAME'), host + '\n');

@@ -14,10 +14,12 @@
 - Food data: USDA FoodData Central search and barcode lookup (Open Food Facts); custom foods and recipes.
 - Progress: weekly check-ins, body measurements, private progress photos, personal records, analytics (weight trend, training volume, strength, macro adherence).
 - Calendar sync: private live subscription link for Google Calendar, Outlook and Apple Calendar.
-- Guided setup takes about 2 minutes; an in-app tour explains each screen.
+- Adapts to real life: log unplanned food ("Log something else") and the remaining meals of the day re-portion to stay on target; every two weeks the weight trend is compared with the goal and a small calorie change (50–200 kcal/day, never below a safe floor) is suggested for the user to approve.
+- Four tabs: Today, Train, Eat, Progress, plus Me (settings and account). Light and dark mode.
+- Guided setup takes about 2 minutes; an in-app tour explains each screen. Step-by-step guides: {{SITE}}/guides/
 
 ## Pricing (CAD)
-- Free: guided setup, calculated calorie and macro targets, preview of the training week, weight logging, dashboard.
+- Free: guided setup, calorie and macro targets, the Today screen, today's meal planner with exact gram portions, logging unplanned food, weight logging.
 - Regimen Pro: CA$179.99 per year (about CA$15/month, recommended) or CA$24.99 per month. 7-day free trial. Cancel anytime; access continues to the end of the paid period and data is kept.
 
 ## Privacy
@@ -30,6 +32,7 @@
 ## Links
 - Home: {{SITE}}/
 - App (sign up / log in): {{SITE}}/app/
+- Guides and tutorials: {{SITE}}/guides/
 - Privacy policy: {{SITE}}/privacy/
 - Terms of service: {{SITE}}/terms/
 - Support: support@regimenfit.ca
