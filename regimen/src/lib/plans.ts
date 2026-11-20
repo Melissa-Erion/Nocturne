@@ -47,7 +47,7 @@ export const FEATURE: Record<string, { title: string; body: string }> = {
   checkins: { title: 'Progress check-ins', body: 'Weekly measurements and ratings, with changes since you started.' },
   photos: { title: 'Progress photos', body: 'Private side-by-side comparisons of your progress.' },
   analytics: { title: 'Analytics', body: 'Weight trends, training volume, strength and nutrition adherence.' },
-  nutrition: { title: 'Nutrition dashboard', body: 'Your day’s meals, macros remaining and water, planned vs logged.' },
+  nutrition: { title: 'Macros & water', body: 'Your day’s meals, macros remaining and water, planned vs logged.' },
   meals: { title: 'Meal builder', body: 'Meals with exact portions solved to hit your macros, for training and rest days.' },
   mealsWeek: { title: 'Planning the rest of your week', body: 'Today is free. Plan tomorrow and every day after it with exact portions, switch training and rest days, and build your grocery list from it.' },
   favourites: { title: 'Saved meals', body: 'Save meals you like and load them into any day with one tap, portioned to fit.' },

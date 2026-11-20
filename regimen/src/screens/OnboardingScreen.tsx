@@ -1,6 +1,7 @@
 /* 17. Onboarding (6 steps) — port of prototype/FitOnboarding.dc.html.
    Works from a blank profile (new account: name '', weight/height/age null, empty lists). */
 import { useEffect, useState } from 'react';
+import { track } from '@/lib/track';
 import { View } from 'react-native';
 import { newUserState } from '@/domain/seed';
 import type { Profile, State } from '@/domain/types';
@@ -120,6 +121,7 @@ export default function OnboardingScreen() {
 
   const wasSample = !!RG.s.sample;
   const save = () => {
+    track('setup_done');
     const meals = Math.min(6, Math.max(2, Math.round(d.meals || 4)));
     RG.update(s => {
       // Finishing setup on sample data replaces the demo history with a clean start (units are kept).

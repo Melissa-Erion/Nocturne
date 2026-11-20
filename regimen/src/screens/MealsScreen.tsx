@@ -1,6 +1,7 @@
 /* Eat › Meals: one meal at a time (opens on the next meal not yet eaten), foods with exact grams, Swap, Mark as eaten.
    Portions refit automatically when foods are added, removed or loaded. The per-meal target split is a collapsible section. */
 import { useEffect, useState, type ReactNode } from 'react';
+import { track } from '@/lib/track';
 import { ScrollView, View, type StyleProp, type ViewStyle } from 'react-native';
 import type { DayPlan, DistributionMode, Food, Meal, State } from '@/domain/types';
 import type { IconName } from '@/ui/icons';
@@ -8,6 +9,7 @@ import { searchUsda, usdaEnabled } from '@/lib/foodApi';
 import { RG as RGS, useRG } from '@/store/rg';
 import { useUI } from '@/store/store';
 import { useAccess } from '@/store/access';
+import { ExtrasList, LogExtraDialog } from './eat/LogExtra';
 import {
   Btn, Card, CardTitle, ColLabel, Dialog, Field, Grid, H, Icon, Input, Kicker, Muted, NotMedical, NumInput, Row, Rule, Seg, Select, T, Tap, useLayout,
 } from '@/ui/kit';
@@ -62,6 +64,7 @@ export default function MealsScreen() {
     const i = RGS.getDay(RGS.TODAY).meals.findIndex(m => !m.logged); return i < 0 ? 0 : i;
   });
   const [showSplit, setShowSplit] = useState(false);
+  const [extraOpen, setExtraOpen] = useState(false);
   const [q, setQ] = useState('');
   const [usda, setUsda] = useState<{ q: string; foods: Food[]; loading: boolean; error: string | null }>({ q: '', foods: [], loading: false, error: null });
   const [favName, setFavName] = useState<string | null>(null);
@@ -82,7 +85,9 @@ export default function MealsScreen() {
 
   const S = RG.s, P = S.profile; const date = full ? dateSt || RG.TODAY : RG.TODAY; /* free version: today only */ const day = RG.getDay(date);
   const tgs = RG.mealTargets(day.type); const n = tgs.length; const DT = RG.dayTargets(day.type);
-  const mi = Math.max(0, Math.min(mealSt, Math.min(day.meals.length, n) - 1)); const meal: Meal | undefined = day.meals[mi]; const tg = tgs[mi];
+  const mi = Math.max(0, Math.min(mealSt, Math.min(day.meals.length, n) - 1)); const meal: Meal | undefined = day.meals[mi];
+  // Open meals shrink when unplanned food was logged today ("Log something else").
+  const adj = RG.dayMealTargets(date); const tg = adj[mi] || tgs[mi]; const adjusted = !!day.extras?.length && !!tg && !!tgs[mi] && tg.kcal !== tgs[mi].kcal;
   const upM = (fn: (m: Meal, d: DayPlan) => void) => RG.update(s => { const d = s.days[date]; if (d && d.meals[mi]) fn(d.meals[mi], d); });
   const mode = S.distribution.mode;
   const sumOf = (k: 'p' | 'c' | 'f' | 'kcal') => RG.sum(tgs.map(t => t[k]));
@@ -134,7 +139,7 @@ export default function MealsScreen() {
   const addFood = (f: Food, fromUsda?: boolean) => {
     if (fromUsda) RG.update(s => { s.customFoods[f.id] = f; });
     upM(mm => { mm.items.push({ key: RG.uid(), foodId: f.id, g: f.serving ? f.serving.g : 100, locked: false }); if (tg) mm.items = RG.solve(mm.items, tg); });
-    setQ(''); RG.toast(`${f.name.split(',')[0]} added. Portions updated to fit this meal.`);
+    setQ(''); RG.toast(`${f.name.split(',')[0]} added. Portions updated to fit this meal.`); track('food_added', { source: fromUsda ? 'usda' : 'library' });
   };
 
   const saved = S.savedMeals.filter(s => s.items.length).map(s => ({ value: s.id, label: s.name }));
@@ -205,9 +210,10 @@ export default function MealsScreen() {
             <View style={{ flex: 1, minWidth: 220 }}>
               <Kicker>{`${tg.name} · ${tg.label}${tg.time ? ' · ' + RG.clock(tg.time) : ''} · target`}</Kicker>
               <T size={22} tab lh={1.3} style={{ marginTop: 4 }}>{`${tg.p} P · ${tg.c} C · ${tg.f} F · ${RG.num(tg.kcal)} kcal`}</T>
+              {adjusted && <Muted size={12}>{`Trimmed from ${RG.num(tgs[mi].kcal)} kcal for the unplanned food you logged today.`}</Muted>}
             </View>
             <Row gap={6} wrap style={{ flexShrink: 1, maxWidth: '100%' }}>
-              <Btn variant={meal.logged ? 'secondary' : 'primary'} icon="check-circle" iconFill={meal.logged} title={meal.logged ? 'Eaten · undo' : 'Mark as eaten'} onPress={() => upM(mm => { mm.logged = !mm.logged; })} />
+              <Btn variant={meal.logged ? 'secondary' : 'primary'} icon="check-circle" iconFill={meal.logged} title={meal.logged ? 'Eaten · undo' : 'Mark as eaten'} onPress={() => { if (!meal.logged) track('meal_eaten', { from: 'meals' }); upM(mm => { mm.logged = !mm.logged; }); }} />
               <Btn variant="ghost" icon="package" title={meal.prepped ? 'Prepped' : 'Mark prepped'} onPress={() => upM(mm => { mm.prepped = !mm.prepped; })} />
             </Row>
           </Row>
@@ -324,6 +330,19 @@ export default function MealsScreen() {
       ) : (
         <Card><Muted size={13}>No meals set up for this day. Set meals per day in Me › Settings › Nutrition.</Muted></Card>
       )}
+
+      {/* food that wasn't in the plan */}
+      <Card gap={8} pad={[14, 16]}>
+        <Row gap={10} wrap>
+          <View style={{ flex: 1, minWidth: 200 }}>
+            <T size={15} w={600}>Ate something that wasn't planned?</T>
+            <Muted size={12}>Log it and the meals you haven't eaten yet are trimmed so the day still lands on target.</Muted>
+          </View>
+          <Btn icon="plus-circle" title="Log something else" onPress={() => setExtraOpen(true)} />
+        </Row>
+        <ExtrasList date={date} />
+      </Card>
+      <LogExtraDialog open={extraOpen} onClose={() => setExtraOpen(false)} date={date} />
 
       {/* what to do next */}
       <Row gap={8} wrap>

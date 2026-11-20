@@ -23,6 +23,13 @@ export function setAppearance(pref: AppearancePref) {
   AsyncStorage.setItem(KEY, pref).catch(() => {});
 }
 
+// Web: AsyncStorage is localStorage underneath, so read the saved choice synchronously before the first render.
+// Without this a light-mode user would see a flash of the dark theme on every page load.
+try {
+  const v = typeof localStorage !== 'undefined' ? localStorage.getItem(KEY) : null;
+  if (v === 'light' || v === 'dark' || v === 'system') apply(v);
+} catch { /* not on web, or storage blocked */ }
+
 let started = false;
 /** Load the saved choice and follow system changes. Call once at start-up. */
 export async function initAppearance() {

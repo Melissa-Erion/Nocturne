@@ -146,7 +146,9 @@ export interface NutritionLogDay { kcal: number; p: number; c: number; f: number
 export interface MealItem { key?: string; foodId: string; g: number; locked?: boolean; estimate?: Macros }
 export interface Meal { key: string; items: MealItem[]; logged: boolean; prepped: boolean }
 export type DayType = 'training' | 'rest';
-export interface DayPlan { type: DayType; meals: Meal[]; water: number }
+/** Food eaten that wasn't in the plan. Either a library food (foodId + g) or a quick estimate (estimate). */
+export interface DayExtra { key: string; name: string; foodId?: string; g: number; estimate?: Macros }
+export interface DayPlan { type: DayType; meals: Meal[]; water: number; extras?: DayExtra[] }
 
 export interface MealSlot { name: string; label: string; time: string }
 
@@ -261,6 +263,8 @@ export interface Profile {
   onboarded: boolean;
   /** The guided app tour was finished or skipped. */
   tourDone?: boolean;
+  /** Last automatic calorie review answered (applied, snoozed or on track). */
+  calReviewOn?: ISODate | null;
   startDate: ISODate;
 }
 

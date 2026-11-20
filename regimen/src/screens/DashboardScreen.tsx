@@ -1,5 +1,6 @@
 /* Today tab: today's workout, food left today with the next meal, quick logging (weight, water, photo). */
 import { useState } from 'react';
+import { track } from '@/lib/track';
 import { View } from 'react-native';
 import { useRG } from '@/store/rg';
 import type { IconName } from '@/ui/icons';
@@ -10,12 +11,13 @@ import {
 import { alpha, C } from '@/ui/theme';
 import { Screen } from './Shell';
 import { useAccess } from '@/store/access';
+import { ExtrasList, LogExtraDialog } from './eat/LogExtra';
 
 export default function DashboardScreen() {
   const RG = useRG();
   const { full } = useAccess();
   const [q, setQ] = useState(0);
-  const [dlg, setDlg] = useState<null | 'weight' | 'move'>(null);
+  const [dlg, setDlg] = useState<null | 'weight' | 'move' | 'extra'>(null);
   const [wInput, setWInput] = useState<number | null>(null);
   const [moveTo, setMoveTo] = useState<string | null>(null);
   const [shiftOverride, setShift] = useState<boolean | null>(null);
@@ -71,10 +73,14 @@ export default function DashboardScreen() {
   const nextM = nextI >= 0 ? day.meals[nextI] : null; const nextT = nextI >= 0 ? tgs[nextI] : null; const nextSum = nextM ? RG.sumM(nextM.items) : null;
   const nextFoods = nextM ? nextM.items.map(x => RG.food(x.foodId)?.name.split(',')[0]).filter(Boolean).join(', ') : '';
   const logMeal = (i: number) => {
-    RG.update(s => { s.days[T0].meals[i].logged = true; });
+    RG.update(s => { s.days[T0].meals[i].logged = true; }); track('meal_eaten', { from: 'today' });
     RG.toast(`${tgs[i]?.name || 'Meal'} marked as eaten.`, true);
   };
   const water = day.water || 0;
+  // automatic calorie review (Pro): shown every two weeks once there are enough weigh-ins
+  const advice = full && RG.calorieReviewDue() ? RG.calorieAdvice() : null;
+  const showAdvice = !!advice && advice.status !== 'not-enough-data';
+  const kgWk = (v: number) => `${v < 0 ? '−' : '+'}${RG.imp() ? Math.abs(v * 2.20462).toFixed(1) : Math.abs(v).toFixed(2)} ${wu}/week`;
   const openWeight = () => { setWInput(S.weights.length ? Number(RG.w(S.weights[S.weights.length - 1].kg)) : null); setDlg('weight'); };
 
   return (
@@ -173,8 +179,32 @@ export default function DashboardScreen() {
           ) : (
             <Row gap={8}><Icon name="check-circle" fill size={16} color={C.accent} /><T size={14}>All of today's meals are marked as eaten.</T></Row>
           )}
+          <ExtrasList date={T0} />
+          <Btn variant="ghost" icon="plus-circle" title="Log something else" onPress={() => setDlg('extra')} style={{ alignSelf: 'flex-start' }} />
         </Card>
       </Grid>
+
+      {showAdvice && advice && (
+        <Card gap={10}>
+          <Row gap={8}><Icon name="scales" size={18} color={C.accent} /><CardTitle style={{ flex: 1 }}>Your 2-week calorie check</CardTitle></Row>
+          <T size={14} lh={1.45}>
+            {`Your weight trend is ${kgWk(advice.rateKg || 0)}. For ${P.goal.toLowerCase()} we aim for about ${Math.abs(advice.aimKg) < 0.01 ? 'no change' : kgWk(advice.aimKg)}. `}
+            {advice.status === 'on-track' ? "You're right on track, so your calories stay the same."
+              : advice.status === 'at-floor' ? "Your calories are already at the safe minimum, so we won't lower them further. Adding a short daily walk or an extra session is the better lever."
+              : advice.change < 0 ? `Lowering your daily calories by ${Math.abs(advice.change)} (to ${RG.num(advice.newKcal)} kcal) should get you there. Protein stays the same.`
+              : `Raising your daily calories by ${advice.change} (to ${RG.num(advice.newKcal)} kcal) is a healthier pace. Protein stays the same.`}
+          </T>
+          <Row gap={8} wrap>
+            {advice.status === 'adjust' ? (
+              <>
+                <Btn variant="primary" title={`${advice.change < 0 ? 'Lower' : 'Raise'} to ${RG.num(advice.newKcal)} kcal`} onPress={() => { RG.applyCalorieChange(advice.change); RG.toast(`Daily calories set to ${RG.num(advice.newKcal)} kcal. Your planned meals were re-portioned.`, false); }} />
+                <Btn title="Not now" onPress={() => { RG.snoozeCalorieReview(7); RG.toast("We'll check again in a week.", false); }} />
+              </>
+            ) : <Btn title="Got it" onPress={() => RG.snoozeCalorieReview(14)} />}
+          </Row>
+          <Muted size={11}>{`Based on ${advice.weighIns} weigh-ins over ${advice.days} days.${advice.status === 'adjust' ? " If you haven't been following your meals closely, choose Not now and check again next week." : ''} Not medical advice.`}</Muted>
+        </Card>
+      )}
 
       <View style={{ gap: 8 }}>
         <ColLabel>Quick log</ColLabel>
@@ -195,8 +225,10 @@ export default function DashboardScreen() {
         <Btn variant="ghost" iconOnly icon="arrows-clockwise" label="Another" onPress={() => setQ(x => x + 1)} />
       </Banner>
 
+      <LogExtraDialog open={dlg === 'extra'} onClose={() => setDlg(null)} date={T0} />
+
       <Dialog open={dlg === 'weight'} onClose={() => setDlg(null)} title="Log today's weight"
-        body="Weigh at the same time each day. The dashboard shows the 7-day average, so one reading won't swing your trend."
+        body="Weigh at the same time each day. Progress › Analytics shows the 7-day average, so one reading won't swing your trend."
         actions={<><Btn title="Cancel" onPress={() => setDlg(null)} /><Btn variant="primary" title="Save" onPress={saveWeight} /></>}>
         <Field label={`Weight (${wu})`}><NumInput value={wInput} onValue={setWInput} size={22} height={52} autoFocus onSubmitEditing={saveWeight} /></Field>
       </Dialog>

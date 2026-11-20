@@ -316,7 +316,7 @@ export default function SettingsScreen() {
             </Row>
             {(() => {
               const shown = quotes.filter(q => P.quoteTone === 'All' || q.tone === P.quoteTone || q.custom);
-              return <Muted size={12}>{P.quoteTone === 'All' ? `Showing all ${shown.length} lines. The dashboard rotates through them daily.` : `Showing ${shown.length} ${P.quoteTone.toLowerCase()} line${shown.length === 1 ? '' : 's'}${S.quotes.custom.length ? ' plus your own statements' : ''}. Only these appear on your dashboard.`}</Muted>;
+              return <Muted size={12}>{P.quoteTone === 'All' ? `Showing all ${shown.length} lines. Today rotates through them daily.` : `Showing ${shown.length} ${P.quoteTone.toLowerCase()} line${shown.length === 1 ? '' : 's'}${S.quotes.custom.length ? ' plus your own statements' : ''}. Only these appear on your dashboard.`}</Muted>;
             })()}
             <View>
               {quotes.filter(q => P.quoteTone === 'All' || q.tone === P.quoteTone || q.custom).map(q => {

@@ -23,7 +23,7 @@ export const TABLES: TableDef[] = [
         meals_per_day: Math.min(6, Math.max(1, Number(P.mealsPerDay) || 4)), diet_prefs: P.dietPrefs, allergies: P.allergies, exclude: P.exclude,
         check_in_day: Number(P.checkInDay) || 0, check_in_freq: P.checkInFreq, units: P.units, water_enabled: P.water, water_ml: Number(P.waterMl) || 0,
         supplements: P.supplements, increments: P.increments, progression: P.progression, shift_later: P.shiftLater, calendar_sync: P.calendarSync,
-        quiet_start: P.quietStart, quiet_end: P.quietEnd, quote_tone: P.quoteTone, onboarded: P.onboarded, tour_done: !!P.tourDone, start_date: P.startDate || null,
+        quiet_start: P.quietStart, quiet_end: P.quietEnd, quote_tone: P.quoteTone, onboarded: P.onboarded, tour_done: !!P.tourDone, start_date: P.startDate || null, cal_review_on: P.calReviewOn || null,
         active_plan_id: s.activePlanId, active_workout: s.active, is_sample: !!s.sample,
       }];
     },
@@ -86,6 +86,11 @@ export const TABLES: TableDef[] = [
     table: 'meal_items', key: ['id'], rows: s => Object.values(s.days).flatMap(d => d.meals.flatMap(m => m.items.map((it, i) => ({
       id: it.key || `${m.key}:${i}`, meal_id: m.key, position: i, food_id: it.foodId, grams: Number(it.g) || 0, locked: !!it.locked, estimate: it.estimate || null,
     })))),
+  },
+  {
+    table: 'day_extras', key: ['id'], rows: s => Object.entries(s.days).flatMap(([date, d]) => (d.extras || []).map((x, i) => ({
+      id: x.key, date, position: i, name: x.name, food_id: x.foodId || null, grams: Number(x.g) || 0, estimate: x.estimate || null,
+    }))),
   },
   {
     table: 'meal_slots', key: ['id'], rows: s => (['training', 'rest'] as DayType[]).flatMap(t => (s.mealSlots[t] || []).map((sl, i) => ({
@@ -168,6 +173,7 @@ export function fromTables(t: Record<string, Row[]>, today: string): State | nul
     shiftLater: !!pr.shift_later, calendarSync: !!pr.calendar_sync, quietStart: str(pr.quiet_start), quietEnd: str(pr.quiet_end), quoteTone: str(pr.quote_tone),
     onboarded: !!pr.onboarded, startDate: str(pr.start_date) || today,
     ...(pr.tour_done ? { tourDone: true } : {}),
+    ...(pr.cal_review_on ? { calReviewOn: str(pr.cal_review_on) } : {}),
   };
   s.active = (pr.active_workout as State['active']) || null;
 
@@ -218,8 +224,12 @@ export function fromTables(t: Record<string, Row[]>, today: string): State | nul
   }]));
   const mealsByDate = group((t.day_meals || []).map(m => ({ ...m, position: m.slot })), 'date');
   const itemsByMeal = group(t.meal_items || [], 'meal_id');
+  const extrasByDate = group(t.day_extras || [], 'date');
   s.days = Object.fromEntries((t.day_plans || []).map(d => [str(d.date), {
     type: d.type as DayType, water: Number(d.water_ml),
+    ...(extrasByDate[str(d.date)]?.length ? { extras: extrasByDate[str(d.date)].map(x => ({
+      key: str(x.id), name: str(x.name), g: Number(x.grams), ...(x.food_id ? { foodId: str(x.food_id) } : {}), ...(x.estimate ? { estimate: x.estimate as never } : {}),
+    })) } : {}),
     meals: (mealsByDate[str(d.date)] || []).map(m => ({
       key: str(m.id), logged: !!m.logged, prepped: !!m.prepped,
       items: (itemsByMeal[str(m.id)] || []).map(it => ({ key: str(it.id), foodId: str(it.food_id), g: Number(it.grams), locked: !!it.locked, ...(it.estimate ? { estimate: it.estimate as never } : {}) })),

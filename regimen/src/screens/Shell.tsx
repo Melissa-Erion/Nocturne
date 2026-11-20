@@ -3,6 +3,7 @@
    Back and Me, and a tab bar at the bottom. A workout in progress is full screen (no tab bar). Also the resume-workout
    banner and toasts. Screens render inside <Screen> (scrolling, max width 1320). */
 import { LinearGradient } from 'expo-linear-gradient';
+import { track } from '@/lib/track';
 import { router, usePathname } from 'expo-router';
 import { createContext, Fragment, useContext, useEffect, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, View, type PressableStateCallbackType } from 'react-native';
@@ -63,6 +64,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const onboarding = route === 'onboarding';
   const access = useAccess();
   useAutoTour(route);
+  useEffect(() => { track('app_open'); }, []); // once per app start
 
   // In-app history for the Back button. Browser back (web) is recognised and pops instead of pushing.
   const [hist, setHist] = useState<string[]>([]);

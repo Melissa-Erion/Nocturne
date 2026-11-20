@@ -36,7 +36,7 @@ export default function AlternativesScreen() {
   const cell = (k: string, v: number, d: number, kc?: boolean) => ({ k, v: kc ? Math.round(v) : RG.r1(v), d: Math.abs(d) < 0.5 ? 'same' : kc ? sg(Math.round(d)) : sg(d), color: Math.abs(d) < (kc ? 20 : 2) ? C.n500 : C.a300 });
 
   const day = ctx ? RG.getDay(ctx.date) : null; const meal = day ? day.meals[ctx!.meal] : undefined;
-  const tg = ctx && day ? RG.mealTargets(day.type)[ctx.meal] : undefined;
+  const tg = ctx && day ? RG.dayMealTargets(ctx.date)[ctx.meal] : undefined;
   const key = f ? ({ protein: 'protein', carb: 'carbohydrate', fat: 'fat', veg: 'calories' } as Record<string, string>)[f.role] || 'calories' : 'calories';
 
   const foodOpts = RG.allFoods().map(x => ({ value: x.id, label: `${x.name} · ${x.basis}` })).sort((a, b) => (a.label < b.label ? -1 : 1));
