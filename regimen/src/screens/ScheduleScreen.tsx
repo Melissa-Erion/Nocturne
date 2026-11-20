@@ -328,7 +328,9 @@ export default function ScheduleScreen() {
         <Grid min={340}>
           <Card gap={10}>
             <CardTitle>Rotation</CardTitle>
-            <Muted>Workouts always run in this order. Skipping, moving or pausing never loses your place.</Muted>
+            <Muted>{plan.rotation.length < P.trainingDays.length
+              ? `Each week starts at Day 1 and runs these ${plan.rotation.length} workouts once, spread over your ${P.trainingDays.length} available days. The other days are rest days.`
+              : 'Workouts always run in this order. Skipping, moving or pausing never loses your place.'}</Muted>
             <Row gap={6} wrap>
               {plan.rotation.map((id, i) => {
                 const on = nx && nx.workoutId === id;
