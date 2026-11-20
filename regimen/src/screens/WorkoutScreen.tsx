@@ -1,12 +1,13 @@
-/* 4. Active Workout — port of prototype/FitWorkout.dc.html.
+/* Workout in progress. One exercise at a time: a row of numbered exercises to jump between, the current exercise's
+   target, its sets and a big "Log set" button, then "Up next". Moves to the next exercise when one is finished.
    Timers are computed from timestamps (active.startedAt / active.restEnd), so they stay correct after backgrounding. */
 import { useEffect, useState } from 'react';
-import { AppState, Linking, Pressable, Vibration, View, type PressableStateCallbackType } from 'react-native';
+import { AppState, Linking, Pressable, ScrollView, Vibration, View, type PressableStateCallbackType } from 'react-native';
 import type { ActiveWorkout, PlanItem, Workout } from '@/domain/types';
 import { useRG } from '@/store/rg';
 import {
   Bar, Btn, Card, CardTitle, Check, ColLabel, Dialog, Grid, H, Icon, Input, Kicker, Muted, NotMedical, Num, NumInput, PageHeader, Row, RuledRow,
-  Spacer, Stripes, T, Tag, Tap, useLayout,
+  Stripes, T, Tag, Tap, useLayout,
 } from '@/ui/kit';
 import { alpha, C, R, SHADOW } from '@/ui/theme';
 import { Screen } from './Shell';
@@ -82,6 +83,8 @@ function Running({ A }: { A: ActiveWorkout }) {
   const [sub, setSub] = useState<Record<string, boolean>>({});
   const [subPerm, setSubPerm] = useState<Record<string, boolean>>({});
   const [dlg, setDlg] = useState<null | 'finish' | 'discard'>(null);
+  const [sel, setSel] = useState<number | null>(null); // exercise picked by the user; null = follow the first unfinished one
+  const [more, setMore] = useState<Record<string, boolean>>({});
   const { wide } = useLayout();
 
   const S = RG.s, wu = RG.wu(), T0 = RG.TODAY;
@@ -116,6 +119,28 @@ function Running({ A }: { A: ActiveWorkout }) {
     return { x, ei, item, e, last, pr, rec, sets, alts, done, current: curIdx === ei };
   });
   const pct = totalW ? doneW / totalW * 100 : 0;
+  const focusIdx = sel != null && sel < exs.length ? sel : curIdx >= 0 ? curIdx : Math.max(0, exs.length - 1);
+
+  /** Tick a set done (or undo it). Starts the rest timer; finishing an exercise moves on to the next one. */
+  const toggleSet = (ei: number, si: number) => {
+    const q = exs[ei]; if (!q) return;
+    const { item, e } = q;
+    let finished = false;
+    upd(a => {
+      const s2 = a.ex[ei].sets[si];
+      if (!s2.done && (s2.reps === '' || s2.reps == null)) s2.reps = s2.target || item.repMin;
+      if (!s2.done && (s2.kg === '' || s2.kg == null)) s2.kg = 0;
+      s2.done = !s2.done;
+      if (s2.done) {
+        const nxt = a.ex[ei].sets.find(z => !z.done);
+        const ssPartner = item.superset ? w.items.find(z => z.superset === item.superset && z.id !== item.id) : undefined;
+        a.restEnd = ssPartner && w.items.indexOf(ssPartner) > w.items.indexOf(item) ? null : (a.pausedAt ?? Date.now()) + item.rest * 1000;
+        a.restFor = nxt ? `${e.name} · set ${a.ex[ei].sets.indexOf(nxt) + 1}` : (a.ex[ei + 1] ? RG.ex(a.ex[ei + 1].exId)?.name || 'next exercise' : 'finish');
+        finished = !nxt;
+      }
+    });
+    if (finished) setSel(null);
+  };
 
   const finish = () => {
     const ses = RG.finishWorkout(); setDlg(null);
@@ -140,7 +165,8 @@ function Running({ A }: { A: ActiveWorkout }) {
         </View>
         <Btn icon={paused ? 'play' : 'pause'} iconFill={paused} title={paused ? 'Resume' : 'Pause'} label={paused ? 'Resume workout' : 'Pause workout'}
           style={{ paddingVertical: 10, paddingHorizontal: 14 }} onPress={() => (paused ? RG.resumeWorkout() : RG.pauseWorkout())} />
-        <Btn variant="primary" icon="flag-checkered" title="Finish" style={{ paddingVertical: 10, paddingHorizontal: 16 }} onPress={() => setDlg('finish')} />
+        {/* phones: Finish lives at the bottom and on the last "Log" button, so the fixed header stays short */}
+        {wide && <Btn variant="primary" icon="flag-checkered" title="Finish" style={{ paddingVertical: 10, paddingHorizontal: 16 }} onPress={() => setDlg('finish')} />}
       </Row>
       {paused && (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap', paddingVertical: 10, paddingHorizontal: 14, borderRadius: R.md, backgroundColor: C.n900, boxShadow: `inset 0 0 0 1px ${C.n700}` }}>
@@ -171,15 +197,26 @@ function Running({ A }: { A: ActiveWorkout }) {
   return (
     <Screen header={header}>
       <View style={{ gap: 14, maxWidth: 920, width: '100%' }}>
-        {exs.map(({ x, ei, item, e, last, pr, rec, sets, alts, done, current }) => {
+        {/* exercises in this workout: tap to jump */}
+        {exs.length > 1 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+            {exs.map(q => {
+              const on = q.ei === focusIdx;
+              return (
+                <Pressable key={q.x.key} onPress={() => setSel(q.ei)} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={`Exercise ${q.ei + 1}: ${q.e.name}${q.done ? ', done' : ''}`}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1,
+                    borderColor: on ? C.a600 : C.n800, backgroundColor: on ? C.a800 : q.done ? C.a900 : 'transparent' }}>
+                  {q.done ? <Icon name="check-circle" fill size={15} color={C.accent} /> : <T size={12} w={600} color={on ? C.text : C.n400}>{q.ei + 1}</T>}
+                  <T size={13} color={on ? C.text : C.n300} numberOfLines={1} style={{ maxWidth: 150 }}>{q.e.name}</T>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
+
+        {exs.filter(q => q.ei === focusIdx).map(({ x, ei, item, e, last, pr, rec, sets, alts, done, current }) => {
           const recTitle = rec.type === 'increase' ? 'Recommended · increase' : rec.type === 'reduce' ? 'Recommended · reduce' : rec.type === 'baseline' ? 'Recommended · baseline' : 'Recommended · hold';
           const setOf = (a: ActiveWorkout, si: number) => a.ex[ei].sets[si];
-          const tile = (label: string, value: string) => (
-            <View style={{ paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6, backgroundColor: C.n900 }}>
-              <T size={10} color={C.n500} upper style={{ letterSpacing: 0.8 }}>{label}</T>
-              <T size={14} tab style={{ marginTop: 2 }}>{value}</T>
-            </View>
-          );
           const pickSub = (oId: string, oName: string) => {
             const perm = !!subPerm[x.key];
             upd(a => {
@@ -218,15 +255,12 @@ function Running({ A }: { A: ActiveWorkout }) {
                 </Row>
               </Row>
 
-              {/* previous / PR / recommended */}
-              <Grid min={170} gap={8}>
-                {tile(`Previous · ${last ? RG.fmtShort(last.date) : 'none'}`, last ? `${RG.w(last.sets[0].kg)} ${wu} × ${last.sets.map(s => s.reps).join(', ')} · RIR ${last.sets.map(s => s.rir ?? '–').join('/')}` : 'No history — this session sets the baseline')}
-                {tile('Personal record', pr ? `${RG.w(pr.best.kg)} ${wu} × ${pr.best.reps.join(', ')} · e1RM ${RG.w(pr.e1.v)}` : '—')}
-                <View style={{ paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6, backgroundColor: C.a900, boxShadow: `inset 0 0 0 1px ${x.recState === 'accepted' ? C.accent : C.a800}`, opacity: x.recState === 'ignored' ? 0.5 : 1 }}>
-                  <T size={10} color={C.a300} upper style={{ letterSpacing: 0.8 }}>{recTitle}</T>
-                  <T size={14} tab style={{ marginTop: 2 }}>{rec.kg != null ? `${RG.w(rec.kg)} ${wu} × ${(rec.reps || []).join(', ')}` : 'Choose a starting weight'}</T>
-                </View>
-              </Grid>
+              {/* today's target, with last time and best underneath */}
+              <View style={{ paddingVertical: 10, paddingHorizontal: 12, borderRadius: 8, backgroundColor: C.a900, boxShadow: `inset 0 0 0 1px ${x.recState === 'accepted' ? C.accent : C.a800}`, opacity: x.recState === 'ignored' ? 0.6 : 1 }}>
+                <T size={11} color={C.a300} upper style={{ letterSpacing: 0.8 }}>{rec.type === 'increase' ? 'Target today · go up' : rec.type === 'reduce' ? 'Target today · ease off' : rec.type === 'baseline' ? 'Target today · find your starting weight' : 'Target today'}</T>
+                <T size={20} tab w={600} style={{ marginTop: 2 }}>{rec.kg != null ? `${RG.w(rec.kg)} ${wu} × ${(rec.reps || []).join(', ')}` : 'Pick a weight you could lift for a couple more reps'}</T>
+                <Muted size={12} style={{ marginTop: 4 }}>{`Last time: ${last ? `${RG.w(last.sets[0].kg)} ${wu} × ${last.sets.map(z => z.reps).join(', ')} (${RG.fmtShort(last.date)})` : 'none yet'}${pr ? ` · Best: ${RG.w(pr.best.kg)} ${wu} × ${pr.best.reps.join(', ')}` : ''}`}</Muted>
+              </View>
               {x.recState === 'pending' && !!rec.reason && (
                 <Row gap={8} wrap>
                   <T size={12} color={C.n400} style={{ flex: 1, minWidth: 200 }}>{rec.reason}</T>
@@ -321,18 +355,7 @@ function Running({ A }: { A: ActiveWorkout }) {
                         <NumInput accessibilityLabel="RIR" center height={48} style={[inp, { fontSize: 16 }]} inputMode="numeric" keyboardType="number-pad" value={st.rir ?? ''} onValue={setNum('rir')} />
                       </View>
                       <Pressable accessibilityRole="checkbox" accessibilityLabel="Complete set" accessibilityState={{ checked: st.done }}
-                        onPress={() => upd(a => {
-                          const s2 = setOf(a, si);
-                          if (!s2.done && (s2.reps === '' || s2.reps == null)) s2.reps = s2.target || item.repMin;
-                          if (!s2.done && (s2.kg === '' || s2.kg == null)) s2.kg = 0;
-                          s2.done = !s2.done;
-                          if (s2.done) {
-                            const nxt = a.ex[ei].sets.find(q => !q.done);
-                            const ssPartner = item.superset ? w.items.find(q => q.superset === item.superset && q.id !== item.id) : undefined;
-                            a.restEnd = ssPartner && w.items.indexOf(ssPartner) > w.items.indexOf(item) ? null : (a.pausedAt ?? Date.now()) + item.rest * 1000;
-                            a.restFor = nxt ? `${e.name} · set ${a.ex[ei].sets.indexOf(nxt) + 1}` : (a.ex[ei + 1] ? RG.ex(a.ex[ei + 1].exId)?.name || 'next exercise' : 'finish');
-                          }
-                        })}
+                        onPress={() => toggleSet(ei, si)}
                         style={(ps: PState) => [{ width: COL.done, height: 48, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1,
                           borderColor: st.done ? C.accent : C.n700, backgroundColor: st.done ? alpha(C.accent, 0.18) : ps.hovered ? alpha(C.text, 0.06) : 'transparent' }]}>
                         <Icon name={st.done ? 'check-circle' : 'check'} fill={st.done} size={22} color={st.done ? C.accent : C.n500} />
@@ -351,29 +374,63 @@ function Running({ A }: { A: ActiveWorkout }) {
                 );
               })}
 
-              {/* add set · feel · notes */}
+              {/* the one big button: log the next set, then move on */}
+              {(() => {
+                const nx = sets.find(z => !z.st.done);
+                if (nx) {
+                  const kg = nx.st.kg === '' || nx.st.kg == null ? null : RG.w(Number(nx.st.kg));
+                  const reps = nx.st.reps || nx.st.target || item.repMin;
+                  return <Btn variant="primary" size="lg" block icon="check" title={`Log ${nx.st.warm ? 'warm-up' : 'set ' + nx.label}${kg != null ? ` · ${kg} ${wu} × ${reps}` : ''}`} onPress={() => toggleSet(ei, nx.si)} />;
+                }
+                const nextEx = exs.find(q => q.ei > ei && !q.done) || exs.find(q => !q.done);
+                return nextEx
+                  ? <Btn variant="primary" size="lg" block iconRight="arrow-right" title={`Next: ${nextEx.e.name}`} onPress={() => setSel(nextEx.ei)} />
+                  : <Btn variant="primary" size="lg" block icon="flag-checkered" title="All sets done · Finish & save" onPress={() => setDlg('finish')} />;
+              })()}
+              <Muted size={11}>Change the weight or reps in a set first if you did something different. Tap a set's number to make it a warm-up.</Muted>
+
               <Row gap={6} wrap>
                 <Btn variant="ghost" icon="plus" title="Add set" onPress={() => upd(a => {
-                  const xx = a.ex[ei]; const lastW = [...xx.sets].reverse().find(s => !s.warm);
+                  const xx = a.ex[ei]; const lastW = [...xx.sets].reverse().find(z => !z.warm);
                   xx.sets.push({ id: RG.uid(), kg: lastW?.kg ?? '', reps: null, target: lastW?.target || item.repMin, rir: item.rir, warm: false, done: false, note: '', feel: '' });
                 })} />
-                <Spacer />
-                {FEELS.map(l => {
-                  const on = x.feel === l;
-                  return (
-                    <Pressable key={l} accessibilityRole="button" accessibilityState={{ selected: on }} hitSlop={{ top: 8, bottom: 8, left: 2, right: 2 }}
-                      onPress={() => upd(a => { a.ex[ei].feel = a.ex[ei].feel === l ? '' : l; })}
-                      style={(ps: PState) => [{ paddingVertical: 4, paddingHorizontal: 9, borderRadius: 5, borderWidth: 1, borderColor: on ? C.n600 : C.n800,
-                        backgroundColor: on ? (l === 'Good' ? C.a800 : C.n800) : ps.hovered ? alpha(C.text, 0.05) : 'transparent' }]}>
-                      <T size={11} color={on ? C.text : C.n500} lh={1.3}>{l}</T>
-                    </Pressable>
-                  );
-                })}
+                <Btn variant="ghost" icon={more[x.key] ? 'caret-down' : 'caret-right'} title={x.feel || x.note ? 'Notes & feel ·' + (x.feel ? ' ' + x.feel : ' added') : 'Notes & how it felt'} onPress={() => setMore(v => ({ ...v, [x.key]: !v[x.key] }))} />
               </Row>
-              <Input value={x.note} placeholder="Notes — setup, cues, how it felt" size={13} onChange={v => upd(a => { a.ex[ei].note = v; })} />
+              {more[x.key] && (
+                <View style={{ gap: 8 }}>
+                  <Row gap={6} wrap>
+                {FEELS.map(l => {
+                      const on = x.feel === l;
+                      return (
+                        <Pressable key={l} accessibilityRole="button" accessibilityState={{ selected: on }} hitSlop={{ top: 8, bottom: 8, left: 2, right: 2 }}
+                          onPress={() => upd(a => { a.ex[ei].feel = a.ex[ei].feel === l ? '' : l; })}
+                          style={(ps: PState) => [{ paddingVertical: 4, paddingHorizontal: 9, borderRadius: 5, borderWidth: 1, borderColor: on ? C.n600 : C.n800,
+                            backgroundColor: on ? (l === 'Good' ? C.a800 : C.n800) : ps.hovered ? alpha(C.text, 0.05) : 'transparent' }]}>
+                          <T size={11} color={on ? C.text : C.n500} lh={1.3}>{l}</T>
+                        </Pressable>
+                      );
+                    })}
+                  </Row>
+                  <Input value={x.note} placeholder="Notes — setup, cues, how it felt" size={13} onChange={v => upd(a => { a.ex[ei].note = v; })} />
+                </View>
+              )}
             </View>
           );
         })}
+
+        {/* up next */}
+        {exs.some(q => q.ei !== focusIdx && !q.done) && (
+          <Card gap={4} pad={[12, 16]}>
+            <ColLabel>Up next</ColLabel>
+            {exs.filter(q => q.ei > focusIdx && !q.done).concat(exs.filter(q => q.ei < focusIdx && !q.done)).map(q => (
+              <Tap key={q.x.key} onPress={() => setSel(q.ei)} label={`Go to ${q.e.name}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 }}>
+                <T size={12} color={C.n500} style={{ width: 18 }}>{q.ei + 1}</T>
+                <T size={14} style={{ flex: 1 }} numberOfLines={1}>{q.e.name}</T>
+                <Muted size={12}>{`${q.item.sets} × ${q.item.repMin}–${q.item.repMax}${q.rec.kg != null ? ` · ${RG.w(q.rec.kg)} ${wu}` : ''}`}</Muted>
+              </Tap>
+            ))}
+          </Card>
+        )}
 
         {!exs.length && <Card><Muted size={13}>This workout has no exercises. Add some in Train › Plans, or discard the session.</Muted></Card>}
 

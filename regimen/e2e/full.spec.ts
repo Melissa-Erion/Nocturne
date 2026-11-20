@@ -67,6 +67,14 @@ test('Workout: start, minimise, resume, discard', async ({ page }) => {
   test.skip(!(await start.count()), 'rest day in the sample schedule');
   await start.first().click();
   await expect(page).toHaveURL(/\/workout$/);
+  // one exercise at a time: log a set with the big button, the rest timer starts
+  await expect(page.getByText(/^Target today/).first()).toBeVisible();
+  await page.getByRole('button', { name: /^Log (set 1|warm-up)/ }).click();
+  await expect(page.getByText('Skip rest', { exact: true })).toBeVisible();
+  await page.getByText('Skip rest', { exact: true }).click();
+  // jump to the second exercise from the row at the top
+  await page.getByRole('tab', { name: /^Exercise 2:/ }).click();
+  await expect(page.getByRole('button', { name: /^Log (set 1|warm-up)/ })).toBeVisible();
   if (isPhone(page)) {
     await expect(page.getByRole('tab', { name: 'Today', exact: true })).toHaveCount(0); // full screen, no tab bar
     await page.getByRole('button', { name: 'Minimise workout' }).click();
