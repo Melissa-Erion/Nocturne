@@ -241,7 +241,7 @@ export default function OnboardingScreen() {
 
         {step === 3 && (
           <>
-            <Field label="Available training days" hint={`Other days become rest days. ${d.trainingDays.length ? `${d.trainingDays.length} training days per week.` : 'Pick at least one day.'}`}>
+            <Field label="Available training days" hint={`Other days become rest days. ${d.trainingDays.length ? `${d.trainingDays.length} days available. If your plan has fewer workouts, it runs once a week from Day 1 and the spare days are rest days.` : 'Pick at least one day.'}`}>
               <Row gap={6} wrap>{RG.DN.map((l, i) => <Pick key={l} label={l} on={d.trainingDays.includes(i)} onPress={toggleIn('trainingDays', i)} style={{ minHeight: 40, paddingVertical: 9, paddingHorizontal: 14 }} />)}</Row>
             </Field>
             <Grid min={170} gap={12}>

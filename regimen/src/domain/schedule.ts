@@ -5,7 +5,7 @@
    - Never set status "done" except by finishing a logged session (see workout.ts).
    - Missed → reschedule creates a new entry and keeps the missed record. */
 import { workoutTimeOn } from './clock';
-import { add, dow, fmtD } from './dates';
+import { add, dow, fmtD, monday } from './dates';
 import type { Ctx, ISODate, Plan, ScheduleEntry, Workout } from './types';
 import { uid } from './util';
 
@@ -44,12 +44,51 @@ export function recoveryClash(ctx: Ctx, date: ISODate, wid: string, ignoreId?: s
   return null;
 }
 
+/** Weekly mode: the profile has more available days than the plan has workouts (e.g. 6 days, 4-day plan).
+    Each Monday-start week then runs the plan once from Day 1 and the spare days stay rest days. */
+export const weeklyMode = (ctx: Ctx) => {
+  const plan = activePlan(ctx);
+  return !!plan && plan.rotation.length > 0 && plan.rotation.length < ctx.s.profile.trainingDays.length;
+};
+
+/** Workouts of the active plan already counted in the week of `mon` (done, planned, skipped or missed;
+    a rescheduled copy counts once with its original). */
+const weekCount = ({ s }: Ctx, planId: string, mon: ISODate) =>
+  s.schedule.filter(e => e.planId === planId && e.origin !== 'rescheduled' && e.date >= mon && e.date <= add(mon, 6)).length;
+
+const freeDay = (ctx: Ctx, d: ISODate) =>
+  ctx.s.profile.trainingDays.includes(dow(d)) && !inPause(ctx, d) && !ctx.s.schedule.some(e => e.date === d && e.status !== 'skipped' && e.status !== 'missed');
+
+function fillWeekly(ctx: Ctx, fromDate: ISODate, untilDate: ISODate) {
+  const { s } = ctx; const plan = activePlan(ctx); const k = plan.rotation.length;
+  for (let mon = monday(fromDate), g = 0; mon <= untilDate && g < 60; mon = add(mon, 7), g++) {
+    let idx = weekCount(ctx, plan.id, mon);
+    if (idx >= k) continue;
+    const days: ISODate[] = [];
+    for (let i = 0; i < 7; i++) { const d = add(mon, i); if (d >= fromDate && d <= untilDate && freeDay(ctx, d)) days.push(d); }
+    const left = k - idx; const n = days.length;
+    // spread evenly: with 6 days and 4 workouts → 1st, 2nd, 4th, 5th available day
+    let pos = 0;
+    for (let j = 0; j < left && idx < k; j++) {
+      pos = Math.max(pos, Math.floor(j * n / left));
+      const wid = plan.rotation[idx];
+      while (pos < n && recoveryClash(ctx, days[pos], wid)) pos++;
+      if (pos >= n) break;
+      s.schedule.push({ id: uid(), date: days[pos], workoutId: wid, planId: plan.id, status: 'planned', origin: 'auto' });
+      idx++; pos++;
+    }
+  }
+}
+
+/** Place workouts from `fromDate` to `untilDate`. Weekly mode ignores `idx` (each week starts at Day 1);
+    otherwise the rotation continues from `idx` on every available day. */
 export function fill(ctx: Ctx, fromDate: ISODate, idx: number, untilDate: ISODate) {
   const { s } = ctx; const plan = activePlan(ctx);
   if (!plan || !plan.rotation.length) return;
+  if (weeklyMode(ctx)) { fillWeekly(ctx, fromDate, untilDate); return; }
   let d = fromDate; let guard = 0;
   while (d <= untilDate && guard++ < 400) {
-    if (s.profile.trainingDays.includes(dow(d)) && !inPause(ctx, d) && !s.schedule.some(e => e.date === d && e.status !== 'skipped' && e.status !== 'missed')) {
+    if (freeDay(ctx, d)) {
       const wid = plan.rotation[idx % plan.rotation.length];
       if (!recoveryClash(ctx, d, wid)) { s.schedule.push({ id: uid(), date: d, workoutId: wid, planId: plan.id, status: 'planned', origin: 'auto' }); idx++; }
     }
@@ -73,9 +112,16 @@ export function regenerate(ctx: Ctx, fromDate: ISODate = ctx.today) {
 export function ensureFuture(ctx: Ctx) {
   const { s, today } = ctx;
   if (!s.schedule.some(e => e.date >= today && e.status === 'planned')) { fill(ctx, today, nextRotationIndex(ctx, today), add(today, HORIZON_DAYS)); return; }
+  const plan = activePlan(ctx);
+  if (weeklyMode(ctx)) {
+    // Schedules built before weekly mode ran the rotation on every available day: rebuild any week that has too many.
+    const k = plan.rotation.length;
+    for (let mon = monday(today); mon <= add(today, HORIZON_DAYS); mon = add(mon, 7)) {
+      if (weekCount(ctx, plan.id, mon) > k) { regenerate(ctx, today); return; }
+    }
+  }
   // top up the far end so the horizon rolls forward day by day
   const last = s.schedule.filter(e => e.status === 'planned').sort(byDate).pop()!;
-  const plan = activePlan(ctx);
   if (last.planId === plan.id && last.date < add(today, HORIZON_DAYS)) {
     const idx = (plan.rotation.indexOf(last.workoutId) + 1) % plan.rotation.length;
     fill(ctx, add(last.date, 1), Math.max(0, idx), add(today, HORIZON_DAYS));
