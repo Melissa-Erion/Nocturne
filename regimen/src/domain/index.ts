@@ -14,3 +14,4 @@ export * from './seed';
 export { EX } from './data/exercises';
 export { FOODS, tagMap } from './data/foods';
 export { QUOTES } from './data/quotes';
+export * from './adapt';

@@ -76,6 +76,10 @@ export default function DashboardScreen() {
     RG.toast(`${tgs[i]?.name || 'Meal'} marked as eaten.`, true);
   };
   const water = day.water || 0;
+  // automatic calorie review (Pro): shown every two weeks once there are enough weigh-ins
+  const advice = full && RG.calorieReviewDue() ? RG.calorieAdvice() : null;
+  const showAdvice = !!advice && advice.status !== 'not-enough-data';
+  const kgWk = (v: number) => `${v < 0 ? '−' : '+'}${RG.imp() ? Math.abs(v * 2.20462).toFixed(1) : Math.abs(v).toFixed(2)} ${wu}/week`;
   const openWeight = () => { setWInput(S.weights.length ? Number(RG.w(S.weights[S.weights.length - 1].kg)) : null); setDlg('weight'); };
 
   return (
@@ -178,6 +182,28 @@ export default function DashboardScreen() {
           <Btn variant="ghost" icon="plus-circle" title="Log something else" onPress={() => setDlg('extra')} style={{ alignSelf: 'flex-start' }} />
         </Card>
       </Grid>
+
+      {showAdvice && advice && (
+        <Card gap={10}>
+          <Row gap={8}><Icon name="scales" size={18} color={C.accent} /><CardTitle style={{ flex: 1 }}>Your 2-week calorie check</CardTitle></Row>
+          <T size={14} lh={1.45}>
+            {`Your weight trend is ${kgWk(advice.rateKg || 0)}. For ${P.goal.toLowerCase()} we aim for about ${Math.abs(advice.aimKg) < 0.01 ? 'no change' : kgWk(advice.aimKg)}. `}
+            {advice.status === 'on-track' ? "You're right on track, so your calories stay the same."
+              : advice.status === 'at-floor' ? "Your calories are already at the safe minimum, so we won't lower them further. Adding a short daily walk or an extra session is the better lever."
+              : advice.change < 0 ? `Lowering your daily calories by ${Math.abs(advice.change)} (to ${RG.num(advice.newKcal)} kcal) should get you there. Protein stays the same.`
+              : `Raising your daily calories by ${advice.change} (to ${RG.num(advice.newKcal)} kcal) is a healthier pace. Protein stays the same.`}
+          </T>
+          <Row gap={8} wrap>
+            {advice.status === 'adjust' ? (
+              <>
+                <Btn variant="primary" title={`${advice.change < 0 ? 'Lower' : 'Raise'} to ${RG.num(advice.newKcal)} kcal`} onPress={() => { RG.applyCalorieChange(advice.change); RG.toast(`Daily calories set to ${RG.num(advice.newKcal)} kcal. Your planned meals were re-portioned.`, false); }} />
+                <Btn title="Not now" onPress={() => { RG.snoozeCalorieReview(7); RG.toast("We'll check again in a week.", false); }} />
+              </>
+            ) : <Btn title="Got it" onPress={() => RG.snoozeCalorieReview(14)} />}
+          </Row>
+          <Muted size={11}>{`Based on ${advice.weighIns} weigh-ins over ${advice.days} days.${advice.status === 'adjust' ? " If you haven't been following your meals closely, choose Not now and check again next week." : ''} Not medical advice.`}</Muted>
+        </Card>
+      )}
 
       <View style={{ gap: 8 }}>
         <ColLabel>Quick log</ColLabel>

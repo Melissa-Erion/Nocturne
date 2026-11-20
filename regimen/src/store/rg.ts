@@ -120,6 +120,13 @@ export const RG = {
   solve: (items: MealItem[], target: { p: number; c: number; f: number }) => D.solve(getState(), items, target),
   getDay: (d: ISODate) => D.getDay(ctx(), d),
   dayTotals: (d: ISODate) => D.dayTotals(ctx(), d),
+  /** Automatic calorie review (every two weeks, from the weight trend). */
+  calorieAdvice: () => D.calorieAdvice(ctx()),
+  calorieReviewDue: () => D.calorieReviewDue(ctx()),
+  /** Apply the suggested change; planned meals from today on are re-portioned to the new targets. */
+  applyCalorieChange(change: number) { D.applyCalorieChange(getState(), change, ctx().today); commit(); },
+  /** "Not now" / "Got it": ask again in `days` days. */
+  snoozeCalorieReview(days: number) { const s = getState(); s.profile.calReviewOn = D.add(ctx().today, days - D.REVIEW_EVERY_DAYS); commit(); },
   /** Meal targets for a date, shrunk for any unplanned food logged that day. */
   dayMealTargets: (d: ISODate) => D.dayMealTargets(ctx(), d),
   extraMacros: (x: D.DayExtra) => D.extraMacros(getState(), x),

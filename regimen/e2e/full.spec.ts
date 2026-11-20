@@ -120,3 +120,20 @@ test('Log something else trims the remaining meals, and removing it restores the
   await expect(page.getByText(/Latte removed/)).toBeVisible();
   errors.expectNone();
 });
+
+test('2-week calorie check can be answered and goes away', async ({ page }) => {
+  const errors = watchErrors(page);
+  const card = page.getByText('Your 2-week calorie check');
+  test.skip(!(await card.count()), 'the sample weight trend gave too little data on this date');
+  const apply = page.getByRole('button', { name: /^(Lower|Raise) to / });
+  if (await apply.count()) {
+    await apply.click();
+    await expect(page.getByText(/Daily calories set to/)).toBeVisible();
+  } else {
+    await page.getByRole('button', { name: 'Got it' }).click();
+  }
+  await expect(card).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByText('Your 2-week calorie check')).toHaveCount(0); // remembered
+  errors.expectNone();
+});

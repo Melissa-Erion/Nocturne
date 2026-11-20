@@ -263,6 +263,8 @@ export interface Profile {
   onboarded: boolean;
   /** The guided app tour was finished or skipped. */
   tourDone?: boolean;
+  /** Last automatic calorie review answered (applied, snoozed or on track). */
+  calReviewOn?: ISODate | null;
   startDate: ISODate;
 }
 
