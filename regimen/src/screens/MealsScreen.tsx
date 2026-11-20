@@ -1,6 +1,7 @@
 /* Eat › Meals: one meal at a time (opens on the next meal not yet eaten), foods with exact grams, Swap, Mark as eaten.
    Portions refit automatically when foods are added, removed or loaded. The per-meal target split is a collapsible section. */
 import { useEffect, useState, type ReactNode } from 'react';
+import { track } from '@/lib/track';
 import { ScrollView, View, type StyleProp, type ViewStyle } from 'react-native';
 import type { DayPlan, DistributionMode, Food, Meal, State } from '@/domain/types';
 import type { IconName } from '@/ui/icons';
@@ -138,7 +139,7 @@ export default function MealsScreen() {
   const addFood = (f: Food, fromUsda?: boolean) => {
     if (fromUsda) RG.update(s => { s.customFoods[f.id] = f; });
     upM(mm => { mm.items.push({ key: RG.uid(), foodId: f.id, g: f.serving ? f.serving.g : 100, locked: false }); if (tg) mm.items = RG.solve(mm.items, tg); });
-    setQ(''); RG.toast(`${f.name.split(',')[0]} added. Portions updated to fit this meal.`);
+    setQ(''); RG.toast(`${f.name.split(',')[0]} added. Portions updated to fit this meal.`); track('food_added', { source: fromUsda ? 'usda' : 'library' });
   };
 
   const saved = S.savedMeals.filter(s => s.items.length).map(s => ({ value: s.id, label: s.name }));
@@ -212,7 +213,7 @@ export default function MealsScreen() {
               {adjusted && <Muted size={12}>{`Trimmed from ${RG.num(tgs[mi].kcal)} kcal for the unplanned food you logged today.`}</Muted>}
             </View>
             <Row gap={6} wrap style={{ flexShrink: 1, maxWidth: '100%' }}>
-              <Btn variant={meal.logged ? 'secondary' : 'primary'} icon="check-circle" iconFill={meal.logged} title={meal.logged ? 'Eaten · undo' : 'Mark as eaten'} onPress={() => upM(mm => { mm.logged = !mm.logged; })} />
+              <Btn variant={meal.logged ? 'secondary' : 'primary'} icon="check-circle" iconFill={meal.logged} title={meal.logged ? 'Eaten · undo' : 'Mark as eaten'} onPress={() => { if (!meal.logged) track('meal_eaten', { from: 'meals' }); upM(mm => { mm.logged = !mm.logged; }); }} />
               <Btn variant="ghost" icon="package" title={meal.prepped ? 'Prepped' : 'Mark prepped'} onPress={() => upM(mm => { mm.prepped = !mm.prepped; })} />
             </Row>
           </Row>

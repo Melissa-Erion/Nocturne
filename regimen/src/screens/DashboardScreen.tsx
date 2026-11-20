@@ -1,5 +1,6 @@
 /* Today tab: today's workout, food left today with the next meal, quick logging (weight, water, photo). */
 import { useState } from 'react';
+import { track } from '@/lib/track';
 import { View } from 'react-native';
 import { useRG } from '@/store/rg';
 import type { IconName } from '@/ui/icons';
@@ -72,7 +73,7 @@ export default function DashboardScreen() {
   const nextM = nextI >= 0 ? day.meals[nextI] : null; const nextT = nextI >= 0 ? tgs[nextI] : null; const nextSum = nextM ? RG.sumM(nextM.items) : null;
   const nextFoods = nextM ? nextM.items.map(x => RG.food(x.foodId)?.name.split(',')[0]).filter(Boolean).join(', ') : '';
   const logMeal = (i: number) => {
-    RG.update(s => { s.days[T0].meals[i].logged = true; });
+    RG.update(s => { s.days[T0].meals[i].logged = true; }); track('meal_eaten', { from: 'today' });
     RG.toast(`${tgs[i]?.name || 'Meal'} marked as eaten.`, true);
   };
   const water = day.water || 0;

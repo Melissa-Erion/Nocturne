@@ -1,6 +1,6 @@
 -- Run the lifecycle-emails function once a day at 15:00 UTC (10:00 Eastern / 07:00 Pacific).
 create extension if not exists pg_cron;
-create extension if not exists pg_net;
+create extension if not exists pg_net with schema extensions;
 do $$ begin
   if not exists (select 1 from cron.job where jobname = 'lifecycle-emails-daily') then
     perform cron.schedule('lifecycle-emails-daily', '0 15 * * *', $job$

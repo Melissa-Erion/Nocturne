@@ -1,6 +1,7 @@
 /* Upgrade / paywall. Shown after onboarding ("Your plan is ready" with a preview of the user's own plan)
    and in place of any locked screen (explaining what it unlocks). Checkout is RevenueCat Billing (Stripe) on the web. */
 import type { Package } from '@revenuecat/purchases-js';
+import { track } from '@/lib/track';
 import { useEffect, useState } from 'react';
 import { Platform, View } from 'react-native';
 import { buy, canPurchase, loadPackages } from '@/lib/billing';
@@ -27,6 +28,7 @@ export function Paywall({ feature }: { feature?: string }) {
   const access = useAccess();
   const [plan, setPlan] = useState<'yearly' | 'monthly'>('yearly');
   const f = feature ? FEATURE[feature] : null;
+  useEffect(() => { if (!access.full) track('upgrade_viewed', { feature: feature || 'plan' }); }, [feature, access.full]);
   const P = RG.s.profile;
   const T0 = RG.TODAY;
   const tgt = RG.dayTargets('training');
@@ -56,10 +58,11 @@ export function Paywall({ feature }: { feature?: string }) {
   const start = async () => {
     const pkg = pkgs?.[plan];
     if (!userId || !pkg) { setErr('Prices are still loading. Try again in a moment.'); return; }
-    setBusy(true); setErr('');
+    setBusy(true); setErr(''); track('checkout_started', { plan });
     const r = await buy(userId, pkg, email);
     setBusy(false);
     if (!r.ok) { if (!r.cancelled) setErr(r.message); return; }
+    track('checkout_done', { plan });
     if (r.sub) useUI.setState({ subscription: r.sub });
     RG.toast('Welcome to Regimen Pro. Everything is unlocked.', false);
     // The server records the subscription a few seconds later; pick it up.

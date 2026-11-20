@@ -2,6 +2,7 @@
    Screens call `const RG = useRG()`; it re-renders whenever state changes.
    Read-only helpers compute from current state; mutating helpers commit (re-render + save + sync). */
 import { router } from 'expo-router';
+import { track } from '@/lib/track';
 import { useEffect, useState } from 'react';
 import * as D from '@/domain';
 import type { ISODate, MealItem, PlanItem, State } from '@/domain/types';
@@ -98,8 +99,8 @@ export const RG = {
   recommend: (exId: string, item?: PlanItem | null) => D.recommend(ctx(), exId, item),
 
   /* active workout */
-  startWorkout(entryId?: string) { const c = ctx(); D.startWorkout(c, entryId); commit(); RG.go('workout'); },
-  finishWorkout() { const r = D.finishWorkout(ctx()); commit(); return r; },
+  startWorkout(entryId?: string) { const c = ctx(); D.startWorkout(c, entryId); commit(); track('workout_started'); RG.go('workout'); },
+  finishWorkout() { const r = D.finishWorkout(ctx()); commit(); if (r && r.sets.length) track('workout_finished', { sets: r.sets.length }); return r; },
   discardWorkout() { D.discardWorkout(ctx()); commit(); },
   pauseWorkout() { D.pauseWorkout(ctx()); commit(); },
   resumeWorkout() { D.resumeWorkout(ctx()); commit(); },
@@ -124,7 +125,7 @@ export const RG = {
   calorieAdvice: () => D.calorieAdvice(ctx()),
   calorieReviewDue: () => D.calorieReviewDue(ctx()),
   /** Apply the suggested change; planned meals from today on are re-portioned to the new targets. */
-  applyCalorieChange(change: number) { D.applyCalorieChange(getState(), change, ctx().today); commit(); },
+  applyCalorieChange(change: number) { D.applyCalorieChange(getState(), change, ctx().today); commit(); track('calorie_check_applied', { change }); },
   /** "Not now" / "Got it": ask again in `days` days. */
   snoozeCalorieReview(days: number) { const s = getState(); s.profile.calReviewOn = D.add(ctx().today, days - D.REVIEW_EVERY_DAYS); commit(); },
   /** Meal targets for a date, shrunk for any unplanned food logged that day. */
@@ -134,7 +135,7 @@ export const RG = {
   logExtra(d: ISODate, x: Omit<D.DayExtra, 'key'>) {
     const c = ctx(); const day = D.getDay(c, d);
     (day.extras ||= []).push({ ...x, key: 'x' + D.uid() });
-    D.refitDay(c, d); commit();
+    D.refitDay(c, d); commit(); track('extra_logged', { kind: x.estimate ? 'estimate' : 'food' });
   },
   removeExtra(d: ISODate, key: string) {
     const c = ctx(); const day = D.getDay(c, d);
