@@ -22,6 +22,7 @@ export default function PlansScreen() {
   const [planSel, setPlanSel] = useState<string | null>(null);
   const [wid, setWid] = useState<string | null>(null);
   const [confirmRm, setConfirmRm] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(false);
   // Exercise picker: replace the exercise in row `idx`, or add a new row.
   const [picker, setPicker] = useState<{ mode: 'replace'; idx: number } | { mode: 'add' } | null>(null);
   const [cardW, setCardW] = useState(0);
@@ -29,7 +30,8 @@ export default function PlansScreen() {
 
   const S = RG.s; const wu = RG.wu();
   const planId = planSel || S.activePlanId;
-  const plan = S.plans.find(p => p.id === planId) || S.plans[0];
+  const plans = S.plans.filter(p => !p.archived);
+  const plan = plans.find(p => p.id === planId) || plans.find(p => p.id === S.activePlanId) || plans[0];
   const wk: Workout | undefined = plan?.workouts.find(w => w.id === wid) || plan?.workouts[0];
   const isActive = !!plan && plan.id === S.activePlanId;
 
@@ -92,6 +94,19 @@ export default function PlansScreen() {
     if (!plan) return;
     const c: Plan = JSON.parse(JSON.stringify(plan)); c.id = 'p' + RG.uid(); c.name = plan.name + ' (copy)';
     RG.update(s => { s.plans.push(c); }); setPlanSel(c.id); setWid(null);
+  };
+  /** Delete the shown plan. A plan with logged history is hidden (archived) so past workouts keep their names. */
+  const deletePlan = () => {
+    if (!plan || isActive) return;
+    const name = plan.name;
+    RG.update(s => {
+      const used = s.sessions.some(x => x.planId === plan.id) || s.schedule.some(e => e.planId === plan.id && e.status !== 'planned');
+      s.schedule = s.schedule.filter(e => !(e.planId === plan.id && e.status === 'planned'));
+      if (used) { const p = s.plans.find(x => x.id === plan.id); if (p) p.archived = true; }
+      else s.plans = s.plans.filter(x => x.id !== plan.id);
+    });
+    setConfirmDel(false); setPlanSel(null); setWid(null);
+    RG.toast(`${name} deleted. Your logged workouts stay in your history.`);
   };
   const newPlan = () => {
     const id = 'p' + RG.uid();
@@ -203,7 +218,7 @@ export default function PlansScreen() {
 
       {/* plan selector */}
       <Row gap={8} wrap align="stretch">
-        {S.plans.map(p => {
+        {plans.map(p => {
           const on = p.id === plan.id;
           return (
             <Tap key={p.id} onPress={() => { setPlanSel(p.id); setWid(null); }} label={p.name}
@@ -221,8 +236,10 @@ export default function PlansScreen() {
           <Input value={plan.name} onChange={v => up(p => { p.name = v; })} size={18} height={40} style={{ maxWidth: 360, flexBasis: 240, flexGrow: 1 }} accessibilityLabel="Plan name" />
           <View style={{ flex: 1 }} />
           <Check checked={!!plan.allowConsecutive} onChange={() => up(p => { p.allowConsecutive = !p.allowConsecutive; }, true)} label={<T size={13} color={C.n300} style={{ flexShrink: 1 }}>Allow same muscle group on consecutive days</T>} />
+          {!isActive && <Btn variant="ghost" icon="trash" title="Delete plan" color={C.n400} onPress={() => setConfirmDel(true)} />}
           {!isActive && <Btn variant="primary" title="Use this plan" onPress={activate} />}
         </Row>
+        {isActive && plans.length > 1 && <Muted size={12}>This is your active plan. To delete it, switch to another plan first.</Muted>}
         <Input multiline value={plan.note || ''} onChange={v => up(p => { p.note = v; })} placeholder="Plan notes and progression rules" size={13} style={{ minHeight: wide ? 52 : 90 }} accessibilityLabel="Plan notes" />
         <View style={{ gap: 6 }}>
           <ColLabel style={{ fontSize: 11 }}>Rotation order</ColLabel>
@@ -271,6 +288,9 @@ export default function PlansScreen() {
       <Dialog open={confirmRm} onClose={() => setConfirmRm(false)} title={`Remove ${wk?.name || 'workout'}?`}
         body="It is removed from this plan and its rotation. Logged sessions stay in your history."
         actions={<><Btn title="Cancel" onPress={() => setConfirmRm(false)} /><Btn variant="primary" icon="trash" title="Remove workout" onPress={removeWorkout} /></>} />
+      <Dialog open={confirmDel} onClose={() => setConfirmDel(false)} title={`Delete ${plan.name}?`}
+        body="The plan and its workouts are removed from your plans. Workouts you already logged stay in your history."
+        actions={<><Btn title="Cancel" onPress={() => setConfirmDel(false)} /><Btn variant="primary" icon="trash" title="Delete plan" onPress={deletePlan} /></>} />
       <ExercisePicker open={!!picker} onClose={() => setPicker(null)}
         title={picker?.mode === 'add' ? 'Add an exercise' : 'Change exercise'}
         currentId={picker?.mode === 'replace' ? items[picker.idx]?.it.exId : undefined}

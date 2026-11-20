@@ -28,7 +28,7 @@ export const TABLES: TableDef[] = [
       }];
     },
   },
-  { table: 'plans', key: ['id'], rows: s => s.plans.map((p, i) => ({ id: p.id, name: p.name, note: p.note, rotation: p.rotation, allow_consecutive: p.allowConsecutive, position: i })) },
+  { table: 'plans', key: ['id'], rows: s => s.plans.map((p, i) => ({ id: p.id, name: p.name, note: p.note, rotation: p.rotation, allow_consecutive: p.allowConsecutive, archived: !!p.archived, position: i })) },
   {
     table: 'plan_workouts', key: ['id'], rows: s => s.plans.flatMap(p => p.workouts.map((w, i) => ({
       id: `${p.id}:${w.id}`, plan_id: p.id, code: w.id, name: w.name, focus: w.focus, region: w.region, muscles: w.muscles, position: i,
@@ -181,7 +181,7 @@ export function fromTables(t: Record<string, Row[]>, today: string): State | nul
   const itemsByWorkout = group(t.plan_items || [], 'workout_id');
   if (t.plans?.length) {
     s.plans = [...t.plans].sort(byPos).map((p): Plan => ({
-      id: str(p.id), name: str(p.name), note: str(p.note), rotation: (p.rotation as string[]) || [], allowConsecutive: !!p.allow_consecutive,
+      id: str(p.id), name: str(p.name), note: str(p.note), rotation: (p.rotation as string[]) || [], allowConsecutive: !!p.allow_consecutive, ...(p.archived ? { archived: true } : {}),
       workouts: (workoutsByPlan[str(p.id)] || []).map(w => ({
         id: str(w.code), name: str(w.name), focus: str(w.focus), region: w.region as Plan['workouts'][number]['region'], muscles: (w.muscles as string[]) || [],
         items: (itemsByWorkout[str(w.id)] || []).map(it => ({

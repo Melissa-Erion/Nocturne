@@ -137,3 +137,18 @@ test('2-week calorie check can be answered and goes away', async ({ page }) => {
   await expect(page.getByText('Your 2-week calorie check')).toHaveCount(0); // remembered
   errors.expectNone();
 });
+
+test('a plan that is not active can be deleted; the active one cannot', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openTab(page, 'Train'); await section(page, 'Plans').click();
+  await expect(page.getByRole('button', { name: 'Delete plan' })).toHaveCount(0); // active plan shown
+  await page.getByRole('button', { name: 'New plan' }).click();
+  await expect(page.getByRole('button', { name: 'My plan' })).toBeVisible();
+  await page.getByRole('button', { name: 'Delete plan' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Delete plan' }).click();
+  await expect(page.getByText(/My plan deleted/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'My plan' })).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'My plan' })).toHaveCount(0);
+  errors.expectNone();
+});
