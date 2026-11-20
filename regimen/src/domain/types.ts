@@ -75,6 +75,8 @@ export interface Plan {
   workouts: Workout[];
   rotation: string[];
   allowConsecutive: boolean;
+  /** Deleted by the user but kept (hidden) because logged history refers to it. */
+  archived?: boolean;
 }
 
 export type EntryStatus = 'planned' | 'done' | 'missed' | 'skipped';
