@@ -71,7 +71,7 @@ export function Paywall({ feature }: { feature?: string }) {
     <Card>
       <Row gap={8}><Icon name="check-circle" fill size={18} color={C.accent} /><CardTitle>You have full access</CardTitle></Row>
       <Muted size={13}>Everything in Regimen is unlocked on your account.</Muted>
-      <Row><Btn variant="primary" title="Go to dashboard" onPress={() => RG.go('dashboard')} /></Row>
+      <Row><Btn variant="primary" title="Go to Today" onPress={() => RG.go('dashboard')} /></Row>
     </Card>
   );
 
@@ -150,7 +150,7 @@ export function Paywall({ feature }: { feature?: string }) {
             ?? `Free for ${TRIAL_DAYS} days, then ${chosen.price}/${chosen.per} (Canadian dollars, plus any sales tax). Cancel anytime before the trial ends and you won't be charged. If you cancel later, paid features lock at the end of the period you've paid for, and your data is kept.`}
         </Muted>
         {!blocked && !pkgs && !err && <Muted size={12} style={{ textAlign: 'center' }}>Loading prices…</Muted>}
-        <Row style={{ justifyContent: 'center' }}><Btn variant="ghost" title={f ? 'Back to dashboard' : 'Not now, continue with the free version'} onPress={() => RG.go('dashboard')} /></Row>
+        <Row style={{ justifyContent: 'center' }}><Btn variant="ghost" title={f ? 'Back to Today' : 'Not now, continue with the free version'} onPress={() => RG.go('dashboard')} /></Row>
       </View>
     </View>
   );

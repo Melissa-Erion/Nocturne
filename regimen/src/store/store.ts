@@ -56,12 +56,22 @@ export const getState = () => S;
 export const ctx = (): Ctx => ({ s: S, today: localToday() });
 const cacheKey = () => `regimen.state.${useUI.getState().userId || 'device'}`;
 
+function saveNow() {
+  saveTimer = null;
+  AsyncStorage.setItem(cacheKey(), JSON.stringify(S)).catch(() => {});
+  if (cloud) cloud.push(S);
+}
+// Web: save straight away when the page is closed, reloaded or hidden (phone app switcher), so a change made in the
+// last moment before leaving isn't lost while the short save delay below is still running.
+if (typeof window !== 'undefined' && typeof document !== 'undefined' && typeof window.addEventListener === 'function') {
+  const flush = () => { if (saveTimer) { clearTimeout(saveTimer); saveNow(); } };
+  window.addEventListener('pagehide', flush);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
+}
+
 function persistSoon() {
   if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    AsyncStorage.setItem(cacheKey(), JSON.stringify(S)).catch(() => {});
-    if (cloud) cloud.push(S);
-  }, 600);
+  saveTimer = setTimeout(saveNow, 600);
   if (sideTimer) clearTimeout(sideTimer);
   sideTimer = setTimeout(() => {
     syncNotifications(S).catch(() => {});

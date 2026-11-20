@@ -196,7 +196,7 @@ export default function DashboardScreen() {
       </Banner>
 
       <Dialog open={dlg === 'weight'} onClose={() => setDlg(null)} title="Log today's weight"
-        body="Weigh at the same time each day. The dashboard shows the 7-day average, so one reading won't swing your trend."
+        body="Weigh at the same time each day. Progress › Analytics shows the 7-day average, so one reading won't swing your trend."
         actions={<><Btn title="Cancel" onPress={() => setDlg(null)} /><Btn variant="primary" title="Save" onPress={saveWeight} /></>}>
         <Field label={`Weight (${wu})`}><NumInput value={wInput} onValue={setWInput} size={22} height={52} autoFocus onSubmitEditing={saveWeight} /></Field>
       </Dialog>

@@ -1,0 +1,47 @@
+# Checks every pull request (and every push to main) before it can break the live app:
+# typecheck, unit tests, then the browser tests on a phone-size and a desktop-size screen,
+# for full access and for a free user with the paywall on. The browser tests never use the
+# real backend or payments (see regimen/scripts/e2e-serve.mjs).
+name: Tests
+
+on:
+  pull_request:
+    paths: ['regimen/**', '.github/workflows/test.yml']
+  push:
+    branches: [main]
+    paths: ['regimen/**', '.github/workflows/test.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: regimen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: regimen/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx jest
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --trace off
+      - name: Keep screenshots of any failed browser test
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failures
+          path: regimen/test-results/
+          retention-days: 7
