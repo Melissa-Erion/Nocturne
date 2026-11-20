@@ -88,6 +88,11 @@ export const TABLES: TableDef[] = [
     })))),
   },
   {
+    table: 'day_extras', key: ['id'], rows: s => Object.entries(s.days).flatMap(([date, d]) => (d.extras || []).map((x, i) => ({
+      id: x.key, date, position: i, name: x.name, food_id: x.foodId || null, grams: Number(x.g) || 0, estimate: x.estimate || null,
+    }))),
+  },
+  {
     table: 'meal_slots', key: ['id'], rows: s => (['training', 'rest'] as DayType[]).flatMap(t => (s.mealSlots[t] || []).map((sl, i) => ({
       id: `${t}:${i}`, day_type: t, index: i, name: sl.name, label: sl.label, time: sl.time,
     }))),
@@ -218,8 +223,12 @@ export function fromTables(t: Record<string, Row[]>, today: string): State | nul
   }]));
   const mealsByDate = group((t.day_meals || []).map(m => ({ ...m, position: m.slot })), 'date');
   const itemsByMeal = group(t.meal_items || [], 'meal_id');
+  const extrasByDate = group(t.day_extras || [], 'date');
   s.days = Object.fromEntries((t.day_plans || []).map(d => [str(d.date), {
     type: d.type as DayType, water: Number(d.water_ml),
+    ...(extrasByDate[str(d.date)]?.length ? { extras: extrasByDate[str(d.date)].map(x => ({
+      key: str(x.id), name: str(x.name), g: Number(x.grams), ...(x.food_id ? { foodId: str(x.food_id) } : {}), ...(x.estimate ? { estimate: x.estimate as never } : {}),
+    })) } : {}),
     meals: (mealsByDate[str(d.date)] || []).map(m => ({
       key: str(m.id), logged: !!m.logged, prepped: !!m.prepped,
       items: (itemsByMeal[str(m.id)] || []).map(it => ({ key: str(it.id), foodId: str(it.food_id), g: Number(it.grams), locked: !!it.locked, ...(it.estimate ? { estimate: it.estimate as never } : {}) })),

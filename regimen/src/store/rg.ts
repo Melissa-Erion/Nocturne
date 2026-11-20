@@ -120,6 +120,20 @@ export const RG = {
   solve: (items: MealItem[], target: { p: number; c: number; f: number }) => D.solve(getState(), items, target),
   getDay: (d: ISODate) => D.getDay(ctx(), d),
   dayTotals: (d: ISODate) => D.dayTotals(ctx(), d),
+  /** Meal targets for a date, shrunk for any unplanned food logged that day. */
+  dayMealTargets: (d: ISODate) => D.dayMealTargets(ctx(), d),
+  extraMacros: (x: D.DayExtra) => D.extraMacros(getState(), x),
+  /** Log food that wasn't in the plan, then re-portion the day's remaining meals so the day still lands on target. */
+  logExtra(d: ISODate, x: Omit<D.DayExtra, 'key'>) {
+    const c = ctx(); const day = D.getDay(c, d);
+    (day.extras ||= []).push({ ...x, key: 'x' + D.uid() });
+    D.refitDay(c, d); commit();
+  },
+  removeExtra(d: ISODate, key: string) {
+    const c = ctx(); const day = D.getDay(c, d);
+    day.extras = (day.extras || []).filter(x => x.key !== key);
+    D.refitDay(c, d); commit();
+  },
   alternatives: (foodId: string, g: number, opts?: { tag?: string; lower?: boolean; higher?: boolean }) => D.alternatives(getState(), foodId, g, opts),
 
   /* prep & grocery */

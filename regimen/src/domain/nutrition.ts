@@ -1,6 +1,6 @@
 /* Nutrition engine — port of prototype/store.js (macros, reconcile, mealTargets, solve, getDay, alternatives). */
 import { FOODS } from './data/foods';
-import type { Ctx, DayPlan, DayType, DistributionMode, Food, ISODate, MacroTargets, Macros, MealItem, Profile, State } from './types';
+import type { Ctx, DayExtra, DayPlan, DayType, DistributionMode, Food, ISODate, MacroTargets, Macros, MealItem, Profile, State } from './types';
 import { sum, uid } from './util';
 
 export const food = (s: State, id: string): Food | undefined => FOODS[id] || s.customFoods[id];
@@ -16,6 +16,12 @@ export const macros = (s: State, foodId: string, g: number): Macros => {
 export const sumM = (s: State, items: MealItem[]): Macros => items.reduce((a, i) => {
   const m = i.estimate ? i.estimate : macros(s, i.foodId, i.g);
   return { kcal: a.kcal + m.kcal, p: a.p + m.p, c: a.c + m.c, f: a.f + m.f };
+}, { ...ZERO });
+
+/** Macros of the unplanned food logged on a day ("Log something else"). */
+export const extraMacros = (s: State, x: DayExtra): Macros => x.estimate ? x.estimate : x.foodId ? macros(s, x.foodId, x.g) : { ...ZERO };
+export const sumExtras = (s: State, day: DayPlan): Macros => (day.extras || []).reduce((a, x) => {
+  const m = extraMacros(s, x); return { kcal: a.kcal + m.kcal, p: a.p + m.p, c: a.c + m.c, f: a.f + m.f };
 }, { ...ZERO });
 
 /** Integer largest-remainder rounding: the parts always sum exactly to `total`. */
@@ -49,6 +55,32 @@ export function mealTargets({ s }: Ctx, type: DayType, mode?: DistributionMode):
   let p = reconcile(T.protein, wp), c = reconcile(T.carbs, wc), f = reconcile(T.fat, wf);
   if (mode === 'manual' && dist.manual && dist.manual.length === n) { p = dist.manual.map(m => m.p); c = dist.manual.map(m => m.c); f = dist.manual.map(m => m.f); }
   return slots.map((sl, i) => ({ ...sl, p: p[i], c: c[i], f: f[i], kcal: p[i] * 4 + c[i] * 4 + f[i] * 9 }));
+}
+
+/** Meal targets for a specific date. Once unplanned food has been logged that day, the meals not yet eaten share
+    what's left of the daily target (after eaten meals and the extras), in the same proportions as before, so the day
+    still lands on target. Without extras this is just mealTargets(). */
+export function dayMealTargets(ctx: Ctx, d: ISODate): MealTarget[] {
+  const day = getDay(ctx, d); const tgs = mealTargets(ctx, day.type);
+  if (!day.extras?.length) return tgs;
+  const T = dayTargets(ctx.s.profile, day.type);
+  const eatenMeals = sumM(ctx.s, day.meals.filter(m => m.logged).flatMap(m => m.items)); const ex = sumExtras(ctx.s, day);
+  const open = tgs.map((_, i) => i).filter(i => !day.meals[i]?.logged);
+  const share = (k: 'p' | 'c' | 'f', total: number, eaten: number) => {
+    const left = Math.max(0, Math.round(total - eaten)); const w = open.map(i => tgs[i][k]);
+    return reconcile(left, w.some(x => x > 0) ? w : w.map(() => 1));
+  };
+  const p = share('p', T.protein, eatenMeals.p + ex.p), c = share('c', T.carbs, eatenMeals.c + ex.c), f = share('f', T.fat, eatenMeals.f + ex.f);
+  return tgs.map((t, i) => {
+    const j = open.indexOf(i); if (j < 0) return t;
+    return { ...t, p: p[j], c: c[j], f: f[j], kcal: p[j] * 4 + c[j] * 4 + f[j] * 9 };
+  });
+}
+
+/** Re-portion the meals not yet eaten (and not prepped) on a date to dayMealTargets(); locked foods stay as they are. */
+export function refitDay(ctx: Ctx, d: ISODate) {
+  const day = getDay(ctx, d); const tgs = dayMealTargets(ctx, d);
+  day.meals.forEach((m, i) => { if (!m.logged && !m.prepped && m.items.length && tgs[i]) m.items = solve(ctx.s, m.items, tgs[i]); });
 }
 
 /** Portion solver: non-negative weighted least squares on P/C/F (coordinate descent, 600 iterations).
@@ -115,7 +147,7 @@ export function rebalanceMeals(ctx: Ctx, fillEmpty = false) {
   const { s } = ctx;
   for (const d of Object.keys(s.days)) {
     if (d < ctx.today) continue;
-    const day = getDay(ctx, d); const tg = mealTargets(ctx, day.type);
+    const day = getDay(ctx, d); const tg = dayMealTargets(ctx, d);
     day.meals.forEach((m, i) => {
       if (m.logged || m.prepped || !tg[i]) return;
       if (!m.items.length) { if (!fillEmpty) return; m.items = (EXTRA_MEALS[i - 4] || EXTRA_MEALS[0]).map(foodId => ({ key: uid(), foodId, g: 100, locked: false })); }
@@ -156,7 +188,9 @@ export function getDay(ctx: Ctx, d: ISODate): DayPlan {
 
 export function dayTotals(ctx: Ctx, d: ISODate) {
   const day = getDay(ctx, d);
-  return { planned: sumM(ctx.s, day.meals.flatMap(m => m.items)), logged: sumM(ctx.s, day.meals.filter(m => m.logged).flatMap(m => m.items)) };
+  const ex = sumExtras(ctx.s, day); const add = (m: Macros): Macros => ({ kcal: m.kcal + ex.kcal, p: m.p + ex.p, c: m.c + ex.c, f: m.f + ex.f });
+  // Unplanned food counts as both planned and eaten.
+  return { planned: add(sumM(ctx.s, day.meals.flatMap(m => m.items))), logged: add(sumM(ctx.s, day.meals.filter(m => m.logged).flatMap(m => m.items))) };
 }
 
 export interface Alternative { food: Food; g: number; m: Macros; d: Macros; score: number }

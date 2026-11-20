@@ -90,3 +90,25 @@ test('check-in form and upgrade page open', async ({ page }) => {
   await expect(page.locator('body')).not.toContainText(/Something went wrong/);
   errors.expectNone();
 });
+
+test('Log something else trims the remaining meals, and removing it restores them', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.getByRole('button', { name: 'Log something else' }).click();
+  await page.getByText('Quick estimate', { exact: true }).click();
+  await page.getByLabel('What you ate').fill('Latte');
+  await page.getByLabel('Calories').fill('190');
+  await page.getByRole('button', { name: 'Log it' }).click();
+  await expect(page.getByText(/Latte logged \(190 kcal\)\. Your remaining meals were trimmed/)).toBeVisible();
+  await page.goto('/meals');
+  await expect(page.getByText('Latte', { exact: true })).toBeVisible();
+  await expect(page.getByText(/Trimmed from/).first()).toBeVisible();
+  // a library food, by search
+  await page.getByRole('button', { name: 'Log something else' }).click();
+  await page.getByLabel('Search foods to log').fill('banana');
+  await page.getByRole('button', { name: /^Pick Banana/ }).first().click();
+  await page.getByRole('button', { name: 'Log it' }).click();
+  await expect(page.getByText(/Banana logged/)).toBeVisible();
+  await page.getByRole('button', { name: 'Remove Latte' }).click();
+  await expect(page.getByText(/Latte removed/)).toBeVisible();
+  errors.expectNone();
+});

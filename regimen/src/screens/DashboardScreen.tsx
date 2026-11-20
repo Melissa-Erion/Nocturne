@@ -10,12 +10,13 @@ import {
 import { alpha, C } from '@/ui/theme';
 import { Screen } from './Shell';
 import { useAccess } from '@/store/access';
+import { ExtrasList, LogExtraDialog } from './eat/LogExtra';
 
 export default function DashboardScreen() {
   const RG = useRG();
   const { full } = useAccess();
   const [q, setQ] = useState(0);
-  const [dlg, setDlg] = useState<null | 'weight' | 'move'>(null);
+  const [dlg, setDlg] = useState<null | 'weight' | 'move' | 'extra'>(null);
   const [wInput, setWInput] = useState<number | null>(null);
   const [moveTo, setMoveTo] = useState<string | null>(null);
   const [shiftOverride, setShift] = useState<boolean | null>(null);
@@ -173,6 +174,8 @@ export default function DashboardScreen() {
           ) : (
             <Row gap={8}><Icon name="check-circle" fill size={16} color={C.accent} /><T size={14}>All of today's meals are marked as eaten.</T></Row>
           )}
+          <ExtrasList date={T0} />
+          <Btn variant="ghost" icon="plus-circle" title="Log something else" onPress={() => setDlg('extra')} style={{ alignSelf: 'flex-start' }} />
         </Card>
       </Grid>
 
@@ -194,6 +197,8 @@ export default function DashboardScreen() {
         <Btn variant="ghost" iconOnly icon="heart" iconFill={!!S.quotes.fav[quote.id]} label="Save to favourites" onPress={() => RG.update(s => { s.quotes.fav[quote.id] = !s.quotes.fav[quote.id]; })} />
         <Btn variant="ghost" iconOnly icon="arrows-clockwise" label="Another" onPress={() => setQ(x => x + 1)} />
       </Banner>
+
+      <LogExtraDialog open={dlg === 'extra'} onClose={() => setDlg(null)} date={T0} />
 
       <Dialog open={dlg === 'weight'} onClose={() => setDlg(null)} title="Log today's weight"
         body="Weigh at the same time each day. Progress › Analytics shows the 7-day average, so one reading won't swing your trend."
