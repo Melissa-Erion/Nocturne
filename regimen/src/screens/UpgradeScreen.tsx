@@ -2,7 +2,7 @@
    and in place of any locked screen (explaining what it unlocks). Checkout is RevenueCat Billing (Stripe) on the web. */
 import type { Package } from '@revenuecat/purchases-js';
 import { track } from '@/lib/track';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Platform, View } from 'react-native';
 import { buy, canPurchase, loadPackages } from '@/lib/billing';
 import { billingLive, billingMode, FEATURE, PLANS, TRIAL_DAYS } from '@/lib/plans';
@@ -23,7 +23,20 @@ const UNLOCKS: [string, string][] = [
   ['chart-line-up', 'Check-ins, progress photos, records and analytics'],
 ];
 
+/** Set by "Start free trial" buttons elsewhere: the next Paywall opens scrolled to the plans and checkout button,
+    which sit below the fold on a phone. */
+let jumpToPlans = false;
+export const openPlans = (go: () => void) => { jumpToPlans = true; go(); };
+
 export function Paywall({ feature }: { feature?: string }) {
+  const plansRef = useRef<View>(null);
+  useEffect(() => {
+    if (!jumpToPlans) return;
+    jumpToPlans = false;
+    // react-native-web renders a View as a DOM element; native checkout isn't offered yet.
+    const t = setTimeout(() => (plansRef.current as unknown as { scrollIntoView?: (o: object) => void } | null)?.scrollIntoView?.({ behavior: 'smooth', block: 'start' }), 150);
+    return () => clearTimeout(t);
+  }, []);
   const RG = useRG();
   const access = useAccess();
   const [plan, setPlan] = useState<'yearly' | 'monthly'>('yearly');
@@ -130,6 +143,7 @@ export function Paywall({ feature }: { feature?: string }) {
         ))}
       </Card>
 
+      <View ref={plansRef} style={{ scrollMarginTop: 12 } as object} />
       <Grid min={260} gap={12}>
         {PLANS.map(p => {
           const on = plan === p.id;

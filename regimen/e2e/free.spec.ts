@@ -30,6 +30,8 @@ test('Meals is free for today; other days, swaps and favourites ask for the tria
   await expect(page.getByText('Saved meals is part of Regimen Pro')).toBeVisible();
   await page.getByRole('button', { name: /Start 7-day free trial/ }).first().click();
   await expect(page).toHaveURL(/\/upgrade$/);
+  // the page opens at the plans, so the checkout is in view without scrolling (matters on a phone)
+  await expect(page.getByRole('button', { name: 'Monthly plan' })).toBeInViewport();
   errors.expectNone();
 });
 
