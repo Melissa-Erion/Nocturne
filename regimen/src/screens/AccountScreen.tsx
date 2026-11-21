@@ -10,6 +10,7 @@ import { signOut, useUI } from '@/store/store';
 import { Btn, Card, CardTitle, Dialog, Field, Grid, Icon, Input, Muted, PageHeader, Row, RuledRow, T, Tag } from '@/ui/kit';
 import { C, R } from '@/ui/theme';
 import { Screen } from './Shell';
+import { openPlans } from './UpgradeScreen';
 import { billingLive, PLANS, TRIAL_DAYS } from '@/lib/plans';
 import { useAccess } from '@/store/access';
 
@@ -269,7 +270,7 @@ export default function AccountScreen() {
             ))}
             <InfoRow label="Free trial"><T size={14}>{`${TRIAL_DAYS} days`}</T></InfoRow>
             <Muted size={12}>If you cancel, you keep full access until the end of the period you've paid for. After that, paid features lock, but your data is kept, so everything comes back if you subscribe again.</Muted>
-            {!access.full && <Btn variant="primary" title="See plans" onPress={() => RG.go('upgrade')} style={{ alignSelf: 'flex-start' }} />}
+            {!access.full && <Btn variant="primary" title="See plans" onPress={() => openPlans(() => RG.go('upgrade'))} style={{ alignSelf: 'flex-start' }} />}
             {manageUrl && sub?.status !== 'comp' && (
               <Btn icon="credit-card" title="Manage or cancel subscription" onPress={() => Linking.openURL(manageUrl)} style={{ alignSelf: 'flex-start' }} />
             )}

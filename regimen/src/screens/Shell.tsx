@@ -17,7 +17,7 @@ import { SampleBanner } from './SampleData';
 import { useAccess } from '@/store/access';
 import { FEATURE, TRIAL_DAYS } from '@/lib/plans';
 import { startTour, Tour, useAutoTour } from './Tour';
-import { Paywall } from './UpgradeScreen';
+import { openPlans, Paywall } from './UpgradeScreen';
 
 type PState = PressableStateCallbackType & { hovered?: boolean };
 
@@ -131,7 +131,7 @@ export function Shell({ children }: { children: ReactNode }) {
           body={`${lockedFeature ? lockedFeature.body + ' ' : ''}Try everything free for ${TRIAL_DAYS} days. Cancel anytime before the trial ends and you won't be charged.`}
           actions={<>
             <Btn title="Not now" onPress={closeLock} />
-            <Btn variant="primary" icon="lock-simple-open" title={`Start ${TRIAL_DAYS}-day free trial`} onPress={() => { closeLock(); RG.go('upgrade'); }} />
+            <Btn variant="primary" icon="lock-simple-open" title={`Start ${TRIAL_DAYS}-day free trial`} onPress={() => { closeLock(); openPlans(() => RG.go('upgrade')); }} />
           </>} />
 
         {toast && (
