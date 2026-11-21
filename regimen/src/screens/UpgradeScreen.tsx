@@ -50,6 +50,9 @@ export function Paywall({ feature }: { feature?: string }) {
   // Real prices from RevenueCat once loaded; the built-in ones until then.
   const priceOf = (id: 'yearly' | 'monthly') => pkgs?.[id]?.webBillingProduct.currentPrice.formattedPrice || PLANS.find(p => p.id === id)!.price;
   const chosen = { ...PLANS.find(p => p.id === plan)!, price: priceOf(plan) };
+  // The trial comes from the product set up in RevenueCat. Never promise one the checkout won't give.
+  const trialPkg = pkgs?.[plan];
+  const hasTrial = !trialPkg || !!trialPkg.webBillingProduct.freeTrialPhase;
   const blocked = !live ? 'Payments open soon. You won’t be charged.'
     : Platform.OS !== 'web' ? 'Subscriptions in the phone app are coming soon. For now, subscribe on the Regimen website with the same account.'
     : !userId ? 'Create an account or sign in first, so your subscription is saved to your account.'
@@ -146,10 +149,11 @@ export function Paywall({ feature }: { feature?: string }) {
           <Row gap={8} style={{ justifyContent: 'center' }}><Tag variant="outline">Test mode</Tag><Muted size={12}>No real charges. Use card 4242 4242 4242 4242, any future date and any CVC.</Muted></Row>
         )}
         <Btn variant="primary" size="lg" disabled={!!blocked || busy || !pkgs?.[plan]}
-          title={busy ? 'Opening checkout…' : `Start ${TRIAL_DAYS}-day free trial`} onPress={start} />
+          title={busy ? 'Opening checkout…' : hasTrial ? `Start ${TRIAL_DAYS}-day free trial` : `Subscribe for ${chosen.price}/${chosen.per}`} onPress={start} />
         {!!err && <Row gap={8} style={{ justifyContent: 'center' }}><Icon name="warning" size={16} color={C.n300} /><T size={13} color={C.n300}>{err}</T></Row>}
         <Muted size={12} style={{ textAlign: 'center' }}>
           {blocked
+            ?? (!hasTrial ? `${chosen.price}/${chosen.per} (Canadian dollars, plus any sales tax), charged today. Cancel anytime: paid features lock at the end of the period you've paid for, and your data is kept.` : null)
             ?? `Free for ${TRIAL_DAYS} days, then ${chosen.price}/${chosen.per} (Canadian dollars, plus any sales tax). Cancel anytime before the trial ends and you won't be charged. If you cancel later, paid features lock at the end of the period you've paid for, and your data is kept.`}
         </Muted>
         {!blocked && !pkgs && !err && <Muted size={12} style={{ textAlign: 'center' }}>Loading prices…</Muted>}
