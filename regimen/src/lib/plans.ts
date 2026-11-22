@@ -44,6 +44,7 @@ export const FEATURE: Record<string, { title: string; body: string }> = {
   workout: { title: 'Guided workouts', body: 'Log every set, with rest timers and exact next-session targets.' },
   history: { title: 'Exercise history', body: 'Every set you’ve logged, with strength charts and your next recommendation.' },
   records: { title: 'Personal records', body: 'Heaviest lifts, best reps and estimated maxes for every exercise.' },
+  progress: { title: 'Progress overview', body: 'Your weight trend, changes since you started, latest check-in, photos and records in one place.' },
   checkins: { title: 'Progress check-ins', body: 'Weekly measurements and ratings, with changes since you started.' },
   photos: { title: 'Progress photos', body: 'Private side-by-side comparisons of your progress.' },
   analytics: { title: 'Analytics', body: 'Weight trends, training volume, strength and nutrition adherence.' },

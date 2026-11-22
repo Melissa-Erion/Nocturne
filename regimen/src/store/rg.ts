@@ -12,7 +12,7 @@ import { canOpenRoute } from './access';
 import { clearSampleData, commit, ctx, dropUndo, getState, pushUndo, resetToSample, toast, undo, update, useUI } from './store';
 
 export type Route =
-  | 'dashboard' | 'schedule' | 'plans' | 'workout' | 'history' | 'records' | 'checkins' | 'photos' | 'analytics'
+  | 'dashboard' | 'schedule' | 'plans' | 'workout' | 'history' | 'records' | 'progress' | 'checkins' | 'photos' | 'analytics'
   | 'nutrition' | 'meals' | 'prep' | 'recipes' | 'alternatives' | 'grocery' | 'settings' | 'account' | 'upgrade' | 'onboarding';
 
 const U = () => D.makeUnits(getState());

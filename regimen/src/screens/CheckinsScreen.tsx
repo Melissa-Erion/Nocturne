@@ -1,9 +1,11 @@
 /* 7. Progress Check-Ins — port of prototype/FitCheckins.dc.html */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import type { Checkin } from '@/domain/types';
 import { useRG } from '@/store/rg';
-import { Btn, Card, CardTitle, Check, Dialog, Field, Grid, H, Icon, Input, Muted, NumInput, Row, Seg, T } from '@/ui/kit';
+import { useUI } from '@/store/store';
+import { CheckinView } from './progress/CheckinView';
+import { Btn, Card, CardTitle, Check, Dialog, Field, Grid, H, Icon, Input, Muted, NumInput, Row, Seg, T, Tap } from '@/ui/kit';
 import { alpha, C, SHADOW } from '@/ui/theme';
 import { Screen } from './Shell';
 
@@ -26,6 +28,10 @@ export default function CheckinsScreen() {
   const [F, setForm] = useState<Form | null>(null);
   const [delId, setDel] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
+  // Opening a check-in (from the list or from Progress › Overview) shows it laid out; "new" opens the form.
+  const rp = useUI(u => u.routeParam) as { open?: string; new?: boolean } | null;
+  const [openId, setOpen] = useState<string | null>(() => rp?.open || null);
+  useEffect(() => { if (rp?.open) { setOpen(rp.open); setForm(null); } if (rp?.new) { setOpen(null); setForm(blank()); } }, [rp]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const S = RG.s, P = S.profile, wu = RG.wu(), lu = RG.lu();
   const cis = S.checkins.slice().sort((a, b) => a.date < b.date ? -1 : 1);
@@ -73,14 +79,17 @@ export default function CheckinsScreen() {
       }
     });
     setForm(null); RG.toast('Check-in saved.');
+    if (f.id) setOpen(f.id);
   };
 
+  const openIdx = openId ? cis.findIndex(c => c.id === openId) : -1;
+  const openC = openIdx >= 0 ? cis[openIdx] : null;
   const del = delId ? S.checkins.find(c => c.id === delId) : null;
   const doDelete = () => {
     if (!del) return; const id = del.id;
     POSES.forEach(p => { if (RG.hasPhoto(id + ':' + p)) void RG.setPhoto(id + ':' + p, null); });
     RG.update(s => { s.checkins = s.checkins.filter(c => c.id !== id); });
-    setDel(null); RG.toast('Check-in deleted.');
+    setDel(null); setOpen(null); RG.toast('Check-in deleted.');
   };
   const closeDlg = () => { setDel(null); setOk(false); };
 
@@ -161,6 +170,11 @@ export default function CheckinsScreen() {
         </Card>
       )}
 
+      {openC && !F ? (
+        <CheckinView c={openC} prev={cis[openIdx - 1]} first={cis[0]} index={openIdx} total={cis.length}
+          onBack={() => setOpen(null)} onEdit={() => setForm(fromCi(openC))} onDelete={() => { setOk(false); setDel(openC.id); }}
+          onStep={dir => { const n = cis[openIdx + dir]; if (n) setOpen(n.id); }} />
+      ) : <>
       {deltas.length > 0 && first && last && (
         <Card gap={10}>
           <Row gap={10} wrap style={{ alignItems: 'baseline' }}>
@@ -190,22 +204,24 @@ export default function CheckinsScreen() {
 
       <View style={{ gap: 10 }}>
         {list.map(x => (
-          <Card key={x.c.id} gap={8} pad={[14, 18]}>
+          <Tap key={x.c.id} onPress={() => setOpen(x.c.id)} label={`Open check-in ${x.date}`}>
+          <Card gap={8} pad={[14, 18]}>
             <Row gap={10} wrap>
               <T size={16} w={500}>{x.date}</T>
               <T size={13} color={C.n400} tab>{x.kg} {wu}</T>
               <T size={12} color={C.a300} tab>{x.dkg}</T>
               <View style={{ flex: 1 }} />
               <Row gap={4}><Icon name="camera" size={13} color={C.n500} /><Muted>{x.photoCount}</Muted></Row>
-              <Btn variant="ghost" size="sm" title="Edit" onPress={() => setForm(fromCi(x.c))} />
-              <Btn variant="ghost" size="sm" icon="trash" color={C.n500} label={`Delete ${x.date} check-in`} onPress={() => { setOk(false); setDel(x.c.id); }} />
+              <Row gap={2}><T size={13} color={C.accent}>Open</T><Icon name="caret-right" size={14} color={C.accent} /></Row>
             </Row>
             {!!x.meas && <T size={12} color={C.n400} tab>{x.meas}</T>}
             <Muted>{x.ratings}</Muted>
-            {!!x.notes && <T size={13} color={C.n300}>{x.notes}</T>}
+            {!!x.notes && <T size={13} color={C.n300} numberOfLines={2}>{x.notes}</T>}
           </Card>
+          </Tap>
         ))}
       </View>
+      </>}
 
       <Dialog open={!!del} onClose={closeDlg} title="Permanently delete check-in?"
         body={`The ${del ? RG.fmtD(del.date) : ''} check-in, its measurements and any attached photos will be deleted from this device. This cannot be undone.`}

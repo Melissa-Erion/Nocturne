@@ -27,7 +27,7 @@ export const TABS: { id: TabId; label: string; icon: IconName; pages: [Route, st
   { id: 'today', label: 'Today', icon: 'house', pages: [['dashboard', 'Today']] },
   { id: 'train', label: 'Train', icon: 'barbell', pages: [['schedule', 'Schedule'], ['plans', 'Plans'], ['history', 'History']] },
   { id: 'eat', label: 'Eat', icon: 'fork-knife', pages: [['meals', 'Meals'], ['nutrition', 'Macros'], ['prep', 'Prep'], ['recipes', 'Recipes'], ['grocery', 'Groceries']] },
-  { id: 'progress', label: 'Progress', icon: 'chart-line-up', pages: [['checkins', 'Check-ins'], ['photos', 'Photos'], ['records', 'Records'], ['analytics', 'Analytics']] },
+  { id: 'progress', label: 'Progress', icon: 'chart-line-up', pages: [['progress', 'Overview'], ['checkins', 'Check-ins'], ['photos', 'Photos'], ['records', 'Records'], ['analytics', 'Analytics']] },
 ];
 export const ME_PAGES: [Route, string][] = [['settings', 'Settings'], ['account', 'Account']];
 /** Pages that belong to a tab without being one of its sections. */
