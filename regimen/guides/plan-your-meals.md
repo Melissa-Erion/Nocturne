@@ -6,13 +6,15 @@ minutes: 4
 image: /img/app/meals.webp
 order: 3
 ---
-Open **Eat › Meals**. The page walks you through it in two steps: first you pick the foods you like, then Regimen works out the grams of every food so the day adds up to your calorie, protein, carb and fat targets.
+Your daily calories, protein, carbs and fat come from your goal, set during setup (you can change them any time in **Me › Settings**). The Meals page turns those numbers into food: you say what you like to eat, and Regimen builds your meals and works out the grams.
 
 ## Step 1: Choose your foods
 
-Tap **Choose my foods**. You go through your meals one at a time (breakfast, lunch, snack, dinner) and tap the foods you'd eat, grouped into **Protein**, **Carbs**, **Fruit & veg** and **Fats**. Can't see something? Search for it at the bottom. You never type amounts: when you tap **Build my meals**, Regimen portions everything for you, for today and every day after.
+New accounts do this during setup ("What do you like to eat?"). If you set up before that existed, tap **Choose my foods** on the Meals page.
 
-Changed your mind later? **Change my foods** at the top redoes the whole thing, and **Change foods** inside a meal changes just that one. Meals you've already eaten stay as they were.
+Tap every food you'd happily eat, grouped into **Protein**, **Carbs**, **Fruit & veg** and **Fats** (search for anything that isn't listed). You never type amounts. Regimen builds each meal from your foods (a protein and a carb in every meal, vegetables with lunch and dinner, breakfast-style foods at breakfast) and works out the grams to hit your targets, for today and every day after.
+
+Changed your mind? **Change my foods** at the top rebuilds everything from a new list, and **Change foods** inside a meal lets you pick exactly what goes in that one meal. Meals you've already eaten stay as they were.
 
 ## Step 2: Your meals
 
@@ -27,9 +29,9 @@ Each meal has its own card. Tap one to open it: every food shows the exact amoun
 ### Change what you like
 
 - **Add a food**: type in the search box under the foods ("chicken", "oats", "greek yogurt"). Pick a result and the grams of every food in the meal refit by themselves.
-- **Swap a food**: tap **Swap** next to it. Regimen suggests foods of the same kind (a protein for a protein, a carb for a carb) with the amount already worked out. Tap **Use** and the rest of the meal is refitted around it.
+- **Swap a food**: tap **Swap** next to it and pick from the list of similar foods (a protein for a protein, a carb for a carb). The grams for the whole meal are worked out again automatically. Regimen then asks if you want to **always** use the new food in that meal, or **just this once**.
 - **Remove a food**: tap **Remove**. The other foods refit to cover the gap.
-- **Set an exact amount**: type a number of grams yourself. That amount stays fixed; tap **Refit portions** and the other foods adjust around it.
+- **Set an exact amount**: type a number of grams yourself. That food shows **Fixed at …** and the other foods adjust around it straight away. Tap **Auto** to let Regimen work it out again.
 - **More options** shows the meal's numbers against its target, plus Mark prepped and saved meals.
 
 ![Swap a food: alternatives with the amount already worked out](/img/app/swap.webp)

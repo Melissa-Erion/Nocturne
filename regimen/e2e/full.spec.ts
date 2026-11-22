@@ -53,28 +53,22 @@ test('Meals: add a food, swap it, expand the target split', async ({ page }) => 
   await expect(page.getByText(/Portions updated to fit this meal/)).toBeVisible();
   await page.getByRole('button', { name: 'Swap', exact: true }).first().click();
   await expect(page).toHaveURL(/\/alternatives$/);
-  await page.getByRole('button', { name: /^Use \d/ }).first().click();
+  await page.getByRole('button', { name: /^Use / }).first().click();
+  await expect(page.getByText(/^Swapped in /)).toBeVisible();
+  await page.getByRole('button', { name: 'Just this once' }).click();
   await expect(page).toHaveURL(/\/meals$/);
-  await expect(page.getByText(/refitted around it/)).toBeVisible();
   await page.getByLabel('Show how targets are split').click();
   await expect(page.getByText('Sum of meals')).toBeVisible();
   errors.expectNone();
 });
 
-test('Meals: choose my foods builds every meal from the picks and survives a reload', async ({ page }) => {
+test('Meals: choose foods, change one meal, fix an amount, swap for good', async ({ page }) => {
   const errors = watchErrors(page);
   await page.goto('/meals');
+  await expect(page.getByText(/^Based on your goal/)).toBeVisible();
   await page.getByRole('button', { name: 'Choose my foods' }).click();
-  await expect(page.getByText(/step 1 of 4/)).toBeVisible();
-  // breakfast: keep what's there and add oats; lunch: start from scratch with chicken and rice
-  await page.getByRole('button', { name: 'Add Rolled oats' }).click();
-  await page.getByRole('button', { name: /^Next: / }).click();
-  const picked = page.getByRole('button', { name: /^Remove / }).filter({ hasText: '✓' });
-  while (await picked.count()) await picked.first().click();
-  await page.getByRole('button', { name: 'Add Chicken breast, skinless' }).click();
-  await page.getByRole('button', { name: 'Add White rice, long-grain' }).click();
-  await page.getByRole('button', { name: /^Next: / }).click();
-  await page.getByRole('button', { name: /^Next: / }).click();
+  for (const f of ['Greek yogurt, 0% plain', 'Rolled oats', 'Chicken breast, skinless', 'White rice, long-grain', 'Broccoli, steamed', 'Banana', 'Almonds'])
+    await page.getByRole('button', { name: 'Add ' + f }).click();
   await page.getByRole('button', { name: 'Build my meals' }).click();
   await expect(page.getByText(/Your meals are built/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Change my foods' })).toBeVisible();
@@ -84,8 +78,29 @@ test('Meals: choose my foods builds every meal from the picks and survives a rel
   await expect(page.getByLabel('Rolled oats grams')).toBeVisible();
   await page.getByLabel(/^Open Lunch/).click();
   await expect(page.getByLabel('Chicken breast, skinless grams')).toBeVisible();
-  await expect(page.getByLabel('White rice, long-grain grams')).toBeVisible();
-  await expect(page.getByLabel('Tuna, canned in water grams')).toHaveCount(0);
+  await expect(page.getByLabel('Broccoli, steamed grams')).toBeVisible();
+
+  // change just this meal: chicken out, tofu in
+  await page.getByRole('button', { name: 'Change foods' }).click();
+  await page.getByRole('button', { name: 'Remove Chicken breast, skinless' }).filter({ hasText: '✓' }).click();
+  await page.getByRole('button', { name: 'Add Tofu, firm' }).click();
+  await page.getByRole('button', { name: 'Save meal' }).click();
+  await expect(page.getByLabel('Tofu, firm grams')).toBeVisible();
+  await expect(page.getByLabel('Chicken breast, skinless grams')).toHaveCount(0);
+
+  // typing an amount fixes it; Auto gives it back
+  await page.getByLabel('White rice, long-grain grams').fill('60');
+  await page.getByLabel('White rice, long-grain grams').blur();
+  await expect(page.getByText('Fixed at 60 g')).toBeVisible();
+  await page.getByRole('button', { name: 'Work out White rice, long-grain automatically' }).click();
+  await expect(page.getByText(/^Fixed at/)).toHaveCount(0);
+
+  // swap for good
+  await page.getByRole('button', { name: 'Swap', exact: true }).first().click();
+  await expect(page.getByText(/^Swap .* for…$/)).toBeVisible();
+  await page.getByRole('button', { name: /^Use / }).first().click();
+  await page.getByRole('button', { name: 'Yes, always' }).click();
+  await expect(page).toHaveURL(/\/meals$/);
   await page.reload();
   await expect(page.getByRole('button', { name: 'Change my foods' })).toBeVisible();
   errors.expectNone();

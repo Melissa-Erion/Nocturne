@@ -9,7 +9,7 @@ import { RG as RGS, useRG } from '@/store/rg';
 import { useUI } from '@/store/store';
 import { useAccess } from '@/store/access';
 import { ExtrasList, LogExtraDialog } from './eat/LogExtra';
-import { ChooseFoods } from './eat/ChooseFoods';
+import { ChooseFoodsDialog, MealFoodsDialog } from './eat/ChooseFoods';
 import {
   Btn, Card, CardTitle, ColLabel, Dialog, Field, Grid, H, Icon, Input, Kicker, Muted, NotMedical, NumInput, Row, Rule, Seg, Select, T, Tap, useLayout,
 } from '@/ui/kit';
@@ -47,6 +47,10 @@ const QUICK: [string, string[]][] = [
   ['fat', ['avocado', 'almonds', 'oil', 'pb']],
 ];
 
+/** Close enough to call a meal on target: each macro within 20% of the meal's target, or 5 g, whichever is larger. */
+const onTarget = (m: { p: number; c: number; f: number }, t: { p: number; c: number; f: number }) =>
+  (['p', 'c', 'f'] as const).every(k => Math.abs(m[k] - t[k]) <= Math.max(5, t[k] * 0.2));
+
 export default function MealsScreen() {
   const RG = useRG();
   const { width } = useLayout();
@@ -64,7 +68,8 @@ export default function MealsScreen() {
   const [usda, setUsda] = useState<{ q: string; foods: Food[]; loading: boolean; error: string | null }>({ q: '', foods: [], loading: false, error: null });
   const [favName, setFavName] = useState<string | null>(null);
   const [more, setMore] = useState(false);
-  const [choose, setChoose] = useState<{ start: number; single: boolean } | null>(null);
+  const [likesOpen, setLikesOpen] = useState(false);
+  const [mealEdit, setMealEdit] = useState<number | null>(null);
   useEffect(() => { if (isMealParam(rp)) { setDate(rp.date); setMeal(rp.meal || 0); } }, [rp]);
 
   // live USDA search (debounced) alongside the local library
@@ -115,7 +120,6 @@ export default function MealsScreen() {
   const dd = (v: number, t: number, kc: boolean) => { const x = v - t; const a = kc ? Math.round(Math.abs(x)) : RG.r1(Math.abs(x)); return { d: (a === 0 ? '±0' : (x > 0 ? '+' : '−') + a) + (kc ? ' kcal' : ' g'), color: Math.abs(x) <= (kc ? 25 : 3) ? C.a300 : C.n300 }; };
   const totals = tg ? ([['Calories', tot.kcal, tg.kcal, true], ['Protein', tot.p, tg.p, false], ['Carbs', tot.c, tg.c, false], ['Fat', tot.f, tg.f, false]] as [string, number, number, boolean][])
     .map(([k, v, t, kc]) => ({ k, v: kc ? RG.num(v) : String(RG.r1(v)), t: kc ? RG.num(t) : t + ' g', ...dd(v, t, kc) })) : [];
-  const gap = tg ? Math.max(Math.abs(tot.p - tg.p), Math.abs(tot.c - tg.c), Math.abs(tot.f - tg.f)) : 0;
   const bases = (meal?.items || []).map(i => RG.food(i.foodId)?.basis);
   const cooked = bases.filter(b => b === 'cooked').length, raw = bases.filter(b => b === 'raw').length;
 
@@ -158,14 +162,14 @@ export default function MealsScreen() {
     if (mm.logged) return { text: 'Eaten', tone: C.a300 };
     if (!mm.items.length) return { text: 'No foods yet', tone: C.n400 };
     const t = adj[i] || tgs[i]; const m = RG.sumM(mm.items);
-    const g = t ? Math.max(Math.abs(m.p - t.p), Math.abs(m.c - t.c), Math.abs(m.f - t.f)) : 0;
-    return g <= 5 ? { text: 'On target', tone: C.a300 } : { text: 'Close to target', tone: C.n300 };
+    return !t || onTarget(m, t) ? { text: 'On target', tone: C.a300 } : { text: 'Close to target', tone: C.n300 };
   };
   // Friendly one-liner instead of macro arithmetic. Only the biggest miss is named.
   const worst = tg ? (([['protein', tot.p - tg.p], ['carbs', tot.c - tg.c], ['fat', tot.f - tg.f]] as [string, number][]).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))[0]) : null;
   const weigh = cooked && raw ? 'Weigh cooked foods after cooking and raw foods before.' : cooked ? 'Weigh these foods after cooking.' : raw ? 'Weigh these foods raw, before cooking.' : '';
-  const statusLine = !items.length ? '' : gap <= 5 ? `On target for this meal. ${weigh}`
-    : `Close: ${worst![0]} is ${RG.r1(Math.abs(worst![1]))} g ${worst![1] > 0 ? 'over' : 'under'}. Tap Refit portions, or add or swap a food. ${weigh}`;
+  const hit = !tg || onTarget(tot, tg);
+  const statusLine = !items.length ? '' : hit ? `On target for this meal. ${weigh}`
+    : `Close: ${worst![0]} is ${RG.r1(Math.abs(worst![1]))} g ${worst![1] > 0 ? 'over' : 'under'}, the nearest these foods get. Adding or swapping a food can close it. ${weigh}`;
 
   const Section = ({ title, sub, children }: { title: string; sub?: string; children?: ReactNode }) => (
     <View style={{ gap: 10, marginTop: 6 }}>
@@ -182,7 +186,8 @@ export default function MealsScreen() {
       {/* header */}
       <View style={{ gap: 4 }}>
         <H size={28}>{date === RG.TODAY ? "Today's meals" : `Meals · ${RG.fmtD(date)}`}</H>
-        <Muted size={13}>{`Portioned to hit ${RG.num(DT.kcal)} kcal and ${DT.protein} g protein${day.type === 'rest' ? ' (rest day)' : ''}. ${done} of ${day.meals.length} meals eaten.`}</Muted>
+        <Muted size={13}>{`Based on your goal (${P.goal || 'your goal'}): ${RG.num(DT.kcal)} kcal and ${DT.protein} g protein ${day.type === 'rest' ? 'on rest days' : 'today'}. ${done} of ${day.meals.length} meals eaten.`}</Muted>
+        <Row><Btn variant="ghost" size="sm" icon="gear" title="Change goal or targets" onPress={() => RG.go('settings')} /></Row>
         <Row gap={4} style={{ marginTop: 4 }}>
           <Btn iconOnly icon="caret-left" label="Previous day" onPress={() => full ? setDate(RG.add(date, -1)) : locked('mealsWeek')} />
           <T size={14} center style={{ minWidth: 110 }}>{date === RG.TODAY ? 'Today' : RG.fmtD(date)}</T>
@@ -194,18 +199,18 @@ export default function MealsScreen() {
       {!chosen ? (
         <Card gap={10} pad={[18, 20]} style={{ borderWidth: 1, borderColor: C.a700 }}>
           <Kicker>Start here · step 1 of 2</Kicker>
-          <T size={18} w={600}>Choose foods you like for each meal</T>
-          <Muted size={13}>Takes about a minute. Tap what you'd eat for breakfast, lunch and so on, and Regimen works out exactly how much of each to eat. Until then, the meals below are samples.</Muted>
-          <Row><Btn variant="primary" size="lg" icon="fork-knife" title="Choose my foods" onPress={() => setChoose({ start: 0, single: false })} /></Row>
+          <T size={18} w={600}>Tell Regimen what you like to eat</T>
+          <Muted size={13}>Takes about a minute. Tap the foods you like and Regimen builds your meals from them, with the exact grams to hit your targets. Until then, the meals below are samples.</Muted>
+          <Row><Btn variant="primary" size="lg" icon="fork-knife" title="Choose my foods" onPress={() => setLikesOpen(true)} /></Row>
         </Card>
       ) : (
         <Card gap={6} pad={[12, 16]}>
           <Row gap={10} wrap>
             <View style={{ flex: 1, minWidth: 220 }}>
               <T size={14} w={600}>How to use your meals</T>
-              <Muted size={12}>Open a meal, weigh each food to the grams shown, then tap Mark as eaten.</Muted>
+              <Muted size={12}>Open a meal, weigh each food to the grams shown, then tap Mark as eaten. Swapping or adding a food recalculates the grams for you.</Muted>
             </View>
-            <Btn icon="fork-knife" title="Change my foods" onPress={() => setChoose({ start: 0, single: false })} />
+            <Btn icon="fork-knife" title="Change my foods" onPress={() => setLikesOpen(true)} />
           </Row>
         </Card>
       )}
@@ -250,7 +255,7 @@ export default function MealsScreen() {
                       </View>
                       {it.it.estimate ? <Muted>estimate</Muted> : (
                         <Row gap={4}>
-                          <NumInput value={Math.round(it.it.g)} onValue={v => upM(mm => { mm.items[it.ii].g = Math.max(0, v ?? 0); mm.items[it.ii].locked = true; })} size={17} height={42}
+                          <NumInput value={Math.round(it.it.g)} onValue={v => { if (v != null && meal.items[it.ii]) RG.setAmount(date, mi, meal.items[it.ii].key!, v); }} size={17} height={42}
                             style={{ width: 84, textAlign: 'right', fontVariant: ['tabular-nums'] }} accessibilityLabel={`${it.name} grams`} />
                           <T size={14} color={C.n400}>g</T>
                         </Row>
@@ -259,6 +264,10 @@ export default function MealsScreen() {
                     <Row gap={2}>
                       {!it.it.estimate && <Btn variant="ghost" size="sm" icon={full ? 'swap' : 'lock-simple'} title="Swap" onPress={() => RG.go('alternatives', { date, meal: mi, key: it.it.key, foodId: it.it.foodId, g: it.it.g })} />}
                       <Btn variant="ghost" size="sm" icon="x" color={C.n400} title="Remove" label={`Remove ${it.name}`} onPress={() => upM(mm => { mm.items.splice(it.ii, 1); if (tg && mm.items.length) mm.items = RG.solve(mm.items, tg); })} />
+                      {it.it.locked && !it.it.estimate && <>
+                        <T size={12} color={C.n400} style={{ marginLeft: 8 }}>{`Fixed at ${Math.round(it.it.g)} g`}</T>
+                        <Btn variant="ghost" size="sm" title="Auto" label={`Work out ${it.name} automatically`} onPress={() => RG.autoAmount(date, mi, it.it.key!)} />
+                      </>}
                       {more && <T size={11} tab color={C.n500} style={{ marginLeft: 'auto' }}>{`${it.macro.split(' · ')[0]} kcal`}</T>}
                     </Row>
                   </View>
@@ -281,14 +290,13 @@ export default function MealsScreen() {
                 )}
               </View>
 
-              {!!statusLine && <T size={13} color={gap <= 5 ? C.a300 : C.n300}>{statusLine}</T>}
-              {gap > 5 && !!items.length && <Row><Btn icon="calculator" title="Refit portions" onPress={() => { upM(mm => { mm.items = RG.solve(mm.items, tg); }); RG.toast('Portions refitted around the amounts you typed.'); }} /></Row>}
+              {!!statusLine && <T size={13} color={hit ? C.a300 : C.n300}>{statusLine}</T>}
 
               {/* the one main action, then the less common ones */}
               <Row gap={6} wrap>
                 <Btn variant={meal.logged ? 'secondary' : 'primary'} icon="check-circle" iconFill={meal.logged} title={meal.logged ? 'Eaten · undo' : 'Mark as eaten'}
                   onPress={() => { if (!meal.logged) { track('meal_eaten', { from: 'meals' }); const nx = day.meals.findIndex((m, k) => k > mi && !m.logged); upM(mm => { mm.logged = true; }); if (nx >= 0) setMeal(nx); } else upM(mm => { mm.logged = false; }); }} />
-                <Btn icon="fork-knife" title="Change foods" onPress={() => setChoose({ start: mi, single: true })} />
+                <Btn icon="fork-knife" title="Change foods" onPress={() => setMealEdit(mi)} />
                 <Btn variant="ghost" icon={more ? 'caret-down' : 'caret-right'} title={more ? 'Fewer options' : 'More options'} onPress={() => setMore(v => !v)} />
               </Row>
 
@@ -327,7 +335,7 @@ export default function MealsScreen() {
                       ))}
                     </Grid>
                   </View>
-                  <Muted size={11}>Typing an amount keeps it fixed; Refit portions then adjusts the other foods around it.</Muted>
+                  <Muted size={11}>Typing an amount keeps that food fixed and the other foods adjust around it. Tap Auto to undo.</Muted>
                   <Row gap={6} wrap>
                     <Btn variant="ghost" icon="package" title={meal.prepped ? 'Prepped · undo' : 'Mark prepped'} onPress={() => upM(mm => { mm.prepped = !mm.prepped; })} />
                     <Btn variant="ghost" icon={full ? 'star' : 'lock-simple'} title="Save as favourite meal" onPress={() => full ? openFav() : locked('favourites')} />
@@ -405,7 +413,8 @@ export default function MealsScreen() {
         </>}
       </Card>
 
-      <ChooseFoods open={!!choose} onClose={() => setChoose(null)} start={choose?.start ?? 0} single={!!choose?.single} />
+      <ChooseFoodsDialog open={likesOpen} onClose={() => setLikesOpen(false)} />
+      <MealFoodsDialog open={mealEdit != null} onClose={() => setMealEdit(null)} meal={mealEdit ?? 0} />
       <Dialog open={favName != null} onClose={() => setFavName(null)} title="Save as favourite meal"
         body="Saved meals appear in Recipes & Saved Meals and can be loaded into any meal slot."
         actions={<><Btn title="Cancel" onPress={() => setFavName(null)} /><Btn variant="primary" title="Save" disabled={!favName?.trim()} onPress={saveFav} /></>}>

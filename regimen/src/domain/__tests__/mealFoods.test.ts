@@ -39,3 +39,51 @@ describe('setMealFoods', () => {
     expect(back!.profile.mealFoods).toEqual([['oats', 'yog'], ['chicken_c'], [], []]);
   });
 });
+
+describe('building meals from the foods you like', () => {
+  it('puts a protein and a carb in every meal, veg in main meals, and suits breakfast and snacks', () => {
+    const ctx = make();
+    const likes = ['chicken_c', 'salmon_r', 'eggs', 'yog', 'oats', 'rice_c', 'potato_c', 'banana', 'broccoli_c', 'almonds', 'avocado'];
+    const plan = R.mealsFromLikes(ctx.s, likes, ['Breakfast', 'Lunch', 'Snack', 'Dinner']);
+    const role = (id: string) => R.food(ctx.s, id)!.role;
+    plan.forEach(m => { expect(m.map(role)).toContain('protein'); expect(m.map(role)).toContain('carb'); m.forEach(id => expect(likes).toContain(id)); });
+    expect(['eggs', 'yog']).toContain(plan[0].find(id => role(id) === 'protein'));
+    expect(plan[0]).toContain('oats');
+    expect(plan[1]).toContain('broccoli_c'); expect(plan[3]).toContain('broccoli_c');
+    expect(plan[1].find(id => role(id) === 'protein')).not.toBe(plan[3].find(id => role(id) === 'protein'));
+  });
+});
+
+describe('automatic amounts', () => {
+  it('a swap replaces the food and works the whole meal out again (nothing fixed)', () => {
+    const ctx = make();
+    R.setMealFoods(ctx, [['oats', 'yog'], ['chicken_c', 'rice_c'], [], []]);
+    const m = R.getDay(ctx, TODAY).meals[1]; const chicken = m.items.find(x => x.foodId === 'chicken_c')!;
+    expect(R.swapFood(ctx, TODAY, 1, chicken.key!, 'salmon_r')).toBe(true);
+    const it = R.getDay(ctx, TODAY).meals[1].items.find(x => x.key === chicken.key)!;
+    expect(it.foodId).toBe('salmon_r'); expect(it.locked).toBe(false);
+    const t = R.dayMealTargets(ctx, TODAY)[1]; const sum = R.sumM(ctx.s, R.getDay(ctx, TODAY).meals[1].items);
+    expect(Math.abs(sum.p - t.p)).toBeLessThan(8);
+  });
+
+  it('a typed amount stays fixed while the other foods adjust, and Auto undoes it', () => {
+    const ctx = make();
+    R.setMealFoods(ctx, [['oats', 'yog'], ['chicken_c', 'rice_c', 'potato_c'], [], []]);
+    const get = (id: string) => R.getDay(ctx, TODAY).meals[1].items.find(x => x.foodId === id)!;
+    const potato0 = get('potato_c').g;
+    R.setAmount(ctx, TODAY, 1, get('rice_c').key!, 20);
+    expect(get('rice_c').g).toBe(20); expect(get('rice_c').locked).toBe(true);
+    expect(get('potato_c').g).toBeGreaterThan(potato0); // the other carb makes up for less rice
+    R.autoAmount(ctx, TODAY, 1, get('rice_c').key!);
+    expect(get('rice_c').locked).toBe(false); expect(get('rice_c').g).not.toBe(20);
+  });
+
+  it('"always use this instead" updates the saved foods for that meal from today on', () => {
+    const ctx = make();
+    R.setMealFoods(ctx, [['oats', 'yog'], ['chicken_c', 'rice_c'], [], []]);
+    R.rememberSwap(ctx, 1, 'chicken_c', 'tofu');
+    expect(ctx.s.profile.mealFoods![1]).toEqual(['tofu', 'rice_c']);
+    expect(ids(ctx, R.add(TODAY, 1), 1)).toEqual(['rice_c', 'tofu']);
+    expect(ctx.s.profile.mealFoods![0]).toEqual(['oats', 'yog']);
+  });
+});
