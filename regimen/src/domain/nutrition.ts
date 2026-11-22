@@ -170,7 +170,7 @@ function portion(s: State, raw: { foodId: string; g: number; estimate?: MealItem
 const FIT: Record<'breakfast' | 'snack' | 'main', Partial<Record<Food['role'], string[]>>> = {
   breakfast: { protein: ['yog', 'eggs', 'cottage', 'eggw', 'soyog', 'whey', 'tofu'], carb: ['oats', 'bread', 'banana', 'blueb', 'tortilla'], fat: ['pb', 'almonds', 'avocado', 'cheddar'] },
   snack: { protein: ['yog', 'cottage', 'whey', 'soyog', 'eggs', 'tuna', 'turkey', 'tofu'], carb: ['banana', 'blueb', 'oats', 'bread', 'tortilla'], fat: ['almonds', 'pb', 'hummus', 'cheddar', 'avocado'] },
-  main: { protein: ['chicken_c', 'salmon_r', 'beef_c', 'turkey', 'cod_c', 'tuna', 'tofu', 'eggs', 'lentils', 'chick'], carb: ['rice_c', 'potato_c', 'sweet_c', 'pasta_c', 'quinoa_c', 'tortilla', 'bread', 'potato_r', 'lentils', 'chick'], veg: ['broccoli_c', 'peppers', 'spinach', 'greens', 'broccoli_r'], fat: ['avocado', 'oil', 'feta', 'cheddar', 'hummus'] },
+  main: { protein: ['chicken_c', 'gchicken_c', 'gturkey_c', 'salmon_r', 'beef_c', 'turkey', 'cod_c', 'tuna', 'tofu', 'eggs', 'lentils', 'chick'], carb: ['rice_c', 'potato_c', 'sweet_c', 'pasta_c', 'quinoa_c', 'tortilla', 'bread', 'potato_r', 'lentils', 'chick'], veg: ['broccoli_c', 'peppers', 'spinach', 'greens', 'broccoli_r'], fat: ['avocado', 'oil', 'feta', 'cheddar', 'hummus'] },
 };
 /** Whether a food is a usual choice for this kind of meal (eggs at breakfast, rice at dinner…). */
 export const suitsMeal = (foodId: string, label: string) => Object.values(FIT[mealKind(label)]).some(l => l?.includes(foodId));

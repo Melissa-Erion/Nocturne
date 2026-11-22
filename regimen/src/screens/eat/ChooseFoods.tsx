@@ -11,7 +11,7 @@ import { C } from '@/ui/theme';
 
 /** Common foods, grouped the way people think about a plate. */
 const GROUPS: [string, string, string[]][] = [
-  ['protein', 'Protein', ['chicken_c', 'eggs', 'yog', 'turkey', 'beef_c', 'salmon_r', 'tuna', 'cod_c', 'tofu', 'cottage', 'eggw', 'whey']],
+  ['protein', 'Protein', ['chicken_c', 'gchicken_c', 'gturkey_c', 'eggs', 'yog', 'turkey', 'beef_c', 'salmon_r', 'tuna', 'cod_c', 'tofu', 'cottage', 'eggw', 'whey']],
   ['carb', 'Carbs', ['oats', 'rice_c', 'potato_c', 'sweet_c', 'pasta_c', 'quinoa_c', 'bread', 'tortilla', 'lentils', 'chick']],
   ['veg', 'Fruit & veg', ['banana', 'blueb', 'broccoli_c', 'spinach', 'greens', 'peppers']],
   ['fat', 'Fats', ['avocado', 'almonds', 'pb', 'oil', 'cheddar', 'feta', 'hummus']],
