@@ -1,4 +1,4 @@
-/* 17. Onboarding (6 steps) — port of prototype/FitOnboarding.dc.html.
+/* 17. Onboarding (7 steps, incl. foods you like) — port of prototype/FitOnboarding.dc.html.
    Works from a blank profile (new account: name '', weight/height/age null, empty lists). */
 import { useEffect, useState } from 'react';
 import { track } from '@/lib/track';
@@ -11,6 +11,7 @@ import { Btn, Card, Check, Field, H, Icon, Input, Muted, NotMedical, NumInput, R
 import { alpha, C, R } from '@/ui/theme';
 import { Grid, Pick, TimeInput } from './prep/ui';
 import { HeightField } from './HeightField';
+import { FoodLikes, likesProblem } from './eat/ChooseFoods';
 import { Screen } from './Shell';
 import { useAccess } from '@/store/access';
 import { takePrefill } from '@/lib/prefill';
@@ -21,6 +22,7 @@ interface Draft {
   trainingDays: number[]; duration: N; workoutTime: string; location: string; equipment: string[]; priorities: string[];
   kcal: N; protein: N; carbs: N; fat: N; rest: { kcal: N; protein: N; carbs: N; fat: N } | null; meals: N; dietPrefs: string[]; allergies: string; exclude: string;
   checkInDay: number; checkInFreq: string; remLead: number; weighTime: string; quietStart: string; quietEnd: string;
+  likes: string[];
 }
 
 const TITLES: [string, string][] = [
@@ -28,6 +30,7 @@ const TITLES: [string, string][] = [
   ['About you', 'Used only to estimate energy needs. Stored privately.'],
   ['Your training week', 'Workouts are placed on these days in rotation order, avoiding back-to-back sessions for the same muscles.'],
   ['Daily targets', 'Start from the estimate or enter your own. Meals are portioned to these numbers.'],
+  ['What do you like to eat?', 'Tap every food you would happily eat. Regimen builds your meals from them and works out the grams.'],
   ['Check-ins & reminders', 'Pick a rhythm you can keep. Every reminder is adjustable later.'],
   ['Review', 'Confirm and save. You can change any of this later in Me › Settings.'],
 ];
@@ -58,6 +61,7 @@ export default function OnboardingScreen() {
       equipment: [...(P.equipment || [])], priorities: [...(P.priorities || [])],
       kcal: P.kcal, protein: w != null ? Math.round(w * 2.20462) : P.protein, carbs: P.carbs, fat: P.fat, rest: P.restTargets ? { ...P.restTargets } : null, meals: P.mealsPerDay, dietPrefs: [...(P.dietPrefs || [])],
       allergies: (P.allergies || []).join(', '), exclude: (P.exclude || []).join(', '),
+      likes: (P.mealFoods || []).flat().filter((x, i, a) => a.indexOf(x) === i),
       checkInDay: Number(P.checkInDay) || 0, checkInFreq: P.checkInFreq || 'Weekly', remLead: 120, weighTime: '07:15', quietStart: P.quietStart || '22:00', quietEnd: P.quietEnd || '07:00',
     };
   });
@@ -147,6 +151,7 @@ export default function OnboardingScreen() {
       Object.keys(s.days).forEach(k => { if (k > RG.TODAY) delete s.days[k]; });
     });
     RG.setMealsPerDay(meals); // meal times for any new meals, and today's meals re-portioned to the new targets
+    if (!likesProblem(RG, d.likes)) RG.setMealFoods(RG.mealsFromLikes(d.likes, RG.mealTargets('training').map(t => t.label)));
     if (kg != null && kg > 20 && Math.abs(kg - (RG.avgWeight() ?? 0)) > 0.05) RG.logWeight(kg);
     RG.regenerate(RG.TODAY); RG.go(full ? 'dashboard' : 'upgrade'); RG.toast(wasSample ? 'Setup saved. Sample data cleared — your history starts today.' : 'Setup saved. Future workouts rescheduled, history kept.', false);
   };
@@ -160,7 +165,8 @@ export default function OnboardingScreen() {
       if (d.age > 100) return RG.toast('Check your age: that number looks off.', false);
     }
     if (step === 3 && !d.trainingDays.length) return RG.toast('Choose at least one training day.');
-    if (step < 6) setStep(step + 1); else save();
+    if (step === 5) { const pr = likesProblem(RG, d.likes); if (pr) return RG.toast(pr, false); }
+    if (step < 7) setStep(step + 1); else save();
   };
   const exploreSample = async () => { setBusy(true); try { await RG.reset(); RG.go('dashboard'); RG.toast('Sample data loaded. When you’re ready, use “Remove sample data & set up my own” in the banner at the top.'); } finally { setBusy(false); } };
 
@@ -174,6 +180,7 @@ export default function OnboardingScreen() {
     ['Targets', `${d.rest ? 'Training days: ' : ''}${RG.num(d.kcal || 0)} kcal · ${d.protein ?? 0} P · ${d.carbs ?? 0} C · ${d.fat ?? 0} F · ${d.meals ?? '—'} meals`],
     ...(d.rest ? [['Rest-day targets', `${RG.num(d.rest.kcal || d.kcal || 0)} kcal · ${d.rest.protein ?? 0} P · ${d.rest.carbs ?? 0} C · ${d.rest.fat ?? 0} F`] as [string, string]] : []),
     ['Diet', [d.dietPrefs.join(', '), d.allergies && 'allergies: ' + d.allergies, d.exclude && 'exclude: ' + d.exclude].filter(Boolean).join(' · ') || 'No restrictions'],
+    ['Foods you like', d.likes.map(id => RG.food(id)?.name.split(',')[0]).filter(Boolean).join(', ') || '—'],
     ['Check-ins', `${d.checkInFreq} on ${RG.DFULL[d.checkInDay]}`],
     ['Workout reminder', d.remLead ? `${d.remLead >= 60 ? d.remLead / 60 + ' h' : d.remLead + ' min'} before (${RG.clock(hm(toMin(d.workoutTime) - d.remLead))})` : 'Off'],
     ['Quiet hours', `${RG.clock(d.quietStart)}–${RG.clock(d.quietEnd)}`],
@@ -184,11 +191,11 @@ export default function OnboardingScreen() {
       <View style={{ gap: 18, maxWidth: 760, width: '100%' }}>
         <View style={{ gap: 10 }}>
           <Row gap={10} align="center">
-            <Muted style={{ flex: 1 }}>{`Setup · step ${step} of 6 · editable any time in Settings, history is never lost`}</Muted>
+            <Muted style={{ flex: 1 }}>{`Setup · step ${step} of 7 · editable any time in Settings, history is never lost`}</Muted>
             <Btn variant="ghost" size="sm" title="Exit setup" onPress={() => { RG.update(s => { s.profile.onboarded = true; }); RG.go('settings'); }} />
           </Row>
           <View style={{ flexDirection: 'row', gap: 4 }}>
-            {[1, 2, 3, 4, 5, 6].map(i => <View key={i} style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: i <= step ? C.accent : C.n800 }} />)}
+            {[1, 2, 3, 4, 5, 6, 7].map(i => <View key={i} style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: i <= step ? C.accent : C.n800 }} />)}
           </View>
           <H size={30} style={{ marginTop: 4 }}>{TITLES[step - 1][0]}</H>
           <T size={14} color={C.n400}>{TITLES[step - 1][1]}</T>
@@ -305,6 +312,10 @@ export default function OnboardingScreen() {
         )}
 
         {step === 5 && (
+          <FoodLikes value={d.likes} onChange={v => setD({ likes: v })} />
+        )}
+
+        {step === 6 && (
           <Grid min={180} gap={12}>
             <Field label="Check-in day"><Select<number> value={d.checkInDay} options={RG.DFULL.map((l, i) => ({ value: i, label: l }))} onChange={set('checkInDay')} height={44} title="Check-in day" /></Field>
             <Field label="Check-in frequency"><Select value={d.checkInFreq} options={['Weekly', 'Biweekly', 'Monthly']} onChange={set('checkInFreq')} height={44} title="Check-in frequency" /></Field>
@@ -315,7 +326,7 @@ export default function OnboardingScreen() {
           </Grid>
         )}
 
-        {step === 6 && (
+        {step === 7 && (
           <>
             <Card gap={0}>
               {review.map(([k, v]) => (
@@ -336,7 +347,7 @@ export default function OnboardingScreen() {
 
         <Row gap={8} style={{ justifyContent: 'space-between', paddingTop: 6 }}>
           <Btn title="Back" disabled={step === 1} onPress={() => setStep(Math.max(1, step - 1))} style={{ minHeight: 44 }} />
-          <Btn variant="primary" title={step < 6 ? 'Continue' : 'Save & build schedule'} onPress={next} style={{ minHeight: 44, paddingHorizontal: 22 }} />
+          <Btn variant="primary" title={step < 7 ? 'Continue' : 'Save & build schedule'} onPress={next} style={{ minHeight: 44, paddingHorizontal: 22 }} />
         </Row>
       </View>
     </Screen>

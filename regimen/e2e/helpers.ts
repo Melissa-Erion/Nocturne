@@ -27,12 +27,16 @@ export async function startWithSample(page: Page) {
 /** Fresh visitor → completes the 6-step setup with sensible answers. */
 export async function finishSetup(page: Page) {
   await page.goto('/');
-  await expect(page.getByText(/step 1 of 6/)).toBeVisible();
-  for (let i = 0; i < 8 && page.url().includes('onboarding'); i++) {
+  await expect(page.getByText(/step 1 of 7/)).toBeVisible();
+  for (let i = 0; i < 9 && page.url().includes('onboarding'); i++) {
     if (await page.getByText('About you', { exact: true }).count()) {
       const inputs = page.locator('input:visible');
       const values = ['Sam', '72', '66', '168', '32']; // name, weight, goal weight, height, age
       for (let k = 0; k < values.length; k++) await inputs.nth(k).fill(values[k]);
+    }
+    if (await page.getByText('What do you like to eat?', { exact: true }).count()) {
+      for (const f of ['Chicken breast, skinless', 'Greek yogurt, 0% plain', 'Rolled oats', 'White rice, long-grain', 'Broccoli, steamed', 'Banana', 'Avocado'])
+        await page.getByRole('button', { name: 'Add ' + f }).click();
     }
     await page.getByRole('button', { name: /^(Continue|Save & build schedule)$/ }).first().click();
     await page.waitForTimeout(500);

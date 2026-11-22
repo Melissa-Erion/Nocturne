@@ -1,15 +1,15 @@
-/* Eat › Meals: one meal at a time (opens on the next meal not yet eaten), foods with exact grams, Swap, Mark as eaten.
-   Portions refit automatically when foods are added, removed or loaded. The per-meal target split is a collapsible section. */
+/* Eat › Meals: step 1 "Choose my foods" (until done), then one card per meal (the open one shows foods with exact grams,
+   Swap, Mark as eaten), unplanned food, plan ahead, and the per-meal target split under Advanced. */
 import { useEffect, useState, type ReactNode } from 'react';
 import { track } from '@/lib/track';
 import { ScrollView, View, type StyleProp, type ViewStyle } from 'react-native';
 import type { DayPlan, DistributionMode, Food, Meal, State } from '@/domain/types';
-import type { IconName } from '@/ui/icons';
 import { searchUsda, usdaEnabled } from '@/lib/foodApi';
 import { RG as RGS, useRG } from '@/store/rg';
 import { useUI } from '@/store/store';
 import { useAccess } from '@/store/access';
 import { ExtrasList, LogExtraDialog } from './eat/LogExtra';
+import { ChooseFoodsDialog, MealFoodsDialog } from './eat/ChooseFoods';
 import {
   Btn, Card, CardTitle, ColLabel, Dialog, Field, Grid, H, Icon, Input, Kicker, Muted, NotMedical, NumInput, Row, Rule, Seg, Select, T, Tap, useLayout,
 } from '@/ui/kit';
@@ -39,11 +39,6 @@ const Cell = ({ children, flex = 1, style }: { children?: ReactNode; flex?: numb
 const Th = ({ children, flex }: { children?: ReactNode; flex?: number }) =>
   <Cell flex={flex} style={{ paddingVertical: 6 }}><T size={11} upper color={alpha(C.text, 0.6)} style={{ letterSpacing: 0.88 }}>{children}</T></Cell>;
 
-const GUIDE: [IconName, string, string][] = [
-  ['list-checks', 'Check each meal', 'Tap a meal below to see its foods and exact grams. Weigh foods as shown.'],
-  ['swap', 'Change what you like', 'Swap a food, remove it, or search to add your own. The grams refit to your targets by themselves.'],
-  ['check-circle', 'Mark it as eaten', 'Tap Mark as eaten after each meal so Today shows what you have left.'],
-];
 /** Common foods offered as one-tap buttons when a meal is empty. */
 const QUICK: [string, string[]][] = [
   ['protein', ['chicken_c', 'eggs', 'yog', 'tuna', 'salmon_r', 'tofu']],
@@ -51,6 +46,10 @@ const QUICK: [string, string[]][] = [
   ['veg', ['broccoli_c', 'spinach', 'greens']],
   ['fat', ['avocado', 'almonds', 'oil', 'pb']],
 ];
+
+/** Close enough to call a meal on target: each macro within 20% of the meal's target, or 5 g, whichever is larger. */
+const onTarget = (m: { p: number; c: number; f: number }, t: { p: number; c: number; f: number }) =>
+  (['p', 'c', 'f'] as const).every(k => Math.abs(m[k] - t[k]) <= Math.max(5, t[k] * 0.2));
 
 export default function MealsScreen() {
   const RG = useRG();
@@ -68,7 +67,9 @@ export default function MealsScreen() {
   const [q, setQ] = useState('');
   const [usda, setUsda] = useState<{ q: string; foods: Food[]; loading: boolean; error: string | null }>({ q: '', foods: [], loading: false, error: null });
   const [favName, setFavName] = useState<string | null>(null);
-  const [listW, setListW] = useState(0);
+  const [more, setMore] = useState(false);
+  const [likesOpen, setLikesOpen] = useState(false);
+  const [mealEdit, setMealEdit] = useState<number | null>(null);
   useEffect(() => { if (isMealParam(rp)) { setDate(rp.date); setMeal(rp.meal || 0); } }, [rp]);
 
   // live USDA search (debounced) alongside the local library
@@ -119,11 +120,8 @@ export default function MealsScreen() {
   const dd = (v: number, t: number, kc: boolean) => { const x = v - t; const a = kc ? Math.round(Math.abs(x)) : RG.r1(Math.abs(x)); return { d: (a === 0 ? '±0' : (x > 0 ? '+' : '−') + a) + (kc ? ' kcal' : ' g'), color: Math.abs(x) <= (kc ? 25 : 3) ? C.a300 : C.n300 }; };
   const totals = tg ? ([['Calories', tot.kcal, tg.kcal, true], ['Protein', tot.p, tg.p, false], ['Carbs', tot.c, tg.c, false], ['Fat', tot.f, tg.f, false]] as [string, number, number, boolean][])
     .map(([k, v, t, kc]) => ({ k, v: kc ? RG.num(v) : String(RG.r1(v)), t: kc ? RG.num(t) : t + ' g', ...dd(v, t, kc) })) : [];
-  const gap = tg ? Math.max(Math.abs(tot.p - tg.p), Math.abs(tot.c - tg.c), Math.abs(tot.f - tg.f)) : 0;
   const bases = (meal?.items || []).map(i => RG.food(i.foodId)?.basis);
   const cooked = bases.filter(b => b === 'cooked').length, raw = bases.filter(b => b === 'raw').length;
-  const matchNote = (gap <= 3 ? `Close match: every macro is within 3 g of the meal target (largest remaining gap ${RG.r1(gap)} g). ` : `Closest practical combination with these foods. The largest remaining gap is ${RG.r1(gap)} g. Add, swap or unlock a food to close it; an exact match isn't always possible.`)
-    + (cooked && raw ? ' Mixed bases: weigh cooked items after cooking and raw items before.' : cooked ? ' Weigh these foods after cooking.' : raw ? ' Weigh these foods raw, before cooking.' : '');
 
   const ql = qq.toLowerCase();
   // Name matches first (starting with the text, then containing it); category matches only fill the rest.
@@ -155,211 +153,231 @@ export default function MealsScreen() {
     setFavName(null); RG.toast('Saved to Recipes & Saved Meals.');
   };
 
-  const stack = listW > 0 && listW < 640;
   const tableW = isCustom ? 640 : 560;
+  const done = day.meals.filter(m => m.logged).length;
+  const chosen = !!P.mealFoods?.some(l => l.length);
+  const mealTitle = (i: number) => { const t = tgs[i]; return t ? `${t.label}${t.time ? ' · ' + RG.clock(t.time) : ''}` : `Meal ${i + 1}`; };
+  const statusOf = (i: number) => {
+    const mm = day.meals[i]; if (!mm) return { text: '', tone: C.n400 };
+    if (mm.logged) return { text: 'Eaten', tone: C.a300 };
+    if (!mm.items.length) return { text: 'No foods yet', tone: C.n400 };
+    const t = adj[i] || tgs[i]; const m = RG.sumM(mm.items);
+    return !t || onTarget(m, t) ? { text: 'On target', tone: C.a300 } : { text: 'Close to target', tone: C.n300 };
+  };
+  // Friendly one-liner instead of macro arithmetic. Only the biggest miss is named.
+  const worst = tg ? (([['protein', tot.p - tg.p], ['carbs', tot.c - tg.c], ['fat', tot.f - tg.f]] as [string, number][]).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))[0]) : null;
+  const weigh = cooked && raw ? 'Weigh cooked foods after cooking and raw foods before.' : cooked ? 'Weigh these foods after cooking.' : raw ? 'Weigh these foods raw, before cooking.' : '';
+  const hit = !tg || onTarget(tot, tg);
+  const statusLine = !items.length ? '' : hit ? `On target for this meal. ${weigh}`
+    : `Close: ${worst![0]} is ${RG.r1(Math.abs(worst![1]))} g ${worst![1] > 0 ? 'over' : 'under'}, the nearest these foods get. Adding or swapping a food can close it. ${weigh}`;
+
+  const Section = ({ title, sub, children }: { title: string; sub?: string; children?: ReactNode }) => (
+    <View style={{ gap: 10, marginTop: 6 }}>
+      <View style={{ gap: 2 }}>
+        <H size={21}>{title}</H>
+        {!!sub && <Muted size={13}>{sub}</Muted>}
+      </View>
+      {children}
+    </View>
+  );
 
   return (
     <Screen>
       {/* header */}
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 12, flexWrap: 'wrap' }}>
-        <View style={{ marginRight: 'auto' }}>
-          <Muted>{`${RG.num(DT.kcal)} kcal · ${DT.protein} g protein · ${day.type === 'rest' ? 'rest day' : 'training day'}`}</Muted>
-          <H size={28} style={{ marginTop: 2 }}>{date === RG.TODAY ? "Today's meals" : `Meals · ${RG.fmtD(date)}`}</H>
-        </View>
-        <Row gap={4}>
+      <View style={{ gap: 4 }}>
+        <H size={28}>{date === RG.TODAY ? "Today's meals" : `Meals · ${RG.fmtD(date)}`}</H>
+        <Muted size={13}>{`Based on your goal (${P.goal || 'your goal'}): ${RG.num(DT.kcal)} kcal and ${DT.protein} g protein ${day.type === 'rest' ? 'on rest days' : 'today'}. ${done} of ${day.meals.length} meals eaten.`}</Muted>
+        <Row><Btn variant="ghost" size="sm" icon="gear" title="Change goal or targets" onPress={() => RG.go('settings')} /></Row>
+        <Row gap={4} style={{ marginTop: 4 }}>
           <Btn iconOnly icon="caret-left" label="Previous day" onPress={() => full ? setDate(RG.add(date, -1)) : locked('mealsWeek')} />
           <T size={14} center style={{ minWidth: 110 }}>{date === RG.TODAY ? 'Today' : RG.fmtD(date)}</T>
           <Btn iconOnly icon={full ? 'caret-right' : 'lock-simple'} label={full ? 'Next day' : 'Next day (Regimen Pro)'} onPress={() => full ? setDate(RG.add(date, 1)) : locked('mealsWeek')} />
         </Row>
-        <Seg style={{ alignSelf: 'flex-end' }} value={day.type} onChange={v => full ? RG.update(s => { s.days[date].type = v; }) : locked('mealsWeek')} options={[{ value: 'training', label: 'Training day' }, { value: 'rest', label: 'Rest day' }]} />
       </View>
 
-      {/* how it works: the day is already planned, here's what to do with it */}
-      <Card gap={10} pad={[14, 16]}>
-        <T size={15} w={600}>{allEmpty ? 'Pick foods for each meal. Regimen works out the grams.' : `${date === RG.TODAY ? 'Today is' : 'This day is'} already planned for you, portioned to hit your targets.`}</T>
-        <Grid min={220} gap={10}>
-          {GUIDE.map(([icon, title, body], i) => (
-            <Row key={title} gap={10} align="flex-start">
-              <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: C.a800, alignItems: 'center', justifyContent: 'center' }}><T size={13} w={600} color={C.a100}>{i + 1}</T></View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Row gap={6}><Icon name={icon} size={14} color={C.a400} /><T size={14} w={600}>{title}</T></Row>
-                <Muted size={12}>{body}</Muted>
-              </View>
-            </Row>
-          ))}
-        </Grid>
-      </Card>
-
-      {/* meal tabs */}
-      <Row gap={6} wrap>
-        {tgs.map((t, i) => {
-          const mm = day.meals[i]; if (!mm) return null; const on = i === mi;
-          return (
-            <Tap key={i} onPress={() => setMeal(i)} label={`${t.name} · ${t.label}`}
-              style={{ gap: 2, paddingVertical: 8, paddingHorizontal: 14, borderRadius: R.md, borderWidth: 1, borderColor: on ? C.accent : C.n800, backgroundColor: on ? C.a900 : 'transparent' }}>
-              <T size={13} w={500} color={on ? C.a100 : C.n300}>{`${t.name} · ${t.label}`}</T>
-              <T size={11} color={on ? C.a100 : C.n300} style={{ opacity: 0.75 }}>{`${mm.logged ? 'Eaten' : mm.prepped ? 'Prepped' : 'Planned'} · ${RG.num(RG.sumM(mm.items).kcal)} kcal`}</T>
-            </Tap>
-          );
-        })}
-      </Row>
-
-      {meal && tg ? (
-        <Card gap={14} pad={[18, 20]} style={{ boxShadow: SHADOW.md, zIndex: 2 }}>
-          <Row gap={12} wrap align="flex-start">
-            <View style={{ flex: 1, minWidth: 220 }}>
-              <Kicker>{`${tg.name} · ${tg.label}${tg.time ? ' · ' + RG.clock(tg.time) : ''} · target`}</Kicker>
-              <T size={22} tab lh={1.3} style={{ marginTop: 4 }}>{`${tg.p} P · ${tg.c} C · ${tg.f} F · ${RG.num(tg.kcal)} kcal`}</T>
-              {adjusted && <Muted size={12}>{`Trimmed from ${RG.num(tgs[mi].kcal)} kcal for the unplanned food you logged today.`}</Muted>}
-            </View>
-            <Row gap={6} wrap style={{ flexShrink: 1, maxWidth: '100%' }}>
-              <Btn variant={meal.logged ? 'secondary' : 'primary'} icon="check-circle" iconFill={meal.logged} title={meal.logged ? 'Eaten · undo' : 'Mark as eaten'} onPress={() => { if (!meal.logged) track('meal_eaten', { from: 'meals' }); upM(mm => { mm.logged = !mm.logged; }); }} />
-              <Btn variant="ghost" icon="package" title={meal.prepped ? 'Prepped' : 'Mark prepped'} onPress={() => upM(mm => { mm.prepped = !mm.prepped; })} />
-            </Row>
-          </Row>
-
-          {/* food rows */}
-          <View onLayout={e => setListW(e.nativeEvent.layout.width)}>
-            {!stack && (
-              <View style={{ flexDirection: 'row', gap: 10, paddingBottom: 6 }}>
-                <ColLabel style={{ flex: 1.6 }}>Food · weight basis</ColLabel><ColLabel style={{ width: 110 }}>Amount (g)</ColLabel><ColLabel style={{ width: 44 }}>Lock</ColLabel>
-                <ColLabel style={{ flex: 1.3 }}>kcal · P · C · F</ColLabel><View style={{ width: 132 }} />
-              </View>
-            )}
-            {items.map(i => {
-              const name = (
-                <View style={{ flex: stack ? undefined : 1.6, minWidth: 0 }}>
-                  <T size={14}>{i.name}</T>
-                  <Row gap={6} wrap>
-                    <View style={{ paddingVertical: 1, paddingHorizontal: 6, borderRadius: 4, backgroundColor: i.f?.basis === 'raw' ? C.n800 : i.f?.basis === 'cooked' ? C.a800 : C.n900 }}>
-                      <T size={10} upper lh={1.4} color={i.f?.basis === 'cooked' ? C.a100 : C.n300} style={{ letterSpacing: 0.5 }}>{i.basis}</T>
-                    </View>
-                    {!!i.serving && <Muted size={11}>{i.serving}</Muted>}
-                  </Row>
-                </View>
-              );
-              const controls = (
-                <>
-                  {i.it.estimate ? <View style={{ width: 110 }}><Muted>estimate</Muted></View> : (
-                    <NumInput value={Math.round(i.it.g)} onValue={v => upM(mm => { mm.items[i.ii].g = Math.max(0, v ?? 0); mm.items[i.ii].locked = true; })} size={16} height={40}
-                      style={{ width: 110, textAlign: 'right', fontVariant: ['tabular-nums'] }} accessibilityLabel={`${i.name} grams`} />
-                  )}
-                  <Tap onPress={() => upM(mm => { mm.items[i.ii].locked = !mm.items[i.ii].locked; })} label={i.it.locked ? 'Locked — stays fixed when recalculating' : 'Lock this amount'}
-                    style={{ width: 40, height: 36, marginHorizontal: 2, borderRadius: 6, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: i.it.locked ? C.accent : C.n800, backgroundColor: i.it.locked ? alpha(C.accent, 0.14) : 'transparent' }}>
-                    <Icon name={i.it.locked ? 'lock-simple' : 'lock-simple-open'} fill={i.it.locked} size={16} color={i.it.locked ? C.accent : C.n500} />
-                  </Tap>
-                  {stack ? <View style={{ flex: 1 }} /> : <T size={12} tab color={C.n300} style={{ flex: 1.3, minWidth: 0 }}>{i.macro}</T>}
-                  <Row gap={2}>
-                    {!i.it.estimate && <Btn variant="ghost" size="sm" icon={full ? "swap" : "lock-simple"} title="Swap" onPress={() => RG.go('alternatives', { date, meal: mi, key: i.it.key, foodId: i.it.foodId, g: i.it.g })} />}
-                    <Btn variant="ghost" iconOnly icon="x" color={C.n500} label={`Remove ${i.name}`} style={{ width: 30, height: 30 }} onPress={() => upM(mm => { mm.items.splice(i.ii, 1); if (tg && mm.items.length) mm.items = RG.solve(mm.items, tg); })} />
-                  </Row>
-                </>
-              );
-              return (
-                <View key={i.key} style={{ paddingVertical: 8 }}>
-                  <Rule style={{ position: 'absolute', top: 0, left: 0, right: 0 }} />
-                  {stack
-                    ? <View style={{ gap: 8 }}>{name}<Row gap={8}>{controls}</Row><T size={12} tab color={C.n300}>{`kcal · P · C · F  ${i.macro}`}</T></View>
-                    : <Row gap={10}>{name}{controls}</Row>}
-                </View>
-              );
-            })}
-            {!items.length && <RuledEmpty />}
-            {items.length < 2 && (
-              <View style={{ gap: 8, paddingTop: 10 }}>
-                {QUICK.map(([role, ids]) => (
-                  <Row key={role} gap={6} wrap>
-                    <T size={12} color={C.n400} style={{ width: 92 }}>{`Add ${role === 'veg' ? 'veg' : 'a ' + role}`}</T>
-                    {ids.map(id => RG.food(id)).filter((x): x is Food => !!x).map(fd => (
-                      <Tap key={fd.id} onPress={() => addFood(fd)} label={`Add ${fd.name}`}
-                        style={{ paddingVertical: 6, paddingHorizontal: 10, borderRadius: 16, borderWidth: 1, borderColor: C.n700 }}>
-                        <T size={12}>{fd.name.split(',')[0]}</T>
-                      </Tap>
-                    ))}
-                  </Row>
-                ))}
-              </View>
-            )}
-          </View>
-
-          {/* food search */}
-          <View style={{ zIndex: 10 }}>
-            <Input value={q} onChange={setQ} placeholder="Add a food — search the database" accessibilityLabel="Search foods" />
-            {showDrop && (
-              <View style={{ position: 'absolute', zIndex: 10, left: 0, right: 0, top: '100%', marginTop: 4, maxHeight: 320, padding: 4, borderRadius: R.md, backgroundColor: C.surface, boxShadow: SHADOW.lg }}>
-                <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled>
-                  {results.map(f => <FoodResult key={f.id} f={f} onPress={() => addFood(f)} />)}
-                  {usdaEnabled() && (
-                    <>
-                      <ColLabel style={{ paddingHorizontal: 10, paddingTop: 8, paddingBottom: 2 }}>{`USDA FoodData Central${usda.loading ? ' · searching…' : ql.length < 3 ? ' · type 3+ letters' : ''}`}</ColLabel>
-                      {usda.error ? <Muted style={{ paddingHorizontal: 10, paddingVertical: 6 }}>{`Online food search isn't available right now. The foods above still work. (${usda.error})`}</Muted>
-                        : !usda.loading && !usdaRes.length && ql.length >= 3 ? <Muted style={{ paddingHorizontal: 10, paddingVertical: 6 }}>No USDA matches.</Muted> : null}
-                      {usdaRes.map(f => <FoodResult key={f.id} f={f} onPress={() => addFood(f, true)} />)}
-                    </>
-                  )}
-                </ScrollView>
-              </View>
-            )}
-          </View>
-
-          {/* totals vs target */}
-          <View style={{ padding: 12, borderRadius: R.md, backgroundColor: C.n900 }}>
-            <Grid min={130} gap={10}>
-              {totals.map(t => (
-                <View key={t.k}>
-                  <Muted size={11}>{t.k}</Muted>
-                  <T size={20} tab lh={1.3}>{t.v}<T size={12} color={C.n500}> / {t.t}</T></T>
-                  <T size={12} tab color={t.color}>{t.d}</T>
-                </View>
-              ))}
-            </Grid>
-          </View>
-          <Row gap={10} wrap>
-            <T size={12} color={C.n400} style={{ flex: 1, minWidth: 220 }}>{matchNote}</T>
-            {gap > 3 && !!items.length && <Btn icon="calculator" title="Refit portions" onPress={() => { upM(mm => { mm.items = RG.solve(mm.items, tg); }); RG.toast('Portions refitted around the foods you locked.'); }} />}
-          </Row>
-          <Muted size={11}>Typing an amount locks that food (lock icon), so it stays put when portions are refitted.</Muted>
-          <NotMedical />
-          <Row gap={6} wrap>
-            <Btn variant="ghost" icon={full ? 'star' : 'lock-simple'} title="Save as favourite meal" onPress={() => full ? openFav() : locked('favourites')} />
-            <Select title="Load a saved meal" value={null as string | null} placeholder="Load a saved meal…" options={saved} onChange={id => full ? loadSaved(id) : locked('favourites')} style={{ width: 'auto', minWidth: 200 }} />
-            <View style={{ flex: 1 }} />
-            <Muted size={11} color={C.n600}>Nutrition: USDA FoodData Central unless marked custom · values per 100 g of the stated basis</Muted>
-          </Row>
+      {/* step 1: choose foods (until the user has done it), then a slim reminder */}
+      {!chosen ? (
+        <Card gap={10} pad={[18, 20]} style={{ borderWidth: 1, borderColor: C.a700 }}>
+          <Kicker>Start here · step 1 of 2</Kicker>
+          <T size={18} w={600}>Tell Regimen what you like to eat</T>
+          <Muted size={13}>Takes about a minute. Tap the foods you like and Regimen builds your meals from them, with the exact grams to hit your targets. Until then, the meals below are samples.</Muted>
+          <Row><Btn variant="primary" size="lg" icon="fork-knife" title="Choose my foods" onPress={() => setLikesOpen(true)} /></Row>
         </Card>
       ) : (
-        <Card><Muted size={13}>No meals set up for this day. Set meals per day in Me › Settings › Nutrition.</Muted></Card>
+        <Card gap={6} pad={[12, 16]}>
+          <Row gap={10} wrap>
+            <View style={{ flex: 1, minWidth: 220 }}>
+              <T size={14} w={600}>How to use your meals</T>
+              <Muted size={12}>Open a meal, weigh each food to the grams shown, then tap Mark as eaten. Swapping or adding a food recalculates the grams for you.</Muted>
+            </View>
+            <Btn icon="fork-knife" title="Change my foods" onPress={() => setLikesOpen(true)} />
+          </Row>
+        </Card>
       )}
 
-      {/* food that wasn't in the plan */}
-      <Card gap={8} pad={[14, 16]}>
-        <Row gap={10} wrap>
-          <View style={{ flex: 1, minWidth: 200 }}>
-            <T size={15} w={600}>Ate something that wasn't planned?</T>
-            <Muted size={12}>Log it and the meals you haven't eaten yet are trimmed so the day still lands on target.</Muted>
-          </View>
-          <Btn icon="plus-circle" title="Log something else" onPress={() => setExtraOpen(true)} />
-        </Row>
-        <ExtrasList date={date} />
-      </Card>
+      <Section title={chosen ? 'Your meals' : 'Step 2 · Your meals'} sub="Tap a meal to open it.">
+        {tgs.map((t, i) => {
+          const mm = day.meals[i]; if (!mm) return null;
+          const st = statusOf(i);
+          if (i !== mi) return (
+            <Tap key={i} onPress={() => setMeal(i)} label={`Open ${t.label}`}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 16, borderRadius: R.lg, borderWidth: 1, borderColor: C.n800, backgroundColor: C.surface }}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <T size={15} w={600}>{mealTitle(i)}</T>
+                <Muted size={12} numberOfLines={1}>{mm.items.length ? mm.items.map(x => (RG.food(x.foodId)?.name || 'Item').split(',')[0]).join(', ') : 'No foods yet'}</Muted>
+              </View>
+              <T size={12} color={st.tone}>{st.text}</T>
+              <Icon name="caret-right" size={16} color={C.n500} />
+            </Tap>
+          );
+          if (!meal || !tg) return null;
+          return (
+            <Card key={i} gap={12} pad={[16, 18]} style={{ boxShadow: SHADOW.md, zIndex: 2, borderWidth: 1, borderColor: C.a700 }}>
+              <Row gap={10} align="flex-start">
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Kicker>{`Meal ${i + 1} of ${tgs.length}`}</Kicker>
+                  <T size={20} w={600} lh={1.3}>{mealTitle(i)}</T>
+                  <Muted size={12}>{`${RG.num(tg.kcal)} kcal · ${tg.p} g protein`}</Muted>
+                  {adjusted && <Muted size={12}>{`Trimmed from ${RG.num(tgs[mi].kcal)} kcal for the unplanned food you logged today.`}</Muted>}
+                </View>
+                <T size={12} color={st.tone} style={{ paddingTop: 2 }}>{st.text}</T>
+              </Row>
+
+              {/* foods: name and grams, nothing else */}
+              <View>
+                {items.map(it => (
+                  <View key={it.key} style={{ paddingVertical: 10, gap: 6 }}>
+                    <Rule style={{ position: 'absolute', top: 0, left: 0, right: 0 }} />
+                    <Row gap={10}>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <T size={15}>{it.name}</T>
+                        {!!it.serving && <Muted size={11}>{it.serving}</Muted>}
+                      </View>
+                      {it.it.estimate ? <Muted>estimate</Muted> : (
+                        <Row gap={4}>
+                          <NumInput value={Math.round(it.it.g)} onValue={v => { if (v != null && meal.items[it.ii]) RG.setAmount(date, mi, meal.items[it.ii].key!, v); }} size={17} height={42}
+                            style={{ width: 84, textAlign: 'right', fontVariant: ['tabular-nums'] }} accessibilityLabel={`${it.name} grams`} />
+                          <T size={14} color={C.n400}>g</T>
+                        </Row>
+                      )}
+                    </Row>
+                    <Row gap={2}>
+                      {!it.it.estimate && <Btn variant="ghost" size="sm" icon={full ? 'swap' : 'lock-simple'} title="Swap" onPress={() => RG.go('alternatives', { date, meal: mi, key: it.it.key, foodId: it.it.foodId, g: it.it.g })} />}
+                      <Btn variant="ghost" size="sm" icon="x" color={C.n400} title="Remove" label={`Remove ${it.name}`} onPress={() => upM(mm => { mm.items.splice(it.ii, 1); if (tg && mm.items.length) mm.items = RG.solve(mm.items, tg); })} />
+                      {it.it.locked && !it.it.estimate && <>
+                        <T size={12} color={C.n400} style={{ marginLeft: 8 }}>{`Fixed at ${Math.round(it.it.g)} g`}</T>
+                        <Btn variant="ghost" size="sm" title="Auto" label={`Work out ${it.name} automatically`} onPress={() => RG.autoAmount(date, mi, it.it.key!)} />
+                      </>}
+                      {more && <T size={11} tab color={C.n500} style={{ marginLeft: 'auto' }}>{`${it.macro.split(' · ')[0]} kcal`}</T>}
+                    </Row>
+                  </View>
+                ))}
+                {!items.length && <RuledEmpty />}
+                {items.length < 2 && (
+                  <View style={{ gap: 8, paddingTop: 10 }}>
+                    {QUICK.map(([role, ids]) => (
+                      <Row key={role} gap={6} wrap>
+                        <T size={12} color={C.n400} style={{ width: 92 }}>{`Add ${role === 'veg' ? 'veg' : 'a ' + role}`}</T>
+                        {ids.map(id => RG.food(id)).filter((x): x is Food => !!x).map(fd => (
+                          <Tap key={fd.id} onPress={() => addFood(fd)} label={`Add ${fd.name}`}
+                            style={{ paddingVertical: 6, paddingHorizontal: 10, borderRadius: 16, borderWidth: 1, borderColor: C.n700 }}>
+                            <T size={12}>{fd.name.split(',')[0]}</T>
+                          </Tap>
+                        ))}
+                      </Row>
+                    ))}
+                  </View>
+                )}
+              </View>
+
+              {!!statusLine && <T size={13} color={hit ? C.a300 : C.n300}>{statusLine}</T>}
+
+              {/* the one main action, then the less common ones */}
+              <Row gap={6} wrap>
+                <Btn variant={meal.logged ? 'secondary' : 'primary'} icon="check-circle" iconFill={meal.logged} title={meal.logged ? 'Eaten · undo' : 'Mark as eaten'}
+                  onPress={() => { if (!meal.logged) { track('meal_eaten', { from: 'meals' }); const nx = day.meals.findIndex((m, k) => k > mi && !m.logged); upM(mm => { mm.logged = true; }); if (nx >= 0) setMeal(nx); } else upM(mm => { mm.logged = false; }); }} />
+                <Btn icon="fork-knife" title="Change foods" onPress={() => setMealEdit(mi)} />
+                <Btn variant="ghost" icon={more ? 'caret-down' : 'caret-right'} title={more ? 'Fewer options' : 'More options'} onPress={() => setMore(v => !v)} />
+              </Row>
+
+              {/* add any food */}
+              <View style={{ zIndex: 10 }}>
+                <Input value={q} onChange={setQ} placeholder="Add a food to this meal" accessibilityLabel="Search foods" />
+                {showDrop && (
+                  <View style={{ position: 'absolute', zIndex: 10, left: 0, right: 0, top: '100%', marginTop: 4, maxHeight: 320, padding: 4, borderRadius: R.md, backgroundColor: C.surface, boxShadow: SHADOW.lg }}>
+                    <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+                      {results.map(f => <FoodResult key={f.id} f={f} onPress={() => addFood(f)} />)}
+                      {usdaEnabled() && (
+                        <>
+                          <ColLabel style={{ paddingHorizontal: 10, paddingTop: 8, paddingBottom: 2 }}>{`More foods${usda.loading ? ' · searching…' : ql.length < 3 ? ' · type 3+ letters' : ''}`}</ColLabel>
+                          {usda.error ? <Muted style={{ paddingHorizontal: 10, paddingVertical: 6 }}>{`Online food search isn't available right now. The foods above still work.`}</Muted>
+                            : !usda.loading && !usdaRes.length && ql.length >= 3 ? <Muted style={{ paddingHorizontal: 10, paddingVertical: 6 }}>No more matches.</Muted> : null}
+                          {usdaRes.map(f => <FoodResult key={f.id} f={f} onPress={() => addFood(f, true)} />)}
+                        </>
+                      )}
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
+
+              {more && (
+                <View style={{ gap: 12, paddingTop: 4 }}>
+                  <Rule />
+                  <ColLabel>This meal vs its target</ColLabel>
+                  <View style={{ padding: 12, borderRadius: R.md, backgroundColor: C.n900 }}>
+                    <Grid min={130} gap={10}>
+                      {totals.map(x => (
+                        <View key={x.k}>
+                          <Muted size={11}>{x.k}</Muted>
+                          <T size={18} tab lh={1.3}>{x.v}<T size={12} color={C.n500}> / {x.t}</T></T>
+                          <T size={12} tab color={x.color}>{x.d}</T>
+                        </View>
+                      ))}
+                    </Grid>
+                  </View>
+                  <Muted size={11}>Typing an amount keeps that food fixed and the other foods adjust around it. Tap Auto to undo.</Muted>
+                  <Row gap={6} wrap>
+                    <Btn variant="ghost" icon="package" title={meal.prepped ? 'Prepped · undo' : 'Mark prepped'} onPress={() => upM(mm => { mm.prepped = !mm.prepped; })} />
+                    <Btn variant="ghost" icon={full ? 'star' : 'lock-simple'} title="Save as favourite meal" onPress={() => full ? openFav() : locked('favourites')} />
+                    <Select title="Load a saved meal" value={null as string | null} placeholder="Load a saved meal…" options={saved} onChange={id => full ? loadSaved(id) : locked('favourites')} style={{ width: 'auto', minWidth: 200 }} />
+                  </Row>
+                  <NotMedical />
+                </View>
+              )}
+            </Card>
+          );
+        })}
+        {!meal && <Card><Muted size={13}>No meals set up for this day. Set meals per day in Me › Settings › Nutrition.</Muted></Card>}
+      </Section>
+
+      <Section title="Ate something else?" sub="Log food that wasn't in your plan. Meals you haven't eaten yet shrink so the day still lands on target.">
+        <Card gap={8} pad={[14, 16]}>
+          <Row><Btn icon="plus-circle" title="Log something else" onPress={() => setExtraOpen(true)} /></Row>
+          <ExtrasList date={date} />
+        </Card>
+      </Section>
       <LogExtraDialog open={extraOpen} onClose={() => setExtraOpen(false)} date={date} />
 
-      {/* what to do next */}
-      <Row gap={8} wrap>
-        <ColLabel style={{ width: '100%' }}>What's next</ColLabel>
-        <Btn icon={full ? 'calendar-blank' : 'lock-simple'} title={date === RG.TODAY ? 'Plan tomorrow' : 'Next day'} onPress={() => full ? setDate(RG.add(date, 1)) : locked('mealsWeek')} />
-        <Btn icon="cooking-pot" title="Batch-cook it (Prep)" onPress={() => RG.go('prep')} />
-        <Btn icon="shopping-cart" title="Grocery list" onPress={() => RG.go('grocery')} />
-      </Row>
+      <Section title="Plan ahead">
+        <Row gap={8} wrap>
+          <Btn icon={full ? 'calendar-blank' : 'lock-simple'} title={date === RG.TODAY ? 'Plan tomorrow' : 'Next day'} onPress={() => full ? setDate(RG.add(date, 1)) : locked('mealsWeek')} />
+          <Btn icon="cooking-pot" title="Batch-cook it (Prep)" onPress={() => RG.go('prep')} />
+          <Btn icon="shopping-cart" title="Grocery list" onPress={() => RG.go('grocery')} />
+        </Row>
+      </Section>
 
-      {/* how the daily targets are split per meal (collapsed by default) */}
-      <Card gap={12}>
+      {/* advanced: day type and how the daily targets are split per meal (collapsed by default) */}
+      <Card gap={12} style={{ marginTop: 6 }}>
         <Tap onPress={() => setShowSplit(v => !v)} label={showSplit ? 'Hide how targets are split' : 'Show how targets are split'} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Icon name={showSplit ? 'caret-down' : 'caret-right'} size={16} color={C.n400} />
-          <CardTitle style={{ flex: 1 }}>{`How your ${RG.num(DT.kcal)} kcal is split across ${n} meals`}</CardTitle>
+          <View style={{ flex: 1 }}>
+            <CardTitle>Advanced: targets per meal</CardTitle>
+            <Muted size={12}>{`How your ${RG.num(DT.kcal)} kcal is split across ${n} meals, and training vs rest days.`}</Muted>
+          </View>
         </Tap>
         {showSplit && <>
         <Row gap={10} wrap>
+          <Seg value={day.type} onChange={v => full ? RG.update(s => { s.days[date].type = v; }) : locked('mealsWeek')} options={[{ value: 'training', label: 'Training day' }, { value: 'rest', label: 'Rest day' }]} />
           <Select title="Distribution" value={mode} options={MODES} onChange={v => RG.update(s => { s.distribution.mode = v; })} style={{ width: 'auto', minWidth: 230 }} />
         </Row>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
@@ -369,7 +387,7 @@ export default function MealsScreen() {
             </TRow>
             {tgs.map((t, i) => (
               <TRow key={i} onPress={() => setMeal(i)} style={i === mi ? { backgroundColor: alpha(C.accent, 0.08) } : undefined}>
-                <Cell flex={2.2}><T size={14}>{t.name}</T><Muted size={11}>{`${t.label}${t.time ? ' · ' + RG.clock(t.time) : ''}`}</Muted></Cell>
+                <Cell flex={2.2}><T size={14}>{t.label}</T><Muted size={11}>{`${t.name}${t.time ? ' · ' + RG.clock(t.time) : ''}`}</Muted></Cell>
                 {isCustom && <Cell><NumInput value={S.distribution.custom[i] ?? 0} onValue={v => RG.update(s => { s.distribution.custom[i] = v ?? 0; })} style={{ width: 64 }} /></Cell>}
                 {isManual
                   ? (['p', 'c', 'f'] as const).map(k => <Cell key={k}><NumInput value={t[k]} onValue={v => setManual(i, k, v)} style={{ width: 64 }} /></Cell>)
@@ -395,6 +413,8 @@ export default function MealsScreen() {
         </>}
       </Card>
 
+      <ChooseFoodsDialog open={likesOpen} onClose={() => setLikesOpen(false)} />
+      <MealFoodsDialog open={mealEdit != null} onClose={() => setMealEdit(null)} meal={mealEdit ?? 0} />
       <Dialog open={favName != null} onClose={() => setFavName(null)} title="Save as favourite meal"
         body="Saved meals appear in Recipes & Saved Meals and can be loaded into any meal slot."
         actions={<><Btn title="Cancel" onPress={() => setFavName(null)} /><Btn variant="primary" title="Save" disabled={!favName?.trim()} onPress={saveFav} /></>}>

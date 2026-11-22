@@ -125,6 +125,14 @@ export const RG = {
   calorieAdvice: () => D.calorieAdvice(ctx()),
   calorieReviewDue: () => D.calorieReviewDue(ctx()),
   /** Apply the suggested change; planned meals from today on are re-portioned to the new targets. */
+  suitsMeal: (foodId: string, label: string) => D.suitsMeal(foodId, label),
+  mealsFromLikes: (likes: string[], labels: string[]) => D.mealsFromLikes(getState(), likes, labels),
+  swapFood(d: ISODate, i: number, key: string, foodId: string) { const ok = D.swapFood(ctx(), d, i, key, foodId); commit(); return ok; },
+  setAmount(d: ISODate, i: number, key: string, g: number) { D.setAmount(ctx(), d, i, key, g); commit(); },
+  autoAmount(d: ISODate, i: number, key: string) { D.autoAmount(ctx(), d, i, key); commit(); },
+  refitMeal(d: ISODate, i: number) { D.refitMeal(ctx(), d, i); commit(); },
+  rememberSwap(i: number, fromId: string, toId: string) { D.rememberSwap(ctx(), i, fromId, toId); commit(); },
+  setMealFoods(foods: string[][], only?: number) { D.setMealFoods(ctx(), foods, only); commit(); track('meal_foods_set', { meals: foods.filter(l => l.length).length, only: only ?? -1 }); },
   applyCalorieChange(change: number) { D.applyCalorieChange(getState(), change, ctx().today); commit(); track('calorie_check_applied', { change }); },
   /** "Not now" / "Got it": ask again in `days` days. */
   snoozeCalorieReview(days: number) { const s = getState(); s.profile.calReviewOn = D.add(ctx().today, days - D.REVIEW_EVERY_DAYS); commit(); },

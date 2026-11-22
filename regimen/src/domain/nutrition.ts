@@ -156,6 +156,99 @@ export function rebalanceMeals(ctx: Ctx, fillEmpty = false) {
   }
 }
 
+/** Turn a list of foods into portions for a meal target. Vegetables are held at 100 g while the rest is solved. */
+function portion(s: State, raw: { foodId: string; g: number; estimate?: MealItem['estimate'] }[], t: { p: number; c: number; f: number }): MealItem[] {
+  let items: MealItem[] = raw.map(q => ({ ...q, key: uid(), locked: false }));
+  const veg = items.find(q => food(s, q.foodId)?.role === 'veg'); if (veg) { veg.g = 100; veg.locked = true; }
+  items = solve(s, items, t);
+  items.forEach(q => { if (food(s, q.foodId)?.role === 'veg') q.locked = false; });
+  return items;
+}
+
+/** Foods that suit each kind of meal, in order of preference. Anything the user likes can still end up anywhere
+    through "Change foods"; these lists only decide the starting plan. */
+const FIT: Record<'breakfast' | 'snack' | 'main', Partial<Record<Food['role'], string[]>>> = {
+  breakfast: { protein: ['yog', 'eggs', 'cottage', 'eggw', 'soyog', 'whey', 'tofu'], carb: ['oats', 'bread', 'banana', 'blueb', 'tortilla'], fat: ['pb', 'almonds', 'avocado', 'cheddar'] },
+  snack: { protein: ['yog', 'cottage', 'whey', 'soyog', 'eggs', 'tuna', 'turkey', 'tofu'], carb: ['banana', 'blueb', 'oats', 'bread', 'tortilla'], fat: ['almonds', 'pb', 'hummus', 'cheddar', 'avocado'] },
+  main: { protein: ['chicken_c', 'salmon_r', 'beef_c', 'turkey', 'cod_c', 'tuna', 'tofu', 'eggs', 'lentils', 'chick'], carb: ['rice_c', 'potato_c', 'sweet_c', 'pasta_c', 'quinoa_c', 'tortilla', 'bread', 'potato_r', 'lentils', 'chick'], veg: ['broccoli_c', 'peppers', 'spinach', 'greens', 'broccoli_r'], fat: ['avocado', 'oil', 'feta', 'cheddar', 'hummus'] },
+};
+/** Whether a food is a usual choice for this kind of meal (eggs at breakfast, rice at dinner…). */
+export const suitsMeal = (foodId: string, label: string) => Object.values(FIT[mealKind(label)]).some(l => l?.includes(foodId));
+export const mealKind = (label: string): 'breakfast' | 'snack' | 'main' => /breakfast/i.test(label) ? 'breakfast' : /snack|pre-workout/i.test(label) ? 'snack' : 'main';
+
+/** Build a starting plan (food ids per meal) from the foods someone likes: a protein and a carb in every meal, a
+    vegetable in main meals and a fat where one fits. Main meals take turns so lunch and dinner differ. */
+export function mealsFromLikes(s: State, likes: string[], labels: string[]): string[][] {
+  const liked = likes.filter(id => !!food(s, id));
+  const turn: Record<string, number> = {};
+  const pick = (kind: 'breakfast' | 'snack' | 'main', role: Food['role'], used: string[]) => {
+    const fits = (FIT[kind][role] || []).filter(id => liked.includes(id));
+    const any = liked.filter(id => food(s, id)?.role === role);
+    const pool = (fits.length ? fits : role === 'protein' || role === 'carb' ? any : []).filter(id => !used.includes(id));
+    if (!pool.length) return null;
+    const k = `${kind === 'main' ? 'main' : 'light'}:${role}`; const i = turn[k] || 0; turn[k] = i + 1;
+    return pool[i % pool.length];
+  };
+  return labels.map(label => {
+    const kind = mealKind(label); const out: string[] = [];
+    for (const role of (kind === 'main' ? ['protein', 'carb', 'veg', 'fat'] : ['protein', 'carb', 'fat']) as Food['role'][]) {
+      // A fatty protein (eggs, salmon, beef) already covers the meal's fat, so no separate fat is added.
+      if (role === 'fat' && out.some(id => { const f = food(s, id); return f?.role === 'protein' && f.f >= 8; })) continue;
+      const id = pick(kind, role, out); if (id) out.push(id);
+    }
+    return out;
+  });
+}
+
+/** Save the foods picked for each meal and rebuild every meal from today on that isn't eaten or prepped.
+    `only` limits the rebuild to one meal slot (changing a single meal). */
+export function setMealFoods(ctx: Ctx, foods: string[][], only?: number) {
+  const { s } = ctx;
+  s.profile.mealFoods = foods.map(l => l.filter(id => !!food(s, id)));
+  for (const d of Object.keys(s.days)) {
+    if (d < ctx.today) continue;
+    const day = getDay(ctx, d); const tg = dayMealTargets(ctx, d);
+    day.meals.forEach((m, i) => {
+      if (only != null && i !== only) return;
+      const ids = s.profile.mealFoods?.[i];
+      if (m.logged || m.prepped || !tg[i] || !ids?.length) return;
+      m.items = portion(s, ids.map(foodId => ({ foodId, g: 100 })), tg[i]);
+    });
+  }
+}
+
+/** Re-portion one meal to its target. Amounts the user typed (locked) stay; everything else is worked out. */
+export function refitMeal(ctx: Ctx, d: ISODate, i: number) {
+  const m = getDay(ctx, d).meals[i]; const t = dayMealTargets(ctx, d)[i];
+  if (m && t && m.items.length) m.items = solve(ctx.s, m.items, t);
+}
+/** Swap one food for another. The new food's amount is worked out with the rest of the meal (not fixed). */
+export function swapFood(ctx: Ctx, d: ISODate, i: number, key: string, foodId: string) {
+  const it = getDay(ctx, d).meals[i]?.items.find(x => x.key === key); if (!it) return false;
+  it.foodId = foodId; it.locked = false; delete it.estimate;
+  refitMeal(ctx, d, i); return true;
+}
+/** The user typed an amount: keep it fixed and fit the other foods around it. */
+export function setAmount(ctx: Ctx, d: ISODate, i: number, key: string, g: number) {
+  const it = getDay(ctx, d).meals[i]?.items.find(x => x.key === key); if (!it) return;
+  it.g = Math.max(0, Math.round(g)); it.locked = true; refitMeal(ctx, d, i);
+}
+/** Undo a typed amount: the food goes back to being worked out automatically. */
+export function autoAmount(ctx: Ctx, d: ISODate, i: number, key: string) {
+  const it = getDay(ctx, d).meals[i]?.items.find(x => x.key === key); if (!it) return;
+  it.locked = false; refitMeal(ctx, d, i);
+}
+/** "Always use this instead": put the swap into the saved food choices for that meal, from today on. */
+export function rememberSwap(ctx: Ctx, i: number, fromId: string, toId: string) {
+  const { s } = ctx; const day = getDay(ctx, ctx.today);
+  const base = s.profile.mealFoods?.length ? s.profile.mealFoods.map(l => [...l]) : day.meals.map(m => m.items.filter(x => !x.estimate).map(x => x.foodId));
+  while (base.length <= i) base.push([]);
+  const l = base[i]; const at = l.indexOf(fromId);
+  if (at >= 0) l[at] = toId; else if (!l.includes(toId)) l.push(toId);
+  base[i] = l.filter((x, k) => l.indexOf(x) === k);
+  setMealFoods(ctx, base, i);
+}
+
 /** Get (creating from the default template if needed) the meal plan for a date. */
 export function getDay(ctx: Ctx, d: ISODate): DayPlan {
   const { s } = ctx;
@@ -165,17 +258,15 @@ export function getDay(ctx: Ctx, d: ISODate): DayPlan {
       ? [['sm2'], ['chicken_c', 'rice_c', 'avocado'], ['turkey', 'tortilla', 'banana'], ['salmon_r', 'potato_r', 'broccoli_c']]
       : [['eggs', 'bread', 'blueb'], ['tuna', 'quinoa_c', 'avocado'], ['cottage', 'blueb', 'almonds'], ['chicken_c', 'sweet_c', 'broccoli_c']];
     const fallback: Record<string, string[]> = { sm2: ['yog', 'oats', 'blueb'] };
+    const mine = s.profile.mealFoods;
     const meals = tg.map((t, i) => {
-      let items: MealItem[] = (tpl[i] || EXTRA_MEALS[i - tpl.length] || ['chicken_c', 'rice_c', 'oil']).flatMap(x => {
+      const ids = mine?.[i]?.length ? mine[i] : (tpl[i] || EXTRA_MEALS[i - tpl.length] || ['chicken_c', 'rice_c', 'oil']);
+      const items: MealItem[] = ids.flatMap(x => {
         if (!x.startsWith('sm')) return [{ foodId: x, g: 100 }];
         const sm = s.savedMeals.find(m => m.id === x);
         return sm ? sm.items.map(q => ({ ...q })) : (fallback[x] || []).map(foodId => ({ foodId, g: 100 }));
       });
-      items = items.map(q => ({ ...q, key: uid(), locked: false }));
-      const veg = items.find(q => food(s, q.foodId)?.role === 'veg'); if (veg) { veg.g = 100; veg.locked = true; }
-      items = solve(s, items, t);
-      items.forEach(q => { if (food(s, q.foodId)?.role === 'veg') q.locked = false; });
-      return { key: uid(), items, logged: false, prepped: false };
+      return { key: uid(), items: portion(s, items, t), logged: false, prepped: false };
     });
     s.days[d] = { type, meals, water: 0 };
     if (d === ctx.today && s.sample && meals.length >= 3) { meals[0].logged = true; meals[1].logged = true; meals[1].prepped = true; meals[2].prepped = true; s.days[d].water = 1250; }
