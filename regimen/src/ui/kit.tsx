@@ -63,31 +63,32 @@ export interface BtnProps {
   size?: 'sm' | 'md' | 'lg'; iconOnly?: boolean; style?: StyleProp<ViewStyle>; color?: string; label?: string; iconSize?: number; block?: boolean;
 }
 export function Btn({ title, icon, iconFill, iconRight, onPress, variant = 'secondary', disabled, size = 'md', iconOnly, style, color, label, iconSize, block }: BtnProps) {
-  // Primary buttons are filled so the main action on each screen is easy to spot.
-  const fg = color || (variant === 'secondary' ? C.text : variant === 'primary' ? C.bg : C.accent);
-  const fs = size === 'lg' ? 15 : size === 'sm' ? 12 : 14;
+  // Three clearly different weights: primary = bright solid fill, bold text and a soft glow (the one thing to do next);
+  // secondary = outline only; ghost = plain coloured text. So the main action on each screen stands out.
+  const fg = color || (variant === 'secondary' ? C.text : variant === 'primary' ? C.ctaText : C.accent);
+  const fs = size === 'lg' ? 16 : size === 'sm' ? 12 : 14;
   return (
     <Pressable
       accessibilityRole="button" accessibilityLabel={label || (typeof title === 'string' ? title : undefined)} disabled={disabled} onPress={onPress}
       hitSlop={iconOnly ? 4 : { top: 7, bottom: 7, left: 2, right: 2 }}
       style={(st: PState) => [
         s.btn,
-        variant === 'primary' && { borderColor: C.accent, backgroundColor: C.accent },
-        variant === 'secondary' && { borderColor: C.divider },
+        variant === 'primary' && { borderColor: C.cta, backgroundColor: C.cta, minHeight: 38, paddingHorizontal: 14, boxShadow: `0 6px 18px -6px ${alpha(C.cta, 0.8)}` },
+        variant === 'secondary' && { borderColor: C.n700 },
         variant === 'ghost' && { paddingHorizontal: 2.8 + (title ? 3 : 0) },
-        size === 'lg' && { paddingVertical: 10, paddingHorizontal: 18 },
+        size === 'lg' && { paddingVertical: 11, paddingHorizontal: 20, minHeight: 46 },
         size === 'sm' && { paddingVertical: 4, paddingHorizontal: 8 },
         iconOnly && { width: 36, height: 36, paddingHorizontal: 0, paddingVertical: 0 },
         block && { alignSelf: 'stretch' },
         (st.hovered || st.pressed) && {
-          backgroundColor: variant === 'primary' ? (st.pressed ? C.a600 : C.a400) : variant === 'secondary' ? alpha(C.text, st.pressed ? 0.14 : 0.07) : alpha(C.accent, st.pressed ? 0.18 : 0.1),
+          backgroundColor: variant === 'primary' ? (st.pressed ? C.cta : C.ctaHover) : variant === 'secondary' ? alpha(C.text, st.pressed ? 0.14 : 0.07) : alpha(C.accent, st.pressed ? 0.14 : 0.08),
         },
         disabled && { opacity: 0.45 },
         focusRing(st), style,
       ]}
     >
       {icon && <Icon name={icon} fill={iconFill} size={iconSize || (iconOnly ? 18 : fs + 2)} color={fg} />}
-      {title != null && title !== '' && (typeof title === 'string' || typeof title === 'number' ? <T size={fs} w={500} color={fg} lh={1.2}>{title}</T> : title)}
+      {title != null && title !== '' && (typeof title === 'string' || typeof title === 'number' ? <T size={fs} w={variant === 'primary' ? 600 : 500} color={fg} lh={1.2}>{title}</T> : title)}
       {iconRight && <Icon name={iconRight} size={fs + 1} color={fg} />}
     </Pressable>
   );
@@ -111,6 +112,24 @@ export function Tap({ onPress, style, children, label, disabled, onLongPress }: 
       style={(st: PState) => [typeof style === 'function' ? style(st) : style, st.hovered && !disabled && { opacity: 0.92 }, focusRing(st)]}>
       {children}
     </Pressable>
+  );
+}
+
+/** A titled section of a page: purple bar + heading (+ optional line under it), with room above so pages
+    break clearly into parts. */
+export function Section({ title, sub, right, children, style }: { title: string; sub?: string; right?: ReactNode; children?: ReactNode; style?: StyleProp<ViewStyle> }) {
+  return (
+    <View style={[{ gap: 12, marginTop: 14 }, style]}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <View style={{ width: 4, alignSelf: 'stretch', minHeight: 22, borderRadius: 2, backgroundColor: C.a400 }} />
+        <View style={{ flex: 1, minWidth: 200, gap: 2 }}>
+          <H size={21}>{title}</H>
+          {!!sub && <T size={13} color={C.n400}>{sub}</T>}
+        </View>
+        {right}
+      </View>
+      {children}
+    </View>
   );
 }
 
@@ -429,7 +448,7 @@ export function Stripes({ style, children }: { style?: StyleProp<ViewStyle>; chi
 const makeStyles = () => StyleSheet.create({
   btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderColor: 'transparent', borderRadius: R.md, paddingVertical: 5.6, paddingHorizontal: 10.08, minHeight: 32, backgroundColor: 'transparent' },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 5, paddingHorizontal: 11, borderRadius: 999, borderWidth: 1, borderColor: C.n800 },
-  card: { backgroundColor: C.surface, borderRadius: R.md, boxShadow: SHADOW.sm, minWidth: 0 },
+  card: { backgroundColor: C.surface, borderRadius: R.md, boxShadow: SHADOW.sm, minWidth: 0, borderWidth: 1, borderColor: alpha(C.text, 0.08) },
   banner: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap', paddingVertical: 12, paddingHorizontal: 16, borderRadius: R.md, boxShadow: `inset 0 0 0 1px ${C.a700}`, backgroundColor: C.a900 },
   tag: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 3, paddingHorizontal: 10, borderRadius: 6, alignSelf: 'flex-start' },
   input: { width: '100%', paddingVertical: 6, paddingHorizontal: 10, fontFamily: FONT.regular, color: C.text, backgroundColor: C.surface, borderWidth: 1, borderColor: C.divider, borderRadius: R.md },

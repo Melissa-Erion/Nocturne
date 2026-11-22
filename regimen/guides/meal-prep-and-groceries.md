@@ -6,26 +6,33 @@ minutes: 4
 image: /img/app/prep.webp
 order: 8
 ---
-Batch cooking is the easiest way to stay on plan. **Eat › Prep** does the maths so you don't need a spreadsheet.
+Batch cooking is the easiest way to stay on plan. **Eat › Prep** and **Eat › Groceries** both work straight from your meal plan, so there's nothing to set up: change your meals and they update by themselves.
 
-## Add a prep plan
+## Prep from your meal plan
 
-1. Open **Eat › Prep** and tap **Add prep**.
-2. Under **Recipe or meal**, pick a saved meal or recipe (for example *Chicken, rice & broccoli*). Save a meal from Eat › Meals with **Save as favourite meal** if your list is empty.
-3. Set how many **meals or days** you're prepping for, how many **people**, and the **training** or **rest** day version.
+1. Open **Eat › Prep**.
+2. Under **Prep from my meal plan**, pick how many **days** you're cooking for (3, 4, 5 or 7).
+3. Tap the **meals** you batch-cook, for example Lunch and Dinner. Breakfast and snacks are usually made fresh, so they start switched off.
 
-![Eat › Prep: raw amounts to buy and cook, and grams per container](/img/app/prep.webp)
+Regimen then shows two things:
 
-## Buy, cook, weigh
+- **1. Cook this**: the total of each food for all those meals, as the cooked weight (for example *510 g cooked chicken breast*), and roughly how much to **buy raw** (chicken loses water when it cooks, rice absorbs it).
+- **2. Pack your containers**: what goes in each container, day by day, in grams. Weigh each portion as shown.
 
-Regimen lists how much of each ingredient to **buy and weigh raw**, based on typical cooking yields (chicken loses water, rice absorbs it), and the cooked weight to expect.
+![Eat › Prep: what to cook and what goes in each container](/img/app/prep.webp)
 
-After cooking, weigh the whole batch and enter the **actual total cooked weight**. Regimen then tells you exactly how many grams go into each container, so every portion still hits its target.
+## Batch-cook a recipe
+
+For a recipe like a big pot of chili, use **Batch-cook a recipe** further down. Pick the recipe, set how many containers, and after cooking enter the **actual total cooked weight**. Regimen tells you exactly how many grams go into each container.
 
 ## Your grocery list
 
-Tap **Grocery list** (or open **Eat › Groceries**). Everything from your prep plans is combined into one list, grouped by aisle, with sensible pack sizes. Tick items off as you shop, and add anything else by hand.
+Open **Eat › Groceries**. It lists everything in your meals for the next **3, 5 or 7 days** (pick at the top), plus any recipe batches, grouped by aisle with sensible pack sizes. Meals you've already eaten are left out.
+
+- **Tick items off** as you shop.
+- **Remove** anything you don't need (like something you already have) with the ✕. Removed items stay off the list until you tap **Show removed items** and **Put back**.
+- **Add an item** at the bottom for anything else (coffee, dish soap).
 
 ![Eat › Groceries: grouped by aisle](/img/app/grocery.webp)
 
-> Items marked *est. yield* use typical cooking yields. Buy a little extra the first time, then enter your real cooked weights for spot-on portions.
+> Items marked *est. yield* were converted from cooked weights to raw using typical cooking yields. Buy a little extra the first time.

@@ -23,7 +23,7 @@ export const TABLES: TableDef[] = [
         meals_per_day: Math.min(6, Math.max(1, Number(P.mealsPerDay) || 4)), diet_prefs: P.dietPrefs, allergies: P.allergies, exclude: P.exclude,
         check_in_day: Number(P.checkInDay) || 0, check_in_freq: P.checkInFreq, units: P.units, water_enabled: P.water, water_ml: Number(P.waterMl) || 0,
         supplements: P.supplements, increments: P.increments, progression: P.progression, shift_later: P.shiftLater, calendar_sync: P.calendarSync,
-        quiet_start: P.quietStart, quiet_end: P.quietEnd, quote_tone: P.quoteTone, onboarded: P.onboarded, tour_done: !!P.tourDone, start_date: P.startDate || null, cal_review_on: P.calReviewOn || null, meal_foods: P.mealFoods?.length ? P.mealFoods : null,
+        quiet_start: P.quietStart, quiet_end: P.quietEnd, quote_tone: P.quoteTone, onboarded: P.onboarded, tour_done: !!P.tourDone, start_date: P.startDate || null, cal_review_on: P.calReviewOn || null, meal_foods: P.mealFoods?.length ? P.mealFoods : null, shop_days: P.shopDays ?? null, prep_days: P.prepDays ?? null, prep_meals: P.prepMeals ?? null,
         active_plan_id: s.activePlanId, active_workout: s.active, is_sample: !!s.sample,
       }];
     },
@@ -132,7 +132,8 @@ export const TABLES: TableDef[] = [
       id: p.id, source_id: p.mealId, kind: p.kind, containers: Number(p.containers) || 1, people: Number(p.people) || 1, days: Number(p.days) || 1, version: p.version, actual: p.actual || {}, position: i,
     })),
   },
-  { table: 'grocery_checks', key: ['id'], rows: s => Object.entries(s.grocery.checked).filter(([, v]) => v).map(([id]) => ({ id, checked: true })) },
+  { table: 'grocery_checks', key: ['id'], rows: s => [...new Set([...Object.keys(s.grocery.checked).filter(id => s.grocery.checked[id]), ...Object.keys(s.grocery.removed || {}).filter(id => s.grocery.removed![id])])]
+    .map(id => ({ id, checked: !!s.grocery.checked[id], removed: !!s.grocery.removed?.[id] })) },
   { table: 'grocery_manual', key: ['id'], rows: s => s.grocery.manual.map((m, i) => ({ id: m.id, name: m.name, qty: m.qty || '', category: m.cat || 'Other', position: i })) },
   {
     table: 'reminders', key: ['id'], rows: s => s.reminders.map((r, i) => ({
@@ -175,6 +176,8 @@ export function fromTables(t: Record<string, Row[]>, today: string): State | nul
     ...(pr.tour_done ? { tourDone: true } : {}),
     ...(pr.cal_review_on ? { calReviewOn: str(pr.cal_review_on) } : {}),
     ...(Array.isArray(pr.meal_foods) && pr.meal_foods.length ? { mealFoods: pr.meal_foods as string[][] } : {}),
+    ...(pr.shop_days != null ? { shopDays: Number(pr.shop_days) } : {}), ...(pr.prep_days != null ? { prepDays: Number(pr.prep_days) } : {}),
+    ...(Array.isArray(pr.prep_meals) ? { prepMeals: pr.prep_meals as number[] } : {}),
   };
   s.active = (pr.active_workout as State['active']) || null;
 
@@ -266,6 +269,7 @@ export function fromTables(t: Record<string, Row[]>, today: string): State | nul
   }));
   s.grocery = {
     checked: Object.fromEntries((t.grocery_checks || []).filter(g => g.checked).map(g => [str(g.id), true])),
+    ...((t.grocery_checks || []).some(g => g.removed) ? { removed: Object.fromEntries((t.grocery_checks || []).filter(g => g.removed).map(g => [str(g.id), true])) } : {}),
     manual: [...(t.grocery_manual || [])].sort(byPos).map(m => ({ id: str(m.id), name: str(m.name), qty: str(m.qty), cat: str(m.category) })),
   };
   if (t.reminders?.length) s.reminders = [...t.reminders].sort(byPos).map(r => ({

@@ -157,6 +157,8 @@ export const RG = {
   recipeNutrition: (r: D.Recipe) => D.recipeNutrition(getState(), r),
   prepCalc: (p: D.PrepPlan) => D.prepCalc(getState(), p),
   groceryList: () => D.groceryList(getState()),
+  shoppingList: (days: number) => D.shoppingList(ctx(), days),
+  prepFromPlan: (days: number, slots: number[]) => D.prepFromPlan(ctx(), days, slots),
 
   /* quotes, weights, charts, check-ins */
   quoteList: () => D.quoteList(getState()),

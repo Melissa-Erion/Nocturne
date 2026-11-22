@@ -198,7 +198,8 @@ export interface PrepPlan {
 }
 
 export interface GroceryManual { id: string; name: string; qty: string; cat: string }
-export interface Grocery { checked: Record<string, boolean>; manual: GroceryManual[] }
+/** `removed`: items taken off the list (hidden until restored). */
+export interface Grocery { checked: Record<string, boolean>; manual: GroceryManual[]; removed?: Record<string, boolean> }
 
 export interface Reminder {
   id: string;
@@ -269,6 +270,11 @@ export interface Profile {
   calReviewOn?: ISODate | null;
   /** Foods the user picked for each meal slot (food ids, index = meal). New days are built from these. */
   mealFoods?: string[][] | null;
+  /** Grocery list covers this many days of the meal plan (default 7). */
+  shopDays?: number | null;
+  /** Prep from the meal plan: how many days, and which meal slots get batch-cooked (default lunch and dinner). */
+  prepDays?: number | null;
+  prepMeals?: number[] | null;
   startDate: ISODate;
 }
 

@@ -13,6 +13,8 @@ const DARK = {
   sidebarTop: '#1a1c2a',
   heroTop: '#30344a',
   tour: '#2c2f45',
+  /** Main call-to-action button: vivid purple with white text, so the one thing to do next stands out. */
+  cta: '#6a55e8', ctaHover: '#7c69f2', ctaText: '#ffffff',
 };
 type Palette = { [K in keyof typeof DARK]: string };
 
@@ -30,6 +32,7 @@ const LIGHT: Palette = {
   sidebarTop: '#ebe5d9',
   heroTop: '#ece7fb',
   tour: '#fffdf8',
+  cta: '#5b4fb3', ctaHover: '#4b409c', ctaText: '#ffffff',
 };
 
 /** Current colours. Mutated in place by applyTheme(); the app remounts after a switch so every screen re-reads them. */
