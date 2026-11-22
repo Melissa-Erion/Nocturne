@@ -267,6 +267,8 @@ export interface Profile {
   tourDone?: boolean;
   /** Last automatic calorie review answered (applied, snoozed or on track). */
   calReviewOn?: ISODate | null;
+  /** Foods the user picked for each meal slot (food ids, index = meal). New days are built from these. */
+  mealFoods?: string[][] | null;
   startDate: ISODate;
 }
 

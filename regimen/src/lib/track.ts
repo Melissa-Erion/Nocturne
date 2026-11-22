@@ -6,7 +6,7 @@ import { useUI } from '@/store/store';
 
 export type EventName =
   | 'app_open' | 'setup_done' | 'food_added' | 'meal_eaten' | 'extra_logged' | 'workout_started' | 'workout_finished'
-  | 'paywall_prompt' | 'upgrade_viewed' | 'checkout_started' | 'checkout_done' | 'calorie_check_applied';
+  | 'paywall_prompt' | 'upgrade_viewed' | 'checkout_started' | 'checkout_done' | 'calorie_check_applied' | 'meal_foods_set';
 
 const last: Partial<Record<EventName, number>> = {};
 /** Record that something happened. Repeats of the same event within 5 seconds are dropped. */

@@ -25,7 +25,9 @@ test('Meals is free for today; other days, swaps and favourites ask for the tria
   await expect(page.getByText('Food substitutions is part of Regimen Pro')).toBeVisible();
   await closePrompt(page);
   await page.getByRole('button', { name: 'Mark as eaten' }).first().click();
-  await expect(page.getByText('Eaten · undo').first()).toBeVisible();
+  // the eaten meal folds up (marked Eaten) and the next one opens
+  await expect(page.getByText('Eaten', { exact: true }).first()).toBeVisible();
+  await page.getByRole('button', { name: 'More options' }).click();
   await page.getByRole('button', { name: 'Save as favourite meal' }).click();
   await expect(page.getByText('Saved meals is part of Regimen Pro')).toBeVisible();
   await page.getByRole('button', { name: /Start 7-day free trial/ }).first().click();

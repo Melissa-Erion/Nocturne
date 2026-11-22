@@ -46,7 +46,7 @@ test('every tab and section opens', async ({ page }) => {
 test('Meals: add a food, swap it, expand the target split', async ({ page }) => {
   const errors = watchErrors(page);
   await page.goto('/meals');
-  await expect(page.getByText(/already planned for you/)).toBeVisible();
+  await expect(page.getByText(/Your meals$/)).toBeVisible();
   await expect(page.getByText('Calculate portions')).toHaveCount(0);
   await page.getByLabel('Search foods').fill('chicken');
   await page.getByRole('button', { name: /^Add .*[Cc]hicken/ }).first().click();
@@ -58,6 +58,36 @@ test('Meals: add a food, swap it, expand the target split', async ({ page }) => 
   await expect(page.getByText(/refitted around it/)).toBeVisible();
   await page.getByLabel('Show how targets are split').click();
   await expect(page.getByText('Sum of meals')).toBeVisible();
+  errors.expectNone();
+});
+
+test('Meals: choose my foods builds every meal from the picks and survives a reload', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/meals');
+  await page.getByRole('button', { name: 'Choose my foods' }).click();
+  await expect(page.getByText(/step 1 of 4/)).toBeVisible();
+  // breakfast: keep what's there and add oats; lunch: start from scratch with chicken and rice
+  await page.getByRole('button', { name: 'Add Rolled oats' }).click();
+  await page.getByRole('button', { name: /^Next: / }).click();
+  const picked = page.getByRole('button', { name: /^Remove / }).filter({ hasText: '✓' });
+  while (await picked.count()) await picked.first().click();
+  await page.getByRole('button', { name: 'Add Chicken breast, skinless' }).click();
+  await page.getByRole('button', { name: 'Add White rice, long-grain' }).click();
+  await page.getByRole('button', { name: /^Next: / }).click();
+  await page.getByRole('button', { name: /^Next: / }).click();
+  await page.getByRole('button', { name: 'Build my meals' }).click();
+  await expect(page.getByText(/Your meals are built/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Change my foods' })).toBeVisible();
+  // the sample day already has breakfast and lunch eaten (those stay as they were), so check tomorrow
+  await page.getByRole('button', { name: 'Next day' }).click();
+  await page.getByLabel(/^Open Breakfast/).click();
+  await expect(page.getByLabel('Rolled oats grams')).toBeVisible();
+  await page.getByLabel(/^Open Lunch/).click();
+  await expect(page.getByLabel('Chicken breast, skinless grams')).toBeVisible();
+  await expect(page.getByLabel('White rice, long-grain grams')).toBeVisible();
+  await expect(page.getByLabel('Tuna, canned in water grams')).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Change my foods' })).toBeVisible();
   errors.expectNone();
 });
 

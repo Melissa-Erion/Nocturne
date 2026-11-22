@@ -156,6 +156,32 @@ export function rebalanceMeals(ctx: Ctx, fillEmpty = false) {
   }
 }
 
+/** Turn a list of foods into portions for a meal target. Vegetables are held at 100 g while the rest is solved. */
+function portion(s: State, raw: { foodId: string; g: number; estimate?: MealItem['estimate'] }[], t: { p: number; c: number; f: number }): MealItem[] {
+  let items: MealItem[] = raw.map(q => ({ ...q, key: uid(), locked: false }));
+  const veg = items.find(q => food(s, q.foodId)?.role === 'veg'); if (veg) { veg.g = 100; veg.locked = true; }
+  items = solve(s, items, t);
+  items.forEach(q => { if (food(s, q.foodId)?.role === 'veg') q.locked = false; });
+  return items;
+}
+
+/** Save the foods picked for each meal and rebuild every meal from today on that isn't eaten or prepped.
+    `only` limits the rebuild to one meal slot (changing a single meal). */
+export function setMealFoods(ctx: Ctx, foods: string[][], only?: number) {
+  const { s } = ctx;
+  s.profile.mealFoods = foods.map(l => l.filter(id => !!food(s, id)));
+  for (const d of Object.keys(s.days)) {
+    if (d < ctx.today) continue;
+    const day = getDay(ctx, d); const tg = dayMealTargets(ctx, d);
+    day.meals.forEach((m, i) => {
+      if (only != null && i !== only) return;
+      const ids = s.profile.mealFoods?.[i];
+      if (m.logged || m.prepped || !tg[i] || !ids?.length) return;
+      m.items = portion(s, ids.map(foodId => ({ foodId, g: 100 })), tg[i]);
+    });
+  }
+}
+
 /** Get (creating from the default template if needed) the meal plan for a date. */
 export function getDay(ctx: Ctx, d: ISODate): DayPlan {
   const { s } = ctx;
@@ -165,17 +191,15 @@ export function getDay(ctx: Ctx, d: ISODate): DayPlan {
       ? [['sm2'], ['chicken_c', 'rice_c', 'avocado'], ['turkey', 'tortilla', 'banana'], ['salmon_r', 'potato_r', 'broccoli_c']]
       : [['eggs', 'bread', 'blueb'], ['tuna', 'quinoa_c', 'avocado'], ['cottage', 'blueb', 'almonds'], ['chicken_c', 'sweet_c', 'broccoli_c']];
     const fallback: Record<string, string[]> = { sm2: ['yog', 'oats', 'blueb'] };
+    const mine = s.profile.mealFoods;
     const meals = tg.map((t, i) => {
-      let items: MealItem[] = (tpl[i] || EXTRA_MEALS[i - tpl.length] || ['chicken_c', 'rice_c', 'oil']).flatMap(x => {
+      const ids = mine?.[i]?.length ? mine[i] : (tpl[i] || EXTRA_MEALS[i - tpl.length] || ['chicken_c', 'rice_c', 'oil']);
+      const items: MealItem[] = ids.flatMap(x => {
         if (!x.startsWith('sm')) return [{ foodId: x, g: 100 }];
         const sm = s.savedMeals.find(m => m.id === x);
         return sm ? sm.items.map(q => ({ ...q })) : (fallback[x] || []).map(foodId => ({ foodId, g: 100 }));
       });
-      items = items.map(q => ({ ...q, key: uid(), locked: false }));
-      const veg = items.find(q => food(s, q.foodId)?.role === 'veg'); if (veg) { veg.g = 100; veg.locked = true; }
-      items = solve(s, items, t);
-      items.forEach(q => { if (food(s, q.foodId)?.role === 'veg') q.locked = false; });
-      return { key: uid(), items, logged: false, prepped: false };
+      return { key: uid(), items: portion(s, items, t), logged: false, prepped: false };
     });
     s.days[d] = { type, meals, water: 0 };
     if (d === ctx.today && s.sample && meals.length >= 3) { meals[0].logged = true; meals[1].logged = true; meals[1].prepped = true; meals[2].prepped = true; s.days[d].water = 1250; }

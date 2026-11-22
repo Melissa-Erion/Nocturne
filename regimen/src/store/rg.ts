@@ -125,6 +125,7 @@ export const RG = {
   calorieAdvice: () => D.calorieAdvice(ctx()),
   calorieReviewDue: () => D.calorieReviewDue(ctx()),
   /** Apply the suggested change; planned meals from today on are re-portioned to the new targets. */
+  setMealFoods(foods: string[][], only?: number) { D.setMealFoods(ctx(), foods, only); commit(); track('meal_foods_set', { meals: foods.filter(l => l.length).length, only: only ?? -1 }); },
   applyCalorieChange(change: number) { D.applyCalorieChange(getState(), change, ctx().today); commit(); track('calorie_check_applied', { change }); },
   /** "Not now" / "Got it": ask again in `days` days. */
   snoozeCalorieReview(days: number) { const s = getState(); s.profile.calReviewOn = D.add(ctx().today, days - D.REVIEW_EVERY_DAYS); commit(); },
