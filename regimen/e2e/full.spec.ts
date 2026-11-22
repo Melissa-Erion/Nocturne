@@ -82,9 +82,10 @@ test('Meals: choose foods, change one meal, fix an amount, swap for good', async
 
   // change just this meal: chicken out, tofu in
   await page.getByRole('button', { name: 'Change foods' }).click();
-  await page.getByRole('button', { name: 'Remove Chicken breast, skinless' }).filter({ hasText: '✓' }).click();
-  await page.getByRole('button', { name: 'Add Tofu, firm' }).click();
-  await page.getByRole('button', { name: 'Save meal' }).click();
+  const dialog = page.getByRole('dialog').filter({ hasText: /^Change / });
+  await dialog.getByRole('button', { name: 'Remove Chicken breast, skinless' }).click();
+  await dialog.getByRole('button', { name: 'Add Tofu, firm' }).click();
+  await dialog.getByRole('button', { name: 'Save meal' }).click();
   await expect(page.getByLabel('Tofu, firm grams')).toBeVisible();
   await expect(page.getByLabel('Chicken breast, skinless grams')).toHaveCount(0);
 
