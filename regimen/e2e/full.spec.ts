@@ -23,7 +23,7 @@ test('every tab and section opens', async ({ page }) => {
   const tabs: [Parameters<typeof openTab>[1], [string, string][]][] = [
     ['Train', [['Schedule', 'schedule'], ['Plans', 'plans'], ['History', 'history']]],
     ['Eat', [['Meals', 'meals'], ['Macros', 'nutrition'], ['Prep', 'prep'], ['Recipes', 'recipes'], ['Groceries', 'grocery']]],
-    ['Progress', [['Check-ins', 'checkins'], ['Photos', 'photos'], ['Records', 'records'], ['Analytics', 'analytics']]],
+    ['Progress', [['Overview', 'progress'], ['Check-ins', 'checkins'], ['Photos', 'photos'], ['Records', 'records'], ['Analytics', 'analytics']]],
   ];
   for (const [tab, secs] of tabs) {
     await openTab(page, tab);
@@ -243,5 +243,32 @@ test('meal prep from the plan updates with the chosen meals', async ({ page }) =
   await page.getByRole('button', { name: 'Breakfast' }).click();
   expect(await count()).toBeGreaterThan(n0);
   await expect(page.getByText('2. Pack your containers')).toBeVisible();
+  errors.expectNone();
+});
+
+test('progress overview: open the latest check-in, step through, edit, and go back', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openTab(page, 'Progress'); await section(page, 'Overview').click();
+  await expect(page).toHaveURL(/\/progress$/);
+  for (const t of ['Weight trend', 'Since you started', 'Latest check-in', 'New records']) await expect(page.getByText(t, { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: /^Open check-in / }).click();
+  await expect(page).toHaveURL(/\/checkins$/);
+  await expect(page.getByText('How the week felt', { exact: true })).toBeVisible();
+  await expect(page.getByText(/since last$/).first()).toBeVisible();
+  const pos = page.getByText(/^\d+ of \d+$/);
+  const [n, total] = (await pos.textContent())!.split(' of ').map(Number);
+  expect(n).toBe(total);
+  await page.getByRole('button', { name: 'Older check-in' }).click();
+  await expect(pos).toHaveText(`${total - 1} of ${total}`);
+  await page.getByRole('button', { name: 'Edit check-in' }).click();
+  await expect(page.getByText('Edit check-in', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Save check-in' }).click();
+  await expect(page.getByText('How the week felt', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'All check-ins' }).click();
+  await expect(page.getByRole('button', { name: /^Open check-in / }).first()).toBeVisible();
+  // New check-in from the overview opens the form
+  await openTab(page, 'Progress'); await section(page, 'Overview').click();
+  await page.getByRole('button', { name: 'New check-in' }).click();
+  await expect(page.getByText('New check-in', { exact: true }).last()).toBeVisible();
   errors.expectNone();
 });
