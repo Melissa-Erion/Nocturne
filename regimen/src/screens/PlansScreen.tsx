@@ -6,6 +6,7 @@ import type { Plan, PlanItem, Region, Workout } from '@/domain/types';
 import { Btn, Card, Check, ColLabel, Dialog, Field, H, Icon, Input, Muted, NumInput, Row, Select, T, Tag, Tap, useLayout } from '@/ui/kit';
 import { alpha, C, R } from '@/ui/theme';
 import { ExercisePicker } from './plans/ExercisePicker';
+import { RotationList } from './plans/RotationList';
 import { Screen } from './Shell';
 
 const REGIONS: { value: Region; label: string }[] = [{ value: 'upper', label: 'Upper' }, { value: 'lower', label: 'Lower' }, { value: 'full', label: 'Full body' }, { value: 'core', label: 'Core / conditioning' }];
@@ -242,18 +243,10 @@ export default function PlansScreen() {
         {isActive && plans.length > 1 && <Muted size={12}>This is your active plan. To delete it, switch to another plan first.</Muted>}
         <Input multiline value={plan.note || ''} onChange={v => up(p => { p.note = v; })} placeholder="Plan notes and progression rules" size={13} style={{ minHeight: wide ? 52 : 90 }} accessibilityLabel="Plan notes" />
         <View style={{ gap: 6 }}>
-          <ColLabel style={{ fontSize: 11 }}>Rotation order</ColLabel>
-          <Row gap={6} wrap>
-            {plan.rotation.map((id, i) => (
-              <View key={id + i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4, paddingLeft: 10, paddingRight: 4, borderRadius: 6, backgroundColor: C.n900 }}>
-                <T size={12}>{plan.workouts.find(w => w.id === id)?.name || id}</T>
-                <Btn variant="ghost" iconOnly icon="caret-left" label="Earlier" disabled={i === 0} style={{ width: 28, height: 28, minHeight: 28 }}
-                  onPress={() => up(p => { const r = p.rotation; if (i > 0) [r[i - 1], r[i]] = [r[i], r[i - 1]]; }, true)} />
-                <Btn variant="ghost" iconOnly icon="caret-right" label="Later" disabled={i === plan.rotation.length - 1} style={{ width: 28, height: 28, minHeight: 28 }}
-                  onPress={() => up(p => { const r = p.rotation; if (i < r.length - 1) [r[i + 1], r[i]] = [r[i], r[i + 1]]; }, true)} />
-              </View>
-            ))}
-          </Row>
+          <T size={15} w={600}>Rotation order</T>
+          <Muted size={12}>Workouts run in this order. Drag a row by its handle, or use the arrows on that row.</Muted>
+          <RotationList items={plan.rotation.map((id, i) => ({ key: id + i, name: plan.workouts.find(w => w.id === id)?.name || id }))}
+            onMove={(from, to) => up(p => { const r = p.rotation; if (to < 0 || to >= r.length) return; const [x] = r.splice(from, 1); r.splice(to, 0, x); }, true)} />
         </View>
       </Card>
 

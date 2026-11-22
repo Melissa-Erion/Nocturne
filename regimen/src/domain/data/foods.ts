@@ -115,6 +115,94 @@ export const FOODS: Record<string, Food> = {
       "g": 450
     }
   },
+  "gturkey_c": {
+    "id": "gturkey_c",
+    "name": "Lean ground turkey 93%",
+    "basis": "cooked",
+    "kcal": 213,
+    "p": 27.1,
+    "c": 0,
+    "f": 11.6,
+    "role": "protein",
+    "cat": "Meat & fish",
+    "tags": [
+      "Dairy-free",
+      "Gluten-free",
+      "High protein"
+    ],
+    "src": "USDA FoodData Central",
+    "est": false,
+    "rawId": "gturkey_r",
+    "yld": 0.7
+  },
+  "gturkey_r": {
+    "id": "gturkey_r",
+    "name": "Lean ground turkey 93%",
+    "basis": "raw",
+    "kcal": 150,
+    "p": 18.7,
+    "c": 0,
+    "f": 8.3,
+    "role": "protein",
+    "cat": "Meat & fish",
+    "tags": [
+      "Dairy-free",
+      "Gluten-free",
+      "High protein"
+    ],
+    "src": "USDA FoodData Central",
+    "est": false,
+    "cookedId": "gturkey_c",
+    "yld": 0.7,
+    "buy": {
+      "unit": "pack",
+      "g": 450
+    }
+  },
+  "gchicken_c": {
+    "id": "gchicken_c",
+    "name": "Lean ground chicken",
+    "basis": "cooked",
+    "kcal": 189,
+    "p": 23.3,
+    "c": 0,
+    "f": 10.9,
+    "role": "protein",
+    "cat": "Meat & fish",
+    "tags": [
+      "Dairy-free",
+      "Gluten-free",
+      "High protein"
+    ],
+    "src": "USDA FoodData Central",
+    "est": false,
+    "rawId": "gchicken_r",
+    "yld": 0.75
+  },
+  "gchicken_r": {
+    "id": "gchicken_r",
+    "name": "Lean ground chicken",
+    "basis": "raw",
+    "kcal": 143,
+    "p": 17.4,
+    "c": 0,
+    "f": 8.1,
+    "role": "protein",
+    "cat": "Meat & fish",
+    "tags": [
+      "Dairy-free",
+      "Gluten-free",
+      "High protein"
+    ],
+    "src": "USDA FoodData Central",
+    "est": false,
+    "cookedId": "gchicken_c",
+    "yld": 0.75,
+    "buy": {
+      "unit": "pack",
+      "g": 450
+    }
+  },
   "salmon_r": {
     "id": "salmon_r",
     "name": "Atlantic salmon",

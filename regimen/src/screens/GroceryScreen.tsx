@@ -1,8 +1,9 @@
-/* 14. Grocery List — port of prototype/FitGrocery.dc.html */
+/* Grocery list: built from the next few days of the meal plan (plus recipe prep plans and items you add).
+   Any item can be removed; removed items stay off until restored. */
 import { useState } from 'react';
 import { View } from 'react-native';
 import { useRG } from '@/store/rg';
-import { Btn, Card, CardTitle, Empty, H, Icon, Input, Muted, Row, Rule, Select, T, Tag, Tap, useLayout } from '@/ui/kit';
+import { Btn, Card, CardTitle, Empty, H, Icon, Input, Muted, Row, Rule, Seg, Select, T, Tag, Tap, useLayout } from '@/ui/kit';
 import { C, R } from '@/ui/theme';
 import { Screen } from './Shell';
 
@@ -14,13 +15,19 @@ export default function GroceryScreen() {
   const RG = useRG();
   const narrow = useLayout().width < 520;
   const [mName, setMName] = useState(''); const [mQty, setMQty] = useState(''); const [mCat, setMCat] = useState('Other');
-  const S = RG.s; const list = RG.groceryList(); const ck = S.grocery.checked;
+  const [showRemoved, setShowRemoved] = useState(false);
+  const S = RG.s; const days = S.profile.shopDays || 7; const list = RG.shoppingList(days); const ck = S.grocery.checked;
+  const removedIds = Object.keys(S.grocery.removed || {}).filter(id => S.grocery.removed![id]);
   const all: Row_[] = list.map(i => ({ ...i, manual: false }))
     .concat(S.grocery.manual.map(m => ({ id: m.id, name: m.name, cat: m.cat, buy: m.qty || '', basis: '', from: ['Added manually'], manual: true, g: 0, est: false })));
   const cats = [...new Set(all.map(i => i.cat))];
   const done = all.filter(i => ck[i.id]).length;
-  const plans = S.prep.map(p => { const c = RG.prepCalc(p); return c ? `${c.name} × ${c.n}` : ''; }).filter(Boolean);
-  const source = `From ${S.prep.length} meal-prep plan${S.prep.length === 1 ? '' : 's'}${plans.length ? ': ' + plans.join(', ') : ''} · updates automatically`;
+  const source = `Everything in your meals for the next ${days} days${S.prep.length ? ', plus your recipe batches' : ''}. Updates automatically when your meals change.`;
+  const remove = (i: Row_) => RG.update(s => {
+    if (i.manual) s.grocery.manual = s.grocery.manual.filter(m => m.id !== i.id);
+    else { s.grocery.removed = { ...(s.grocery.removed || {}), [i.id]: true }; }
+    delete s.grocery.checked[i.id];
+  });
   const addManual = () => {
     if (!mName.trim()) return;
     RG.update(s => { s.grocery.manual.push({ id: 'm' + RG.uid(), name: mName.trim(), qty: mQty, cat: mCat }); });
@@ -31,14 +38,18 @@ export default function GroceryScreen() {
     <Screen>
       <View style={{ gap: 16, maxWidth: 900 }}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 12, flexWrap: 'wrap' }}>
-          <View style={{ marginRight: 'auto', flexShrink: 1 }}>
-            <Muted>{source}</Muted>
-            <H size={28} style={{ marginTop: 2 }}>Grocery List</H>
+          <View style={{ marginRight: 'auto', flexShrink: 1, gap: 2 }}>
+            <H size={28}>Grocery list</H>
+            <Muted size={13}>{source}</Muted>
           </View>
-          <T size={13} color={C.n400}>{`${done} of ${all.length} checked`}</T>
-          <Btn title="Uncheck all" onPress={() => RG.update(s => { s.grocery.checked = {}; })} />
-          <Btn icon="cooking-pot" title="Edit prep plan" onPress={() => RG.go('prep')} />
         </View>
+        <Row gap={10} wrap>
+          <T size={14} w={500}>Shopping for</T>
+          <Seg<number> value={days} onChange={v => RG.update(s => { s.profile.shopDays = v; })} options={[{ value: 3, label: '3 days' }, { value: 5, label: '5 days' }, { value: 7, label: '7 days' }]} />
+          <View style={{ flex: 1 }} />
+          <T size={13} color={C.n400}>{`${done} of ${all.length} checked`}</T>
+          <Btn variant="ghost" title="Uncheck all" onPress={() => RG.update(s => { s.grocery.checked = {}; })} />
+        </Row>
 
         {list.some(i => i.est) && (
           <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start', paddingVertical: 10, paddingHorizontal: 14, borderRadius: R.md, boxShadow: `inset 0 0 0 1px ${C.n800}` }}>
@@ -51,8 +62,8 @@ export default function GroceryScreen() {
 
         {!all.length && (
           <Card>
-            <Empty icon="shopping-cart" title="Your grocery list is empty" body="Add a meal-prep plan and its ingredients appear here automatically, or add items manually below."
-              action={<Btn icon="cooking-pot" title="Open Meal Prep" onPress={() => RG.go('prep')} />} />
+            <Empty icon="shopping-cart" title="Your grocery list is empty" body="Plan your meals and everything in them appears here automatically. You can also add items below."
+              action={<Btn icon="fork-knife" title="Plan my meals" onPress={() => RG.go('meals')} />} />
           </Card>
         )}
 
@@ -83,13 +94,30 @@ export default function GroceryScreen() {
                     {!i.manual && <Muted size={11} tab>{`need ${RG.g(i.g)}`}</Muted>}
                   </View>
                   </Tap>
-                  {i.manual && <Btn variant="ghost" iconOnly icon="x" color={C.n500} label={`Remove ${i.name}`} style={{ width: 28, height: 28 }}
-                    onPress={() => RG.update(s => { s.grocery.manual = s.grocery.manual.filter(m => m.id !== i.id); delete s.grocery.checked[i.id]; })} />}
+                  <Btn variant="ghost" iconOnly icon="x" color={C.n500} label={`Remove ${i.name}`} style={{ width: 36, height: 36 }} onPress={() => remove(i)} />
                 </View>
               );
             })}
           </Card>
         ))}
+
+        {!!removedIds.length && (
+          <View style={{ gap: 6 }}>
+            <Row><Btn variant="ghost" icon={showRemoved ? 'caret-down' : 'caret-right'} title={`${showRemoved ? 'Hide' : 'Show'} removed items (${removedIds.length})`} onPress={() => setShowRemoved(v => !v)} /></Row>
+            {showRemoved && (
+              <Card gap={2} pad={[8, 18]}>
+                <Muted size={12} style={{ paddingVertical: 6 }}>Removed items stay off your list (for example, things you already have) until you put them back.</Muted>
+                {removedIds.map(id => (
+                  <Row key={id} gap={8} style={{ minHeight: 40 }}>
+                    <T size={14} style={{ flex: 1 }} color={C.n400}>{RG.food(id)?.name || id}</T>
+                    <Btn variant="ghost" size="sm" icon="arrow-counter-clockwise" title="Put back" label={`Put back ${RG.food(id)?.name || id}`}
+                      onPress={() => RG.update(s => { if (s.grocery.removed) delete s.grocery.removed[id]; })} />
+                  </Row>
+                ))}
+              </Card>
+            )}
+          </View>
+        )}
 
         <Card gap={8} pad={[14, 18]}>
           <CardTitle size={15}>Add an item</CardTitle>

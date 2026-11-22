@@ -11,7 +11,7 @@ import { useAccess } from '@/store/access';
 import { ExtrasList, LogExtraDialog } from './eat/LogExtra';
 import { ChooseFoodsDialog, MealFoodsDialog } from './eat/ChooseFoods';
 import {
-  Btn, Card, CardTitle, ColLabel, Dialog, Field, Grid, H, Icon, Input, Kicker, Muted, NotMedical, NumInput, Row, Rule, Seg, Select, T, Tap, useLayout,
+  Btn, Card, CardTitle, ColLabel, Dialog, Field, Grid, H, Icon, Input, Kicker, Muted, NotMedical, NumInput, Row, Rule, Section, Seg, Select, T, Tap, useLayout,
 } from '@/ui/kit';
 import { alpha, C, R, SHADOW } from '@/ui/theme';
 import { Screen } from './Shell';
@@ -171,15 +171,6 @@ export default function MealsScreen() {
   const statusLine = !items.length ? '' : hit ? `On target for this meal. ${weigh}`
     : `Close: ${worst![0]} is ${RG.r1(Math.abs(worst![1]))} g ${worst![1] > 0 ? 'over' : 'under'}, the nearest these foods get. Adding or swapping a food can close it. ${weigh}`;
 
-  const Section = ({ title, sub, children }: { title: string; sub?: string; children?: ReactNode }) => (
-    <View style={{ gap: 10, marginTop: 6 }}>
-      <View style={{ gap: 2 }}>
-        <H size={21}>{title}</H>
-        {!!sub && <Muted size={13}>{sub}</Muted>}
-      </View>
-      {children}
-    </View>
-  );
 
   return (
     <Screen>

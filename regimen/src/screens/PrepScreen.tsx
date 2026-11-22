@@ -1,8 +1,9 @@
-/* 11. Meal-Prep Calculator — port of prototype/FitPrep.dc.html */
+/* Meal prep. Top: prep straight from the meal plan (pick days and which meals; totals to cook/buy and what goes in
+   each container update with the plan). Below: batch-cook a recipe or saved meal (the original calculator). */
 import { View } from 'react-native';
 import type { DayType, PrepPlan, Recipe, SavedMeal } from '@/domain/types';
 import { useRG } from '@/store/rg';
-import { Btn, Card, Field, H, Icon, Muted, NotMedical, Num, NumInput, Row, Select, Seg, T } from '@/ui/kit';
+import { Btn, Card, Chip, Field, H, Icon, Muted, NotMedical, Num, NumInput, Row, Rule, Section, Select, Seg, T } from '@/ui/kit';
 import { alpha, C, R } from '@/ui/theme';
 import { Grid, Table } from './prep/ui';
 import { Screen } from './Shell';
@@ -22,19 +23,23 @@ export default function PrepScreen() {
   return (
     <Screen>
       <Row gap={12} wrap align="flex-end">
-        <View style={{ marginRight: 'auto' }}>
-          <Muted>Batch cook, then divide by actual cooked weight</Muted>
-          <H size={28} style={{ marginTop: 2 }}>Meal-Prep Calculator</H>
+        <View style={{ marginRight: 'auto', gap: 2 }}>
+          <H size={28}>Meal prep</H>
+          <Muted size={13}>Cook once for the next few days. Amounts come from your meal plan and update when it changes.</Muted>
         </View>
-        <Btn icon="plus" title="Add prep" onPress={addPlan} />
         <Btn variant="primary" icon="shopping-cart" title="Grocery list" onPress={() => RG.go('grocery')} />
       </Row>
+
+      <PlanPrepCard />
+
+      <Section title="Batch-cook a recipe" sub="For a recipe or saved meal (like a big pot of chili): raw amounts to buy and grams per container."
+        right={<Btn icon="plus" title="Add a recipe batch" onPress={addPlan} />} />
 
       {!S.prep.length && (
         <Card>
           <View style={{ alignItems: 'center', gap: 8, paddingVertical: 22 }}>
             <Icon name="cooking-pot" size={26} color={C.n600} />
-            <T size={15} w={500} center>No prep plans yet</T>
+            <T size={15} w={500} center>No recipe batches yet</T>
             <Muted size={13} style={{ textAlign: 'center', maxWidth: 420 }}>{srcOpts.length ? 'Add a prep plan for a saved meal or recipe to get raw buy amounts and per-container portions.' : 'Save a meal in the Meal Planner or create a recipe first, then add a prep plan for it.'}</Muted>
             <Row gap={6}>
               {srcOpts.length ? <Btn icon="plus" title="Add prep" onPress={addPlan} /> : <Btn icon="book-open" title="Recipes & saved meals" onPress={() => RG.go('recipes')} />}
@@ -46,6 +51,69 @@ export default function PrepScreen() {
       {S.prep.map((p, pi) => <PrepCard key={p.id} p={p} pi={pi} srcOpts={srcOpts} />)}
       {S.prep.length > 0 && <NotMedical />}
     </Screen>
+  );
+}
+
+/** Prep from the meal plan: choose days and meals; shows what to cook and buy, and what goes in each container. */
+function PlanPrepCard() {
+  const RG = useRG();
+  const P = RG.s.profile;
+  const tgs = RG.mealTargets(RG.getDay(RG.TODAY).type);
+  const days = P.prepDays || 5;
+  const def = tgs.map((t, i) => i).filter(i => !/breakfast|snack|pre-workout/i.test(tgs[i].label));
+  const slots = (P.prepMeals?.length ? P.prepMeals : def.length ? def : [0]).filter(i => i < tgs.length);
+  const plan = RG.prepFromPlan(days, slots);
+  const toggle = (i: number) => RG.update(s => { const cur = slots.includes(i) ? slots.filter(x => x !== i) : [...slots, i].sort(); s.profile.prepMeals = cur.length ? cur : slots; });
+  const byDate = plan.boxes.reduce<Record<string, typeof plan.boxes>>((a, b) => { (a[b.date] ||= []).push(b); return a; }, {});
+  const kindOf = (b: string) => b === 'cooked' ? 'cooked' : b === 'raw' ? 'raw' : '';
+  return (
+    <Card gap={14} pad={[18, 20]} style={{ borderWidth: 1, borderColor: C.a700 }}>
+      <View style={{ gap: 2 }}>
+        <T size={18} w={600}>Prep from my meal plan</T>
+        <Muted size={13}>Pick how many days and which meals you batch-cook.</Muted>
+      </View>
+      <Row gap={10} wrap>
+        <T size={14} w={500} style={{ width: 70 }}>Days</T>
+        <Seg<number> value={days} onChange={v => RG.update(s => { s.profile.prepDays = v; })} options={[{ value: 3, label: '3' }, { value: 4, label: '4' }, { value: 5, label: '5' }, { value: 7, label: '7' }]} />
+      </Row>
+      <Row gap={10} wrap>
+        <T size={14} w={500} style={{ width: 70 }}>Meals</T>
+        {tgs.map((t, i) => <Chip key={i} label={t.label} on={slots.includes(i)} onPress={() => toggle(i)} />)}
+      </Row>
+
+      {!plan.boxes.length ? <Muted size={13}>Nothing left to prep for those days. Choose more days or other meals.</Muted> : <>
+        <View style={{ gap: 6 }}>
+          <T size={15} w={600}>{`1. Cook this (${plan.boxes.length} containers)`}</T>
+          {plan.cook.map(c => (
+            <View key={c.foodId} style={{ paddingVertical: 8 }}>
+              <Rule style={{ position: 'absolute', top: 0, left: 0, right: 0 }} />
+              <Row gap={10}>
+                <T size={14} style={{ flex: 1 }}>{c.name}</T>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <T size={15} tab w={600}>{`${RG.g(c.g)}${kindOf(c.basis) ? ' ' + kindOf(c.basis) : ''}`}</T>
+                  {c.buyId !== c.foodId && <Muted size={11}>{`buy about ${RG.g(Math.ceil(c.buyG / 10) * 10)} raw`}</Muted>}
+                </View>
+              </Row>
+            </View>
+          ))}
+          {plan.cook.some(c => c.est) && <Muted size={12}>Raw amounts are estimates (cooking shrinks food by different amounts). Cook a little extra.</Muted>}
+        </View>
+        <View style={{ gap: 8 }}>
+          <T size={15} w={600}>2. Pack your containers</T>
+          {Object.entries(byDate).map(([d, boxes]) => (
+            <View key={d} style={{ gap: 6 }}>
+              <T size={13} w={600} color={C.n400}>{d === RG.TODAY ? 'Today' : RG.fmtD(d)}</T>
+              {boxes.map((b, k) => (
+                <View key={k} style={{ padding: 10, borderRadius: R.md, backgroundColor: C.n900, gap: 2 }}>
+                  <T size={13} w={600}>{b.label}</T>
+                  <T size={13} color={C.n300}>{b.items.map(i => `${i.name.split(',')[0]} ${RG.g(i.g)}`).join(' · ')}</T>
+                </View>
+              ))}
+            </View>
+          ))}
+        </View>
+      </>}
+    </Card>
   );
 }
 

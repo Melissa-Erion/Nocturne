@@ -1,7 +1,8 @@
 /* Meal prep and grocery — port of prototype/store.js (prepCalc, recipeNutrition, groceryList).
    For cooked-basis foods, raw purchase = cooked ÷ yield and is flagged as an estimated yield. */
-import { food, sumM } from './nutrition';
-import type { Macros, PrepPlan, Recipe, SavedMeal, State } from './types';
+import { food, getDay, mealTargets, sumM } from './nutrition';
+import { add } from './dates';
+import type { Ctx, ISODate, Macros, PrepPlan, Recipe, SavedMeal, State } from './types';
 import { makeUnits } from './units';
 import { sum } from './util';
 
@@ -52,9 +53,63 @@ export function prepCalc(s: State, p: PrepPlan): PrepResult | null {
 export interface GroceryRow { id: string; name: string; basis: string; cat: string; g: number; est: boolean; from: string[]; buy: string }
 
 /** Combines raw ingredients across prep plans, converts to purchase units and groups by category. */
-export function groceryList(s: State): GroceryRow[] {
+/** What to buy for a food as listed in a meal: cooked foods are bought raw (cooked ÷ yield, an estimate). */
+function toBuy(s: State, foodId: string, g: number) {
+  const f = food(s, foodId); if (!f) return null;
+  if (f.basis === 'cooked' && f.rawId && f.yld) return { id: f.rawId, g: g / f.yld, est: true };
+  return { id: f.id, g, est: false };
+}
+
+/** Planned (not yet eaten) meals from today for `days` days, optionally only some meal slots. */
+export function planMeals(ctx: Ctx, days: number, slots?: number[]) {
+  const out: { date: ISODate; slot: number; label: string; items: { foodId: string; g: number }[] }[] = [];
+  for (let k = 0; k < days; k++) {
+    const d = add(ctx.today, k); const day = getDay(ctx, d); const tg = mealTargets(ctx, day.type);
+    day.meals.forEach((m, i) => {
+      if (m.logged || (slots && !slots.includes(i))) return;
+      out.push({ date: d, slot: i, label: tg[i]?.label || `Meal ${i + 1}`, items: m.items.filter(x => !x.estimate && food(ctx.s, x.foodId)).map(x => ({ foodId: x.foodId, g: x.g })) });
+    });
+  }
+  return out;
+}
+
+export interface PlanPrep {
+  /** Per food: total as listed in the meals (cooked weight for cooked foods) and what to buy. */
+  cook: { foodId: string; name: string; basis: string; g: number; buyId: string; buyName: string; buyBasis: string; buyG: number; est: boolean }[];
+  /** One container per planned meal. */
+  boxes: { date: ISODate; label: string; items: { foodId: string; name: string; basis: string; g: number }[] }[];
+}
+
+/** Batch-cook from the meal plan: totals to cook and buy, and what goes in each container. */
+export function prepFromPlan(ctx: Ctx, days: number, slots: number[]): PlanPrep {
+  const { s } = ctx; const meals = planMeals(ctx, days, slots);
+  const tot: Record<string, number> = {};
+  meals.forEach(m => m.items.forEach(i => { tot[i.foodId] = (tot[i.foodId] || 0) + i.g; }));
+  const cook = Object.entries(tot).map(([id, g]) => {
+    const f = food(s, id)!; const b = toBuy(s, id, g)!; const bf = food(s, b.id)!;
+    return { foodId: id, name: f.name, basis: f.basis, g, buyId: b.id, buyName: bf.name, buyBasis: bf.basis, buyG: b.g, est: b.est };
+  }).sort((a, b) => b.g - a.g);
+  const boxes = meals.map(m => ({ date: m.date, label: m.label, items: m.items.map(i => { const f = food(s, i.foodId)!; return { foodId: i.foodId, name: f.name, basis: f.basis, g: i.g }; }) }));
+  return { cook, boxes };
+}
+
+/** Shopping list for the next `days` days of the meal plan plus any recipe/meal prep plans (manual items are separate).
+    Removed items are left out. */
+export function shoppingList(ctx: Ctx, days: number): GroceryRow[] {
+  const { s } = ctx;
+  const extra: Record<string, Omit<GroceryRow, 'buy'>> = {};
+  planMeals(ctx, days).forEach(m => m.items.forEach(i => {
+    const b = toBuy(s, i.foodId, i.g); if (!b) return; const f = food(s, b.id)!;
+    if (!extra[b.id]) extra[b.id] = { id: b.id, name: f.name, basis: f.basis, cat: f.cat, g: 0, est: false, from: [] };
+    extra[b.id].g += b.g; extra[b.id].est = extra[b.id].est || b.est;
+    if (!extra[b.id].from.includes('Meal plan')) extra[b.id].from.push('Meal plan');
+  }));
+  return groceryList(s, extra).filter(r => !s.grocery.removed?.[r.id]);
+}
+
+export function groceryList(s: State, extra: Record<string, Omit<GroceryRow, 'buy'>> = {}): GroceryRow[] {
   const U = makeUnits(s);
-  const agg: Record<string, Omit<GroceryRow, 'buy'>> = {};
+  const agg: Record<string, Omit<GroceryRow, 'buy'>> = Object.fromEntries(Object.entries(extra).map(([k, v]) => [k, { ...v, from: [...v.from] }]));
   s.prep.forEach(p => {
     const c = prepCalc(s, p); if (!c) return;
     c.lines.forEach(l => {

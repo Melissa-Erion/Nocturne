@@ -198,3 +198,50 @@ test('a plan that is not active can be deleted; the active one cannot', async ({
   await expect(page.getByRole('button', { name: 'My plan' })).toHaveCount(0);
   errors.expectNone();
 });
+
+test('workout rotation: drag a row to reorder, or use its arrows', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openTab(page, 'Train'); await section(page, 'Plans').click();
+  const names = async () => (await page.getByRole('button', { name: /^Move .* up$/ }).evaluateAll(els => els.map(e => (e.getAttribute('aria-label') || '').replace(/^Move | up$/g, ''))));
+  const before = await names();
+  await page.getByRole('button', { name: `Move ${before[0]} down` }).click();
+  expect(await names()).toEqual([before[1], before[0], ...before.slice(2)]);
+  // drag the last row to the top by its handle
+  const order = await names();
+  const handle = page.getByLabel(`Drag ${order[order.length - 1]} to reorder`);
+  const box = (await handle.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  for (let k = 1; k <= 10; k++) await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 - k * 52 * (order.length - 1) / 10);
+  await page.mouse.up();
+  expect((await names())[0]).toBe(order[order.length - 1]);
+  errors.expectNone();
+});
+
+test('grocery list comes from the meal plan; items can be removed and put back', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/grocery');
+  await expect(page.getByText(/Everything in your meals for the next 7 days/)).toBeVisible();
+  await page.getByRole('button', { name: '3 days' }).click();
+  await expect(page.getByText(/next 3 days/)).toBeVisible();
+  const remove = page.getByRole('button', { name: /^Remove (?!sample)/ }).first();
+  const name = (await remove.getAttribute('aria-label'))!.replace(/^Remove /, '');
+  await remove.click();
+  await expect(page.getByRole('button', { name: `Remove ${name}` })).toHaveCount(0);
+  await page.getByRole('button', { name: /Show removed items \(1\)/ }).click();
+  await page.getByRole('button', { name: `Put back ${name}` }).click();
+  await expect(page.getByRole('button', { name: `Remove ${name}` })).toBeVisible();
+  errors.expectNone();
+});
+
+test('meal prep from the plan updates with the chosen meals', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/prep');
+  await expect(page.getByText('Prep from my meal plan')).toBeVisible();
+  const count = async () => Number((await page.getByText(/^1\. Cook this \(\d+ containers\)$/).textContent())!.match(/\d+ containers/)![0].split(' ')[0]);
+  const n0 = await count();
+  await page.getByRole('button', { name: 'Breakfast' }).click();
+  expect(await count()).toBeGreaterThan(n0);
+  await expect(page.getByText('2. Pack your containers')).toBeVisible();
+  errors.expectNone();
+});
