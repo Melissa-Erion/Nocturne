@@ -8,7 +8,7 @@ Canadian angle where it fits (metric + imperial, CAD prices).
 | Week | Publish | Post | Search target | Links to | Status |
 |---|---|---|---|---|---|
 | 1 | Nov 24 | How to calculate your macros, step by step | how to calculate macros | how-much-protein, plan-your-meals | drafted |
-| 2 | Dec 1 | How big a calorie deficit to lose fat (and keep muscle) | calorie deficit to lose fat | week 1, how-much-protein | |
+| 2 | Dec 1 | How big a calorie deficit to lose fat (and keep muscle) | calorie deficit to lose fat | week 1, how-much-protein | drafted |
 | 3 | Dec 8 | The 4-day upper/lower split: a full beginner program | upper lower split 4 day | your-first-week-at-the-gym, how-progression-works | |
 | 4 | Dec 15 | Progressive overload, explained simply | what is progressive overload | week 3, how-progression-works | |
 | 5 | Dec 22 | How many days a week should you work out? | how many days a week to work out | week 3, move-or-skip-a-workout | |
